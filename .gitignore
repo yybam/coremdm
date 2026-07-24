@@ -1,0 +1,22 @@
+# Gradle
+.gradle/
+build/
+**/build/
+*.apk
+*.aab
+
+# Android local config
+local.properties
+
+# IDE
+.idea/
+*.iml
+
+# Node.js backend
+backend/node_modules/
+backend/.env
+backend/serviceAccountKey.json
+
+# OS
+.DS_Store
+Thumbs.db

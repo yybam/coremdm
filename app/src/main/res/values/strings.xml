@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">CORE MDM</string>
+    <string name="device_admin_label">CORE MDM Admin</string>
+    <string name="device_admin_description">Required for enterprise device management and policy enforcement</string>
+</resources>

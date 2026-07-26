@@ -1,0 +1,2 @@
+# coremdm
+basic mdm solution

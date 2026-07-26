@@ -443,7 +443,7 @@ function timeSince(ms) {
   return Math.floor(h/24)+'d ago';
 }
 function isOnline(d) {
-  return d.status === 'online' && d.lastSeen && (Date.now()-d.lastSeen) < 3*60*1000;
+  return d.status === 'online' && d.lastSeen && (Date.now()-d.lastSeen) < 5*60*1000;
 }
 function deviceRef(id) { return doc(db, 'devices', id); }
 

@@ -15,9 +15,11 @@ object DeviceRegistry {
 
     fun updateLastSeen(context: Context) {
         uid() ?: return
-        devices().document(EnrollmentManager.getHardwareId(context))
+        val id = EnrollmentManager.getHardwareId(context)
+        devices().document(id)
             .update("lastSeen", FieldValue.serverTimestamp(), "status", "online")
-            .addOnFailureListener { /* network may be unavailable */ }
+            .addOnSuccessListener { Log.d("DeviceRegistry", "lastSeen updated: $id") }
+            .addOnFailureListener { Log.e("DeviceRegistry", "updateLastSeen FAILED for $id: ${it.message}") }
     }
 
     fun storeFcmToken(context: Context, token: String) {

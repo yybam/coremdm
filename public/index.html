@@ -196,6 +196,44 @@ header { background: var(--navy); border-bottom: 1px solid var(--border); paddin
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--borderLt); }
+
+/* ─── Super Admin Panel ──────────────────────────────────── */
+#btn-admin { background: linear-gradient(135deg,#8B5CF620,#4DD2F020); border: 1px solid #8B5CF640; color: var(--purple); border-radius: 7px; padding: 6px 14px; font-size: 12px; font-weight: 700; letter-spacing: 0.3px; transition: opacity 0.2s; display: none; }
+#btn-admin:hover { opacity: 0.85; }
+.sa-badge { display: inline-block; background: linear-gradient(135deg,#8B5CF6,#4DD2F0); color: #fff; font-size: 10px; font-weight: 800; letter-spacing: 1px; padding: 2px 7px; border-radius: 20px; vertical-align: middle; }
+#s-admin { display: none; flex-direction: column; min-height: 100vh; }
+.admin-content { padding: 24px; max-width: 1400px; width: 100%; margin: 0 auto; flex: 1; }
+.admin-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+.admin-hdr h2 { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+.admin-tab-bar { display: flex; gap: 4px; background: var(--navy); border: 1px solid var(--border); border-radius: 10px; padding: 4px; margin-bottom: 20px; width: fit-content; }
+.admin-tab-btn { padding: 8px 18px; border-radius: 7px; font-size: 13px; font-weight: 600; color: var(--textSec); background: none; transition: all 0.2s; }
+.admin-tab-btn.active { background: var(--card); color: var(--text); }
+.admin-tab-btn:hover:not(.active) { color: var(--text); }
+.admin-table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid var(--border); }
+.admin-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.admin-table th { background: var(--navy); padding: 12px 14px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--textSec); white-space: nowrap; border-bottom: 1px solid var(--border); }
+.admin-table td { padding: 12px 14px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
+.admin-table tr:last-child td { border-bottom: none; }
+.admin-table tbody tr:hover td { background: rgba(255,255,255,0.02); }
+.admin-table .mono { font-family: monospace; font-size: 12px; color: var(--textSec); }
+.admin-table .action-cell { display: flex; gap: 6px; }
+.at-btn { padding: 5px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; }
+.at-btn-lock { background: rgba(0,24,40,0.8); color: var(--cyan); border: 1px solid rgba(77,210,240,0.3); }
+.at-btn-alarm { background: rgba(45,26,0,0.6); color: var(--yellow); border: 1px solid rgba(245,158,11,0.3); }
+.at-btn-alarm.on { background: var(--yellow); color: var(--bg); }
+.at-btn-manage { background: rgba(139,92,246,0.15); color: var(--purple); border: 1px solid rgba(139,92,246,0.3); }
+.audit-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; font-family: monospace; }
+.audit-LOCK_SCREEN   { background: rgba(0,24,40,0.8); color: var(--cyan); }
+.audit-ALARM_ON      { background: #3A0000; color: var(--red); }
+.audit-ALARM_OFF     { background: #1A1A30; color: var(--textSec); }
+.audit-WIPE          { background: var(--red); color: #fff; }
+.audit-FULL_LOCKDOWN { background: rgba(45,0,0,0.9); color: var(--red); }
+.audit-REBOOT        { background: rgba(26,10,40,0.8); color: var(--purple); }
+.audit-POLICY        { background: rgba(0,40,24,0.8); color: var(--green); }
+.audit-LOGIN         { background: rgba(0,40,24,0.6); color: var(--green); }
+.audit-default       { background: var(--card); color: var(--textSec); }
+.admin-empty { text-align: center; padding: 48px 0; color: var(--textSec); font-size: 14px; }
+.admin-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
 </style>
 </head>
 <body>
@@ -244,7 +282,10 @@ header { background: var(--navy); border-bottom: 1px solid var(--border); paddin
       <div class="hdr-mark">C</div>
       <div class="hdr-name">CORE MDM</div>
     </div>
-    <button id="btn-signout">Sign Out</button>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <button id="btn-admin" onclick="window._mdm.switchToAdmin()">&#9654; Super Admin</button>
+      <button id="btn-signout">Sign Out</button>
+    </div>
   </header>
   <div class="main-content">
     <div id="stats-strip">
@@ -257,6 +298,29 @@ header { background: var(--navy); border-bottom: 1px solid var(--border); paddin
       <input id="search" type="search" placeholder="Search by name, IMEI, serial...">
     </div>
     <div id="device-grid"></div>
+  </div>
+</div>
+
+<!-- ─── Super Admin Panel ──────────────────────────────── -->
+<div id="s-admin">
+  <header>
+    <div class="hdr-logo">
+      <div class="hdr-mark">C</div>
+      <div class="hdr-name">CORE MDM</div>
+      <span class="sa-badge">SUPER ADMIN</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <button class="btn-sec" style="font-size:12px;padding:6px 14px;" onclick="window._mdm.switchToDashboard()">&#8592; My Devices</button>
+      <button id="btn-signout-admin">Sign Out</button>
+    </div>
+  </header>
+  <div class="admin-content">
+    <div class="admin-hdr">
+      <h2>Super Admin Dashboard <span class="sa-badge">SUPER ADMIN</span></h2>
+    </div>
+    <div class="admin-stats" id="admin-stats"></div>
+    <div class="admin-tab-bar" id="admin-tab-bar"></div>
+    <div id="admin-panel-body"></div>
   </div>
 </div>
 
@@ -293,7 +357,9 @@ header { background: var(--navy); border-bottom: 1px solid var(--border); paddin
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { getFirestore, collection, query, where, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove }
+import { getFirestore, collection, query, where, orderBy, limit,
+         onSnapshot, doc, updateDoc, arrayUnion, arrayRemove,
+         addDoc, serverTimestamp }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const app = initializeApp({
@@ -308,6 +374,13 @@ const auth = getAuth(app);
 const db   = getFirestore(app);
 
 // ── State ───────────────────────────────────────────────────
+const SUPER_ADMIN_EMAIL = 'yybambi23@gmail.com';
+let isSuperAdmin        = false;
+let adminMode           = false;
+let adminTab            = 'devices';
+let unsubAdminDevices   = null;
+let unsubAuditLog       = null;
+
 const devicesMap = {};
 let unsubDevices = null;
 let selectedId   = null;
@@ -413,15 +486,25 @@ document.getElementById('btn-reset-send').addEventListener('click', async () => 
 
 onAuthStateChanged(auth, user => {
   if (user) {
+    isSuperAdmin = user.email === SUPER_ADMIN_EMAIL;
     document.getElementById('s-login').style.display = 'none';
-    const app = document.getElementById('s-app');
-    app.style.display = 'flex';
-    app.style.flexDirection = 'column';
+    document.getElementById('s-admin').style.display  = 'none';
+    const appEl = document.getElementById('s-app');
+    appEl.style.display = 'flex';
+    appEl.style.flexDirection = 'column';
+    document.getElementById('btn-admin').style.display = isSuperAdmin ? '' : 'none';
+    adminMode = false;
     startDeviceListener(user.uid);
+    if (isSuperAdmin) logAudit('LOGIN', null, 'Super admin signed in');
   } else {
+    isSuperAdmin = false;
+    adminMode    = false;
     document.getElementById('s-login').style.display = '';
-    document.getElementById('s-app').style.display = 'none';
-    if (unsubDevices) { unsubDevices(); unsubDevices = null; }
+    document.getElementById('s-app').style.display   = 'none';
+    document.getElementById('s-admin').style.display = 'none';
+    if (unsubDevices)      { unsubDevices(); unsubDevices = null; }
+    if (unsubAdminDevices) { unsubAdminDevices(); unsubAdminDevices = null; }
+    if (unsubAuditLog)     { unsubAuditLog(); unsubAuditLog = null; }
     closeModal();
   }
 });
@@ -646,14 +729,27 @@ async function setPolicyField(id, key, val) {
   catch(e) { console.error('setPolicyField error:', e); alert('Policy update failed: '+e.message); }
 }
 
-function toggleAlarm(id, val)  { setField(id, 'alarmActive', val); }
-function sendLock(id)          { setField(id, 'lockCommand', true); }
-function sendReboot(id)        { setField(id, 'rebootCommand', true); }
+function toggleAlarm(id, val)  {
+  setField(id, 'alarmActive', val);
+  logAudit(val ? 'ALARM_ON' : 'ALARM_OFF', id, devicesMap[id]?.model || id);
+}
+function sendLock(id)          {
+  setField(id, 'lockCommand', true);
+  logAudit('LOCK_SCREEN', id, devicesMap[id]?.model || id);
+}
+function sendReboot(id)        {
+  setField(id, 'rebootCommand', true);
+  logAudit('REBOOT', id, devicesMap[id]?.model || id);
+}
 function sendFullLockdown(id)  {
   if (!confirm('Apply full lockdown to this device? All major restrictions will be enabled immediately.')) return;
   setField(id, 'fullLockdownCommand', true);
+  logAudit('FULL_LOCKDOWN', id, devicesMap[id]?.model || id);
 }
-function setPolicy(id, key, val) { setPolicyField(id, key, val); }
+function setPolicy(id, key, val) {
+  setPolicyField(id, key, val);
+  logAudit('POLICY', id, `${key}=${val} on ${devicesMap[id]?.model || id}`);
+}
 function lockDns(id) {
   const host = (document.getElementById('dns-host-input')?.value || '').trim();
   if (!host) { alert('Enter a DNS hostname first.'); return; }
@@ -687,15 +783,180 @@ function cancelWipe() {
 }
 async function executeWipe() {
   if (!wipeTargetId) return;
+  logAudit('WIPE', wipeTargetId, devicesMap[wipeTargetId]?.model || wipeTargetId);
   await setField(wipeTargetId, 'wipeCommand', true);
   cancelWipe();
   closeModal();
+}
+
+document.getElementById('btn-signout-admin').addEventListener('click', () => signOut(auth));
+
+// ── Audit logging ────────────────────────────────────────────
+async function logAudit(action, deviceId, details) {
+  if (!auth.currentUser) return;
+  try {
+    await addDoc(collection(db, 'audit_logs'), {
+      action,
+      deviceId:  deviceId  || null,
+      details:   details   || null,
+      userEmail: auth.currentUser.email,
+      userId:    auth.currentUser.uid,
+      timestamp: serverTimestamp(),
+      userAgent: navigator.userAgent.substring(0, 200),
+    });
+  } catch(e) { console.warn('Audit log write failed:', e.message); }
+}
+
+// ── Admin panel ──────────────────────────────────────────────
+function switchToAdmin() {
+  if (!isSuperAdmin) return;
+  adminMode = true;
+  document.getElementById('s-app').style.display   = 'none';
+  const adm = document.getElementById('s-admin');
+  adm.style.display = 'flex';
+  adm.style.flexDirection = 'column';
+  renderAdminTabBar();
+  loadAdminView(adminTab);
+  logAudit('ADMIN_PANEL_OPEN', null, 'Opened super admin dashboard');
+}
+function switchToDashboard() {
+  adminMode = false;
+  document.getElementById('s-admin').style.display = 'none';
+  const appEl = document.getElementById('s-app');
+  appEl.style.display = 'flex';
+  appEl.style.flexDirection = 'column';
+  if (unsubAdminDevices) { unsubAdminDevices(); unsubAdminDevices = null; }
+  if (unsubAuditLog)     { unsubAuditLog(); unsubAuditLog = null; }
+}
+function switchAdminTab(tab) {
+  adminTab = tab;
+  if (unsubAdminDevices) { unsubAdminDevices(); unsubAdminDevices = null; }
+  if (unsubAuditLog)     { unsubAuditLog(); unsubAuditLog = null; }
+  renderAdminTabBar();
+  loadAdminView(tab);
+}
+function renderAdminTabBar() {
+  const tabs = [
+    { id:'devices', label:'All Devices' },
+    { id:'audit',   label:'Audit Log' },
+  ];
+  document.getElementById('admin-tab-bar').innerHTML = tabs.map(t =>
+    `<button class="admin-tab-btn${t.id===adminTab?' active':''}" onclick="window._mdm.switchAdminTab('${t.id}')">${t.label}</button>`
+  ).join('');
+}
+function loadAdminView(tab) {
+  if (tab === 'devices') loadAdminDevices();
+  else loadAuditLog();
+}
+
+function loadAdminDevices() {
+  document.getElementById('admin-panel-body').innerHTML = '<div class="admin-empty">Loading devices…</div>';
+  const q = collection(db, 'devices');
+  unsubAdminDevices = onSnapshot(q, snap => {
+    const devices = snap.docs.map(d => ({ id: d.id, ...d.data(), lastSeenMs: d.data().lastSeen?.toMillis?.() ?? null }));
+    devices.sort((a,b) => (b.lastSeenMs||0)-(a.lastSeenMs||0));
+
+    const total   = devices.length;
+    const online  = devices.filter(d => d.status === 'online' && d.lastSeenMs && (Date.now()-d.lastSeenMs) < 180_000).length;
+    const alarming = devices.filter(d => d.alarmActive).length;
+    document.getElementById('admin-stats').innerHTML = `
+      <div class="stat-card stat-total"><div class="stat-val">${total}</div><div class="stat-lbl">Total Devices</div></div>
+      <div class="stat-card stat-online"><div class="stat-val">${online}</div><div class="stat-lbl">Online</div></div>
+      <div class="stat-card stat-offline"><div class="stat-val">${total-online}</div><div class="stat-lbl">Offline</div></div>
+      <div class="stat-card stat-alarm"><div class="stat-val">${alarming}</div><div class="stat-lbl">Alarming</div></div>`;
+
+    if (!devices.length) {
+      document.getElementById('admin-panel-body').innerHTML = '<div class="admin-empty">No devices enrolled in this system.</div>';
+      return;
+    }
+    document.getElementById('admin-panel-body').innerHTML = `
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr>
+            <th>Device</th><th>OS</th><th>Status</th><th>Owner</th><th>IMEI / Serial</th><th>Last Seen</th><th>Actions</th>
+          </tr></thead>
+          <tbody>${devices.map(d => {
+            const on    = d.status === 'online' && d.lastSeenMs && (Date.now()-d.lastSeenMs) < 180_000;
+            const alarm = d.alarmActive;
+            return `<tr>
+              <td><strong>${esc(d.model||'Unknown')}</strong></td>
+              <td class="mono">${esc(d.osVersion||'')}</td>
+              <td><span class="badge ${on?'badge-online':'badge-offline'}">${on?'ONLINE':'OFFLINE'}</span>${alarm?' <span class="badge badge-alarm">ALARM</span>':''}</td>
+              <td class="mono" style="font-size:11px;">${esc(d.ownerId||'')}</td>
+              <td class="mono">${d.imei?esc(d.imei):''}<br>${d.serial?esc(d.serial):''}</td>
+              <td style="font-size:12px;color:var(--textSec);">${timeSince(d.lastSeenMs)}</td>
+              <td><div class="action-cell">
+                <button class="at-btn at-btn-lock" onclick="window._mdm.sendLock('${d.id}')">Lock</button>
+                <button class="at-btn at-btn-alarm${alarm?' on':''}" onclick="window._mdm.toggleAlarm('${d.id}',${!alarm})">${alarm?'Stop Alarm':'Alarm'}</button>
+                <button class="at-btn at-btn-manage" onclick="window._mdm.adminManage('${d.id}')">Manage</button>
+              </div></td>
+            </tr>`;
+          }).join('')}</tbody>
+        </table>
+      </div>`;
+  }, err => {
+    document.getElementById('admin-panel-body').innerHTML = `<div class="admin-empty" style="color:var(--red)">Error loading devices: ${esc(err.message)}</div>`;
+  });
+}
+
+function loadAuditLog() {
+  document.getElementById('admin-stats').innerHTML = '';
+  document.getElementById('admin-panel-body').innerHTML = '<div class="admin-empty">Loading audit log…</div>';
+  const q = query(collection(db, 'audit_logs'), orderBy('timestamp', 'desc'), limit(100));
+  unsubAuditLog = onSnapshot(q, snap => {
+    const logs = snap.docs.map(d => ({ id: d.id, ...d.data(), ts: d.data().timestamp?.toMillis?.() ?? null }));
+    if (!logs.length) {
+      document.getElementById('admin-panel-body').innerHTML = '<div class="admin-empty">No audit events recorded yet. Actions you take will appear here.</div>';
+      return;
+    }
+    document.getElementById('admin-panel-body').innerHTML = `
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr>
+            <th>Timestamp</th><th>Action</th><th>User</th><th>Device</th><th>Details</th>
+          </tr></thead>
+          <tbody>${logs.map(l => {
+            const tagClass = `audit-${l.action}` in document.styleSheets[0] ? `audit-${l.action}` : 'audit-default';
+            const dt = l.ts ? new Date(l.ts).toLocaleString() : '—';
+            return `<tr>
+              <td style="font-size:11px;color:var(--textSec);white-space:nowrap;">${dt}</td>
+              <td><span class="audit-tag audit-${esc(l.action||'')}">${esc(l.action||'')}</span></td>
+              <td class="mono" style="font-size:11px;">${esc(l.userEmail||'')}</td>
+              <td class="mono" style="font-size:11px;">${esc(l.deviceId||'—')}</td>
+              <td style="font-size:12px;color:var(--textSec);">${esc(l.details||'')}</td>
+            </tr>`;
+          }).join('')}</tbody>
+        </table>
+      </div>`;
+  }, err => {
+    document.getElementById('admin-panel-body').innerHTML = `<div class="admin-empty" style="color:var(--red)">Error loading audit log: ${esc(err.message)}</div>`;
+  });
+}
+
+// Opens Manage modal while in admin view (syncs devicesMap entry first)
+function adminManage(id) {
+  if (!devicesMap[id]) {
+    // device might not be in devicesMap if it belongs to another owner
+    // fetch it first, then open modal
+    import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js').then(({getDoc, doc: fsDoc}) => {
+      getDoc(fsDoc(db, 'devices', id)).then(snap => {
+        if (snap.exists()) {
+          const data = snap.data();
+          devicesMap[id] = { id, model: data.model||'Unknown', osVersion: data.osVersion||'', status: data.status||'offline', lastSeen: data.lastSeen?.toMillis?.()||null, alarmActive: data.alarmActive||false, imei: data.imei||'', serial: data.serial||'', policies: data.policies||{} };
+        }
+        openModal(id);
+      });
+    });
+  } else {
+    openModal(id);
+  }
 }
 
 // ── Global exposure ──────────────────────────────────────────
 window._mdm = {
   openModal, switchTab, toggleAlarm, sendLock, sendReboot,
   sendFullLockdown, setPolicy, lockDns, clearDns, addPkg, removePkg, confirmWipe,
+  switchToAdmin, switchToDashboard, switchAdminTab, adminManage,
 };
 window.cancelWipe  = cancelWipe;
 window.executeWipe = executeWipe;

@@ -52,12 +52,24 @@ object EnrollmentManager {
     fun getAndroidId(context: Context): String =
         Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID) ?: "unknown"
 
+    private const val PREFS_NAME = "mdm_enrollment"
+    private const val KEY_HW_ID  = "hardware_id"
+
     /**
-     * Returns the best available hardware identifier in priority order:
-     * IMEI → Serial → Android ID
+     * Returns a stable hardware identifier, cached in SharedPreferences so it
+     * never changes even if permission levels change between reboots.
+     * Priority on first derivation: IMEI → Serial → Android ID.
      */
-    fun getHardwareId(context: Context): String =
-        getImei(context) ?: getSerial(context) ?: getAndroidId(context)
+    fun getHardwareId(context: Context): String {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val cached = prefs.getString(KEY_HW_ID, null)
+        if (!cached.isNullOrBlank()) return cached
+
+        val derived = getImei(context) ?: getSerial(context) ?: getAndroidId(context)
+        prefs.edit().putString(KEY_HW_ID, derived).apply()
+        Log.i(TAG, "Hardware ID derived and cached: $derived")
+        return derived
+    }
 
     // ── Firestore enrollment ──────────────────────────────────────────────────
 
@@ -86,10 +98,11 @@ object EnrollmentManager {
         getSerial(context)?.let  { data["serial"] = it }
         fcmToken?.let            { data["fcmToken"] = it }
 
+        Log.i(TAG, "Enrolling device: hardwareId=$hardwareId ownerId=$uid")
         Firebase.firestore.collection("devices").document(hardwareId)
             .set(data, SetOptions.merge())
-            .addOnSuccessListener { Log.d(TAG, "Enrolled $hardwareId (ownerId=$uid)") }
-            .addOnFailureListener { Log.e(TAG, "Enrollment failed: ${it.message}") }
+            .addOnSuccessListener { Log.i(TAG, "Enrolled OK: $hardwareId") }
+            .addOnFailureListener { Log.e(TAG, "Enrollment FAILED: ${it.message}") }
     }
 
     fun setOffline(context: Context) {

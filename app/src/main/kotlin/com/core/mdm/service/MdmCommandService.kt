@@ -47,6 +47,7 @@ class MdmCommandService : Service() {
         authStateListener = FirebaseAuth.AuthStateListener { fbAuth ->
             if (fbAuth.currentUser != null) {
                 EnrollmentManager.enroll(applicationContext)
+                DeviceRegistry.updateLastSeen(applicationContext) // immediate; don't wait for first 60s tick
                 if (commandListener == null) {
                     commandListener = DeviceRegistry.watchCommands(
                         context = applicationContext,

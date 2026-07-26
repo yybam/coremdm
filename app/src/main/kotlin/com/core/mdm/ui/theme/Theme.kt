@@ -45,7 +45,7 @@ private val MdmLightColorScheme = lightColorScheme(
 )
 
 @Composable
-fun TecheazMdmTheme(
+fun CoreMdmTheme(
     themeMode: ThemeMode = ThemeMode.SYSTEM,
     content: @Composable () -> Unit
 ) {

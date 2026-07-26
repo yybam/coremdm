@@ -116,6 +116,27 @@ private fun DeviceCard(device: DeviceInfo, viewModel: RemoteControlViewModel) {
                 }
             }
 
+            // ── Hardware identifiers + status ─────────────────────────────────
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Online / Offline badge
+                Surface(
+                    shape = RoundedCornerShape(4.dp),
+                    color = if (device.status == "online") c.green.copy(alpha = 0.15f) else c.textSecondary.copy(alpha = 0.1f)
+                ) {
+                    Text(
+                        device.status.uppercase(),
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        color = if (device.status == "online") c.green else c.textSecondary,
+                        fontSize = 9.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                    )
+                }
+                device.imei?.let   { Text("IMEI: $it",   color = c.textSecondary, fontSize = 10.sp) }
+                device.serial?.let { Text("S/N: $it",    color = c.textSecondary, fontSize = 10.sp) }
+            }
+
             // ── Last seen ─────────────────────────────────────────────────────
             device.lastSeen?.let { ts ->
                 Row(

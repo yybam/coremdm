@@ -16,5 +16,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "TecheazMDM"
+rootProject.name = "CoreMDM"
 include(":app")

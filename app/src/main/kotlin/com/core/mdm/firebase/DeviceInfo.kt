@@ -1,4 +1,4 @@
-﻿package com.core.mdm.firebase
+package com.core.mdm.firebase
 
 data class DeviceInfo(
     val id: String,
@@ -6,4 +6,8 @@ data class DeviceInfo(
     val osVersion: String,
     val alarmActive: Boolean,
     val lastSeen: Long?,
+    val hardwareId: String = id,
+    val imei: String? = null,
+    val serial: String? = null,
+    val status: String = "offline",
 )

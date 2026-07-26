@@ -29,7 +29,7 @@ import com.core.mdm.ui.pin.PinLockViewModel
 import com.core.mdm.ui.pin.PinScreenMode
 import com.core.mdm.ui.remote.RemoteControlScreen
 import com.core.mdm.ui.telemetry.TelemetryScreen
-import com.core.mdm.ui.theme.TecheazMdmTheme
+import com.core.mdm.ui.theme.CoreMdmTheme
 import com.core.mdm.ui.theme.ThemeMode
 
 private const val ROUTE_DASHBOARD = "dashboard"
@@ -47,7 +47,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val themeMode by ThemePrefs.themeMode.collectAsState()
-            TecheazMdmTheme(themeMode = themeMode) {
+            CoreMdmTheme(themeMode = themeMode) {
                 AppRoot()
             }
         }

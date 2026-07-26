@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CORE MDM Console</title>
+<style>
+:root {
+  --bg:       #080814;
+  --navy:     #0F1028;
+  --card:     #141432;
+  --cardLt:   #1A1A40;
+  --border:   #1E1E42;
+  --borderLt: #2A2A55;
+  --cyan:     #4DD2F0;
+  --green:    #22C55E;
+  --red:      #EF4444;
+  --yellow:   #F59E0B;
+  --purple:   #8B5CF6;
+  --text:     #D8E8FF;
+  --textSec:  #667799;
+  --textDim:  #445588;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+input, button, textarea { font-family: inherit; }
+button { cursor: pointer; border: none; outline: none; }
+input { outline: none; border: none; }
+
+/* ─── Login ─────────────────────────────────────────────── */
+#s-login { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
+.login-card { background: var(--navy); border: 1px solid var(--border); border-radius: 16px; padding: 40px 36px; width: 100%; max-width: 380px; }
+.logo { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; justify-content: center; }
+.logo-mark { width: 40px; height: 40px; background: linear-gradient(135deg,#4DD2F0,#8B5CF6); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 18px; color: #fff; }
+.logo-text { font-size: 20px; font-weight: 700; letter-spacing: 2px; color: var(--text); }
+.login-title { font-size: 15px; color: var(--textSec); text-align: center; margin-bottom: 28px; }
+.field { margin-bottom: 14px; }
+.field label { display: block; font-size: 12px; font-weight: 600; color: var(--textSec); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+.field input { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; font-size: 14px; color: var(--text); transition: border-color 0.2s; }
+.field input:focus { border-color: var(--cyan); }
+#btn-login { width: 100%; background: linear-gradient(135deg,#4DD2F0,#8B5CF6); color: #fff; border-radius: 8px; padding: 12px; font-size: 14px; font-weight: 700; letter-spacing: 0.5px; margin-top: 8px; transition: opacity 0.2s; }
+#btn-login:hover { opacity: 0.9; }
+.login-footer { display: flex; justify-content: center; margin-top: 16px; }
+.link-btn { background: none; color: var(--cyan); font-size: 13px; padding: 4px; }
+.link-btn:hover { text-decoration: underline; }
+#login-msg { min-height: 20px; font-size: 13px; text-align: center; margin-top: 10px; color: var(--red); }
+#reset-panel { display: none; background: var(--navy); border: 1px solid var(--border); border-radius: 16px; padding: 28px; width: 100%; max-width: 380px; margin-top: 12px; }
+#reset-panel.open { display: block; }
+#reset-panel h3 { font-size: 16px; margin-bottom: 8px; }
+#reset-panel p { font-size: 13px; color: var(--textSec); margin-bottom: 16px; }
+.row-btns { display: flex; gap: 8px; }
+.btn-sec { background: var(--card); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 9px 14px; font-size: 13px; font-weight: 600; transition: border-color 0.2s; }
+.btn-sec:hover { border-color: var(--cyan); }
+.btn-pri { background: var(--cyan); color: var(--bg); border-radius: 8px; padding: 9px 14px; font-size: 13px; font-weight: 700; transition: opacity 0.2s; }
+.btn-pri:hover { opacity: 0.85; }
+#reset-msg { font-size: 13px; margin-top: 10px; min-height: 18px; }
+
+/* ─── App shell ──────────────────────────────────────────── */
+#s-app { display: none; flex-direction: column; min-height: 100vh; }
+header { background: var(--navy); border-bottom: 1px solid var(--border); padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+.hdr-logo { display: flex; align-items: center; gap: 10px; }
+.hdr-mark { width: 30px; height: 30px; background: linear-gradient(135deg,#4DD2F0,#8B5CF6); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 13px; color: #fff; }
+.hdr-name { font-size: 15px; font-weight: 700; letter-spacing: 1.5px; }
+#btn-signout { background: var(--card); border: 1px solid var(--border); color: var(--textSec); border-radius: 7px; padding: 6px 14px; font-size: 12px; font-weight: 600; transition: color 0.2s, border-color 0.2s; }
+#btn-signout:hover { color: var(--text); border-color: var(--borderLt); }
+.main-content { padding: 24px; max-width: 1400px; width: 100%; margin: 0 auto; flex: 1; }
+#stats-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+.stat-card { background: var(--navy); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+.stat-val { font-size: 28px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+.stat-lbl { font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.8px; color: var(--textSec); }
+.stat-total .stat-val  { color: var(--cyan); }
+.stat-online .stat-val { color: var(--green); }
+.stat-offline .stat-val{ color: var(--textSec); }
+.stat-alarm .stat-val  { color: var(--red); }
+#toolbar { margin-bottom: 20px; }
+#search { width: 100%; max-width: 360px; background: var(--navy); border: 1px solid var(--border); border-radius: 9px; padding: 9px 16px; font-size: 14px; color: var(--text); }
+#search::placeholder { color: var(--textDim); }
+#search:focus { border-color: var(--cyan); }
+#device-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+#empty-state { grid-column: 1/-1; text-align: center; padding: 64px 0; color: var(--textSec); }
+#empty-state p { margin-top: 8px; font-size: 14px; }
+.device-card { background: var(--navy); border: 1px solid var(--border); border-radius: 14px; padding: 18px; transition: border-color 0.2s; }
+.device-card:hover { border-color: var(--borderLt); }
+.device-card.alarming { border-color: var(--red); }
+.dc-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
+.dc-name { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+.dc-sub  { font-size: 12px; color: var(--textSec); }
+.dc-badges { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; }
+.badge-online  { background: #153A25; color: var(--green); }
+.badge-offline { background: #1A1A30; color: var(--textSec); }
+.badge-alarm   { background: #3A0000; color: var(--red); }
+.dc-ids { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; padding: 10px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.dc-id { display: flex; gap: 8px; font-size: 12px; }
+.dc-id-lbl { color: var(--textSec); width: 48px; flex-shrink: 0; }
+.dc-id-val { color: var(--text); font-family: monospace; font-size: 11px; word-break: break-all; }
+.dc-lastseen { font-size: 11px; color: var(--textDim); margin-bottom: 14px; }
+.dc-actions { display: flex; gap: 8px; }
+.dc-btn { flex: 1; padding: 8px 6px; border-radius: 8px; font-size: 12px; font-weight: 600; text-align: center; transition: opacity 0.2s; }
+.dc-btn:hover { opacity: 0.85; }
+.dc-btn-alarm  { background: #2D1A00; color: var(--yellow); border: 1px solid #F59E0B40; }
+.dc-btn-alarm.active { background: var(--yellow); color: var(--bg); border-color: var(--yellow); }
+.dc-btn-manage { background: linear-gradient(135deg,#4DD2F020,#8B5CF620); color: var(--cyan); border: 1px solid #4DD2F030; }
+
+/* ─── Modal ──────────────────────────────────────────────── */
+#dev-modal { display: none; position: fixed; inset: 0; z-index: 100; align-items: flex-end; justify-content: center; }
+#dev-modal.open { display: flex; }
+.modal-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.6); }
+.modal-panel { position: relative; z-index: 1; background: var(--navy); border: 1px solid var(--border); border-radius: 18px 18px 0 0; width: 100%; max-width: 680px; max-height: 88vh; display: flex; flex-direction: column; overflow: hidden; }
+@media (min-width: 720px) { #dev-modal { align-items: center; } .modal-panel { border-radius: 18px; max-height: 85vh; } }
+.modal-hdr { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0; gap: 12px; }
+.modal-hdr-info { min-width: 0; flex: 1; }
+#modal-device-name { font-size: 17px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#modal-device-sub  { font-size: 12px; color: var(--textSec); margin-top: 4px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+#btn-close-modal { background: var(--card); border: 1px solid var(--border); color: var(--textSec); border-radius: 7px; padding: 5px 11px; font-size: 16px; line-height: 1.4; flex-shrink: 0; }
+#btn-close-modal:hover { color: var(--text); }
+.tab-bar { display: flex; overflow-x: auto; border-bottom: 1px solid var(--border); flex-shrink: 0; scrollbar-width: none; padding: 0 12px; }
+.tab-bar::-webkit-scrollbar { display: none; }
+.tab-btn { flex-shrink: 0; padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--textSec); background: none; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 0.2s, border-color 0.2s; }
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--cyan); border-bottom-color: var(--cyan); }
+.tab-body { overflow-y: auto; flex: 1; padding: 20px; }
+
+/* Commands tab */
+.cmd-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.cmd-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; padding: 18px 8px; border-radius: 10px; font-size: 13px; font-weight: 700; transition: opacity 0.2s; }
+.cmd-btn:hover { opacity: 0.85; }
+.cmd-alarm-off { background: rgba(45,26,0,0.6); color: var(--yellow); border: 1px solid rgba(245,158,11,0.3); }
+.cmd-alarm-on  { background: var(--yellow); color: #1A0E00; }
+.cmd-lock      { background: rgba(0,24,40,0.6); color: var(--cyan); border: 1px solid rgba(77,210,240,0.3); }
+.cmd-reboot    { background: rgba(26,10,40,0.6); color: var(--purple); border: 1px solid rgba(139,92,246,0.3); }
+.cmd-lockdown  { display: flex; align-items: center; gap: 16px; padding: 16px 20px; border-radius: 10px; background: rgba(45,0,0,0.6); color: var(--red); border: 1px solid rgba(239,68,68,0.3); font-size: 14px; font-weight: 700; width: 100%; text-align: left; transition: opacity 0.2s; }
+.cmd-lockdown:hover { opacity: 0.85; }
+.ld-icon { font-size: 24px; font-weight: 900; flex-shrink: 0; width: 36px; height: 36px; border-radius: 50%; background: rgba(239,68,68,0.15); display: flex; align-items: center; justify-content: center; }
+.ld-text {}
+.ld-sub { display: block; font-size: 11px; font-weight: 400; color: rgba(239,68,68,0.7); margin-top: 2px; }
+
+/* Policy toggles */
+.policy-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); gap: 12px; }
+.policy-row:last-child { border-bottom: none; }
+.policy-info { min-width: 0; flex: 1; }
+.policy-label { font-size: 13px; font-weight: 500; color: var(--text); }
+.policy-sub   { font-size: 11px; color: var(--textSec); margin-top: 2px; }
+.toggle { position: relative; display: inline-block; width: 42px; height: 24px; flex-shrink: 0; }
+.toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+.toggle-track { display: block; width: 42px; height: 24px; border-radius: 12px; background: var(--border); cursor: pointer; transition: background 0.2s; }
+.toggle input:checked + .toggle-track { background: var(--green); }
+.toggle-thumb { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; pointer-events: none; transition: transform 0.2s; }
+.toggle input:checked ~ .toggle-thumb { transform: translateX(18px); }
+
+/* Network tab */
+.net-section { margin-bottom: 24px; }
+.net-section h3 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--textSec); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+.dns-row { display: flex; gap: 8px; align-items: center; }
+.dns-input { flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; font-size: 13px; color: var(--text); min-width: 0; }
+.dns-input:focus { border-color: var(--cyan); outline: none; }
+.dns-input::placeholder { color: var(--textDim); }
+.btn-small { padding: 9px 13px; border-radius: 8px; font-size: 12px; font-weight: 700; white-space: nowrap; flex-shrink: 0; }
+.btn-lock-dns  { background: rgba(0,24,40,0.8); color: var(--cyan); border: 1px solid rgba(77,210,240,0.3); }
+.btn-lock-dns:hover  { opacity: 0.85; }
+.btn-clear-dns { background: var(--card); color: var(--textSec); border: 1px solid var(--border); }
+.btn-clear-dns:hover { color: var(--text); }
+.kiosk-pkg-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; min-height: 24px; }
+.kiosk-pkg-item { display: flex; align-items: center; justify-content: space-between; background: var(--bg); border: 1px solid var(--border); border-radius: 7px; padding: 7px 10px; }
+.kiosk-pkg-name { font-size: 12px; font-family: monospace; color: var(--text); word-break: break-all; }
+.kiosk-pkg-remove { background: none; color: var(--red); font-size: 16px; line-height: 1; padding: 0 4px; flex-shrink: 0; margin-left: 8px; }
+.kiosk-pkg-remove:hover { opacity: 0.7; }
+.kiosk-add-row { display: flex; gap: 8px; }
+.kiosk-add-input { flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; font-size: 12px; color: var(--text); font-family: monospace; min-width: 0; }
+.kiosk-add-input:focus { border-color: var(--cyan); outline: none; }
+.kiosk-add-input::placeholder { color: var(--textDim); }
+.btn-add-pkg { background: rgba(0,24,40,0.8); color: var(--cyan); border: 1px solid rgba(77,210,240,0.3); padding: 9px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+.btn-add-pkg:hover { opacity: 0.85; }
+
+/* Danger tab */
+.danger-card { background: rgba(45,0,0,0.4); border: 1px solid rgba(239,68,68,0.25); border-radius: 12px; padding: 20px; }
+.danger-title { font-size: 15px; font-weight: 700; color: var(--red); margin-bottom: 6px; }
+.danger-desc  { font-size: 13px; color: var(--textSec); margin-bottom: 16px; line-height: 1.55; }
+.btn-wipe { background: var(--red); color: #fff; border-radius: 9px; padding: 11px 20px; font-size: 14px; font-weight: 700; transition: opacity 0.2s; }
+.btn-wipe:hover { opacity: 0.85; }
+
+/* Wipe confirm */
+#wipe-confirm { display: none; position: fixed; inset: 0; z-index: 200; align-items: center; justify-content: center; padding: 24px; }
+#wipe-confirm.open { display: flex; }
+.wipe-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.75); }
+.wipe-dialog { position: relative; z-index: 1; background: var(--navy); border: 1px solid rgba(239,68,68,0.4); border-radius: 16px; padding: 28px; max-width: 360px; width: 100%; }
+.wipe-dialog h2 { font-size: 18px; font-weight: 700; color: var(--red); margin-bottom: 10px; }
+.wipe-dialog p  { font-size: 14px; color: var(--textSec); margin-bottom: 20px; line-height: 1.55; }
+.wipe-btns { display: flex; gap: 10px; }
+.btn-cancel { flex: 1; background: var(--card); border: 1px solid var(--border); color: var(--text); border-radius: 9px; padding: 11px; font-size: 14px; font-weight: 600; }
+.btn-cancel:hover { border-color: var(--borderLt); }
+.btn-confirm-wipe { flex: 1; background: var(--red); color: #fff; border-radius: 9px; padding: 11px; font-size: 14px; font-weight: 700; transition: opacity 0.2s; }
+.btn-confirm-wipe:hover { opacity: 0.85; }
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--borderLt); }
+</style>
+</head>
+<body>
+
+<!-- ─── Login ──────────────────────────────────────────── -->
+<div id="s-login">
+  <div class="login-card">
+    <div class="logo">
+      <div class="logo-mark">C</div>
+      <div class="logo-text">CORE MDM</div>
+    </div>
+    <div class="login-title">Admin Console — Sign In</div>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="inp-email" placeholder="admin@example.com" autocomplete="username">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="inp-pass" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <div id="login-msg"></div>
+    <button id="btn-login">Sign In</button>
+    <div class="login-footer">
+      <button class="link-btn" id="btn-forgot">Forgot password?</button>
+    </div>
+  </div>
+  <div id="reset-panel">
+    <h3>Reset Password</h3>
+    <p>Enter your email and we will send a reset link.</p>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="inp-reset-email" placeholder="admin@example.com">
+    </div>
+    <div class="row-btns">
+      <button class="btn-sec" id="btn-reset-cancel">Cancel</button>
+      <button class="btn-pri" id="btn-reset-send">Send Reset Link</button>
+    </div>
+    <div id="reset-msg"></div>
+  </div>
+</div>
+
+<!-- ─── App ────────────────────────────────────────────── -->
+<div id="s-app">
+  <header>
+    <div class="hdr-logo">
+      <div class="hdr-mark">C</div>
+      <div class="hdr-name">CORE MDM</div>
+    </div>
+    <button id="btn-signout">Sign Out</button>
+  </header>
+  <div class="main-content">
+    <div id="stats-strip">
+      <div class="stat-card stat-total"><div class="stat-val" id="st-total">0</div><div class="stat-lbl">Total Devices</div></div>
+      <div class="stat-card stat-online"><div class="stat-val" id="st-online">0</div><div class="stat-lbl">Online</div></div>
+      <div class="stat-card stat-offline"><div class="stat-val" id="st-offline">0</div><div class="stat-lbl">Offline</div></div>
+      <div class="stat-card stat-alarm"><div class="stat-val" id="st-alarm">0</div><div class="stat-lbl">Alarming</div></div>
+    </div>
+    <div id="toolbar">
+      <input id="search" type="search" placeholder="Search by name, IMEI, serial...">
+    </div>
+    <div id="device-grid"></div>
+  </div>
+</div>
+
+<!-- ─── Device Management Modal ───────────────────────── -->
+<div id="dev-modal">
+  <div class="modal-backdrop" id="modal-backdrop"></div>
+  <div class="modal-panel">
+    <div class="modal-hdr">
+      <div class="modal-hdr-info">
+        <div id="modal-device-name">Device</div>
+        <div id="modal-device-sub"></div>
+      </div>
+      <button id="btn-close-modal">&#x2715;</button>
+    </div>
+    <div class="tab-bar" id="tab-bar"></div>
+    <div class="tab-body" id="tab-body"></div>
+  </div>
+</div>
+
+<!-- ─── Wipe Confirm Dialog ────────────────────────────── -->
+<div id="wipe-confirm">
+  <div class="wipe-backdrop" onclick="cancelWipe()"></div>
+  <div class="wipe-dialog">
+    <h2>Wipe Device?</h2>
+    <p>This will permanently erase all data on the device. This action cannot be undone.</p>
+    <div class="wipe-btns">
+      <button class="btn-cancel" onclick="cancelWipe()">Cancel</button>
+      <button class="btn-confirm-wipe" onclick="executeWipe()">Wipe Device</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail }
+  from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import { getFirestore, collection, query, where, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove }
+  from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+const app = initializeApp({
+  apiKey:            "AIzaSyCWew6jKeAyEMUWY1DYjuzhxH0jSke3JhE",
+  authDomain:        "techeaz-core-mdm.firebaseapp.com",
+  projectId:         "techeaz-core-mdm",
+  storageBucket:     "techeaz-core-mdm.firebasestorage.app",
+  messagingSenderId: "457812602789",
+  appId:             "1:457812602789:web:28f6e7ab364eef8738424c"
+});
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+// ── State ───────────────────────────────────────────────────
+const devicesMap = {};
+let unsubDevices = null;
+let selectedId   = null;
+let activeTab    = 'commands';
+let wipeTargetId = null;
+let searchQuery  = '';
+
+// ── Policy groups ────────────────────────────────────────────
+const APP_POLICIES = [
+  { key:'installAppsBlocked',    label:'Block App Installation',       sub:'Prevents Play Store installs' },
+  { key:'uninstallAppsBlocked',  label:'Block App Uninstallation',     sub:'Prevents removing installed apps' },
+  { key:'unknownSourcesBlocked', label:'Block Sideloading',            sub:'Blocks unknown-source APK installs' },
+  { key:'playStoreHidden',       label:'Hide Play Store',              sub:'Hides Play Store from launcher' },
+  { key:'browsersHidden',        label:'Hide Browsers',                sub:'Hides Chrome and all installed browsers' },
+  { key:'cameraDisabled',        label:'Disable Camera',               sub:'Blocks all camera access' },
+  { key:'screenCaptureDisabled', label:'Disable Screen Capture',       sub:'Blocks screenshots and screen recording' },
+];
+const SYS_POLICIES = [
+  { key:'safeBootBlocked',     label:'Prevent Safe Boot',               sub:'Blocks booting into safe mode' },
+  { key:'factoryResetBlocked', label:'Prevent Factory Reset',           sub:'Blocks factory reset from settings' },
+  { key:'debuggingBlocked',    label:'Disable Developer Options & ADB', sub:'Prevents USB debugging access' },
+  { key:'addUserBlocked',      label:'Prevent Multi-User Profiles',     sub:'Blocks adding new user accounts' },
+  { key:'userSwitchBlocked',   label:'Block User Switching',            sub:'Prevents switching between users' },
+  { key:'statusBarDisabled',   label:'Lock Status Bar',                 sub:'Disables pull-down notification bar' },
+];
+const HW_POLICIES = [
+  { key:'wifiConfigBlocked',      label:'Lock Wi-Fi Configuration',      sub:'Prevents changing Wi-Fi settings' },
+  { key:'mobileNetworksBlocked',  label:'Lock Cellular Data Settings',   sub:'Prevents mobile network changes' },
+  { key:'bluetoothConfigBlocked', label:'Lock Bluetooth Settings',       sub:'Prevents Bluetooth configuration' },
+  { key:'vpnBlocked',             label:'Block VPN Configuration',       sub:'Prevents adding or changing VPNs' },
+  { key:'networkResetBlocked',    label:'Block Network Reset',           sub:'Prevents resetting all network settings' },
+  { key:'usbTransferBlocked',     label:'Block USB File Transfer',       sub:'Blocks MTP/USB storage access (API 28+)' },
+  { key:'bluetoothDisabled',      label:'Disable Bluetooth Completely',  sub:'Disables all Bluetooth radio' },
+  { key:'outgoingCallsBlocked',   label:'Block Outgoing Calls',          sub:'Prevents all outgoing phone calls' },
+  { key:'physicalMediaBlocked',   label:'Block Physical Media (SD Card)',sub:'Blocks SD card mounting' },
+  { key:'mdmUninstallProtected',  label:'Protect MDM from Uninstall',   sub:'Prevents CORE MDM app removal' },
+];
+const TABS = [
+  { id:'commands', label:'Commands' },
+  { id:'apps',     label:'App Policies' },
+  { id:'system',   label:'System' },
+  { id:'hardware', label:'Hardware' },
+  { id:'network',  label:'Network' },
+  { id:'danger',   label:'Danger', danger: true },
+];
+
+// ── Utility ──────────────────────────────────────────────────
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function timeSince(ms) {
+  if (!ms) return 'Never';
+  const s = Math.floor((Date.now()-ms)/1000);
+  if (s < 5)  return 'Just now';
+  if (s < 60) return s+'s ago';
+  const m = Math.floor(s/60);
+  if (m < 60) return m+'m ago';
+  const h = Math.floor(m/60);
+  if (h < 24) return h+'h ago';
+  return Math.floor(h/24)+'d ago';
+}
+function isOnline(d) {
+  return d.status === 'online' && d.lastSeen && (Date.now()-d.lastSeen) < 3*60*1000;
+}
+function deviceRef(id) { return doc(db, 'devices', id); }
+
+// ── Auth flow ─────────────────────────────────────────────────
+document.getElementById('btn-login').addEventListener('click', async () => {
+  const email = document.getElementById('inp-email').value.trim();
+  const pass  = document.getElementById('inp-pass').value;
+  const msgEl = document.getElementById('login-msg');
+  msgEl.textContent = '';
+  if (!email || !pass) { msgEl.textContent = 'Enter email and password.'; return; }
+  try {
+    await signInWithEmailAndPassword(auth, email, pass);
+  } catch(e) {
+    msgEl.textContent = (e.code==='auth/invalid-credential'||e.code==='auth/wrong-password')
+      ? 'Incorrect email or password.' : e.message;
+  }
+});
+document.getElementById('inp-pass').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('btn-login').click();
+});
+document.getElementById('btn-signout').addEventListener('click', () => signOut(auth));
+document.getElementById('btn-forgot').addEventListener('click', () => {
+  document.getElementById('reset-panel').classList.add('open');
+  const em = document.getElementById('inp-email').value;
+  if (em) document.getElementById('inp-reset-email').value = em;
+});
+document.getElementById('btn-reset-cancel').addEventListener('click', () => {
+  document.getElementById('reset-panel').classList.remove('open');
+  document.getElementById('reset-msg').textContent = '';
+});
+document.getElementById('btn-reset-send').addEventListener('click', async () => {
+  const email = document.getElementById('inp-reset-email').value.trim();
+  const msgEl = document.getElementById('reset-msg');
+  if (!email) { msgEl.style.color='var(--red)'; msgEl.textContent='Enter your email.'; return; }
+  try {
+    await sendPasswordResetEmail(auth, email);
+    msgEl.style.color='var(--green)'; msgEl.textContent='Reset link sent — check your inbox.';
+  } catch(e) { msgEl.style.color='var(--red)'; msgEl.textContent=e.message; }
+});
+
+onAuthStateChanged(auth, user => {
+  if (user) {
+    document.getElementById('s-login').style.display = 'none';
+    const app = document.getElementById('s-app');
+    app.style.display = 'flex';
+    app.style.flexDirection = 'column';
+    startDeviceListener(user.uid);
+  } else {
+    document.getElementById('s-login').style.display = '';
+    document.getElementById('s-app').style.display = 'none';
+    if (unsubDevices) { unsubDevices(); unsubDevices = null; }
+    closeModal();
+  }
+});
+
+// ── Device listener ──────────────────────────────────────────
+function startDeviceListener(uid) {
+  if (unsubDevices) unsubDevices();
+  const q = query(collection(db,'devices'), where('ownerId','==',uid));
+  unsubDevices = onSnapshot(q, snap => {
+    snap.docChanges().forEach(change => {
+      if (change.type === 'removed') { delete devicesMap[change.doc.id]; return; }
+      const data = change.doc.data();
+      devicesMap[change.doc.id] = {
+        id:          change.doc.id,
+        model:       data.model || 'Unknown Device',
+        osVersion:   data.osVersion || '',
+        status:      data.status || 'offline',
+        lastSeen:    data.lastSeen?.toMillis?.() ?? null,
+        alarmActive: data.alarmActive || false,
+        imei:        data.imei || '',
+        serial:      data.serial || '',
+        policies:    data.policies || {},
+      };
+    });
+    renderCards();
+    if (selectedId && devicesMap[selectedId]) updateModalHeader(selectedId);
+  }, err => console.error('Firestore error:', err));
+}
+
+// ── Device cards ─────────────────────────────────────────────
+document.getElementById('search').addEventListener('input', e => {
+  searchQuery = e.target.value.toLowerCase();
+  renderCards();
+});
+
+function renderCards() {
+  const all     = Object.values(devicesMap);
+  const shown   = all.filter(d => !searchQuery ||
+    (d.model+d.imei+d.serial).toLowerCase().includes(searchQuery));
+  const online  = all.filter(isOnline).length;
+  const alarming= all.filter(d=>d.alarmActive).length;
+  document.getElementById('st-total').textContent  = all.length;
+  document.getElementById('st-online').textContent = online;
+  document.getElementById('st-offline').textContent= all.length - online;
+  document.getElementById('st-alarm').textContent  = alarming;
+
+  const grid = document.getElementById('device-grid');
+  if (!shown.length) {
+    grid.innerHTML = `<div id="empty-state"><strong>${searchQuery?'No matching devices':'No devices enrolled'}</strong><p>${searchQuery?'Try a different search.':'Install CORE MDM on a device and sign in with this account.'}</p></div>`;
+    return;
+  }
+  grid.innerHTML = shown.map(d => {
+    const on    = isOnline(d);
+    const alarm = d.alarmActive;
+    return `<div class="device-card${alarm?' alarming':''}">
+      <div class="dc-head">
+        <div><div class="dc-name">${esc(d.model)}</div><div class="dc-sub">${esc(d.osVersion)}</div></div>
+        <div class="dc-badges">
+          <span class="badge ${on?'badge-online':'badge-offline'}">${on?'ONLINE':'OFFLINE'}</span>
+          ${alarm?'<span class="badge badge-alarm">ALARM</span>':''}
+        </div>
+      </div>
+      <div class="dc-ids">
+        ${d.imei?`<div class="dc-id"><span class="dc-id-lbl">IMEI</span><span class="dc-id-val">${esc(d.imei)}</span></div>`:''}
+        ${d.serial?`<div class="dc-id"><span class="dc-id-lbl">Serial</span><span class="dc-id-val">${esc(d.serial)}</span></div>`:''}
+      </div>
+      <div class="dc-lastseen">Last seen: ${timeSince(d.lastSeen)}</div>
+      <div class="dc-actions">
+        <button class="dc-btn dc-btn-alarm${alarm?' active':''}" onclick="window._mdm.toggleAlarm('${d.id}',${!alarm})">${alarm?'Stop Alarm':'Sound Alarm'}</button>
+        <button class="dc-btn dc-btn-manage" onclick="window._mdm.openModal('${d.id}')">Manage &rarr;</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Modal ─────────────────────────────────────────────────────
+function openModal(id) {
+  selectedId = id;
+  activeTab  = 'commands';
+  document.getElementById('dev-modal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  renderTabBar();
+  updateModalHeader(id);
+  renderTabContent();
+}
+function closeModal() {
+  selectedId = null;
+  document.getElementById('dev-modal').style.display = '';
+  document.body.style.overflow = '';
+}
+function updateModalHeader(id) {
+  const d = devicesMap[id]; if (!d) return;
+  document.getElementById('modal-device-name').textContent = d.model;
+  const on = isOnline(d);
+  document.getElementById('modal-device-sub').innerHTML =
+    `<span class="badge ${on?'badge-online':'badge-offline'}">${on?'ONLINE':'OFFLINE'}</span>`
+    +(d.alarmActive?'<span class="badge badge-alarm">ALARM</span>':'')
+    +`<span>Last seen: ${timeSince(d.lastSeen)}</span>`;
+}
+function renderTabBar() {
+  document.getElementById('tab-bar').innerHTML = TABS.map(t =>
+    `<button class="tab-btn${t.id===activeTab?' active':''}" onclick="window._mdm.switchTab('${t.id}')">`
+    +(t.danger?`<span style="color:var(--red)">${t.label}</span>`:t.label)
+    +'</button>'
+  ).join('');
+}
+function switchTab(id) {
+  activeTab = id;
+  renderTabBar();
+  renderTabContent();
+  document.getElementById('tab-body').scrollTop = 0;
+}
+
+function renderTabContent() {
+  if (!selectedId || !devicesMap[selectedId]) return;
+  const d = devicesMap[selectedId];
+  const p = d.policies || {};
+  let html = '';
+  switch (activeTab) {
+    case 'commands': html = renderCommandsTab(d); break;
+    case 'apps':     html = renderPoliciesTab(d.id, p, APP_POLICIES); break;
+    case 'system':   html = renderPoliciesTab(d.id, p, SYS_POLICIES); break;
+    case 'hardware': html = renderPoliciesTab(d.id, p, HW_POLICIES); break;
+    case 'network':  html = renderNetworkTab(d.id, p); break;
+    case 'danger':   html = renderDangerTab(d); break;
+  }
+  document.getElementById('tab-body').innerHTML = html;
+}
+
+function renderCommandsTab(d) {
+  const id    = d.id;
+  const alarm = d.alarmActive;
+  return `
+  <div class="cmd-grid">
+    <button class="cmd-btn ${alarm?'cmd-alarm-on':'cmd-alarm-off'}" onclick="window._mdm.toggleAlarm('${id}',${!alarm})">
+      ${alarm?'Stop Alarm':'Sound Alarm'}
+    </button>
+    <button class="cmd-btn cmd-lock" onclick="window._mdm.sendLock('${id}')">Lock Screen</button>
+    <button class="cmd-btn cmd-reboot" onclick="window._mdm.sendReboot('${id}')">Reboot</button>
+  </div>
+  <button class="cmd-lockdown" onclick="window._mdm.sendFullLockdown('${id}')">
+    <div class="ld-icon">!</div>
+    <div class="ld-text">Apply Full Lockdown<span class="ld-sub">Enables all restrictions, disables camera, status bar, screen capture</span></div>
+  </button>`;
+}
+
+function renderPoliciesTab(id, p, policies) {
+  return policies.map(pol => `
+  <div class="policy-row">
+    <div class="policy-info">
+      <div class="policy-label">${esc(pol.label)}</div>
+      <div class="policy-sub">${esc(pol.sub)}</div>
+    </div>
+    <label class="toggle">
+      <input type="checkbox" ${p[pol.key]?'checked':''} onchange="window._mdm.setPolicy('${esc(id)}','${pol.key}',this.checked)">
+      <span class="toggle-track"></span><span class="toggle-thumb"></span>
+    </label>
+  </div>`).join('');
+}
+
+function renderNetworkTab(id, p) {
+  const dnsHost  = p.privateDnsHost || '';
+  const filterOn = p.filterRunning  || false;
+  const pkgs     = Array.isArray(p.kioskPackages) ? p.kioskPackages : [];
+  return `
+  <div class="net-section">
+    <h3>Private DNS Enforcement</h3>
+    <div class="dns-row">
+      <input class="dns-input" id="dns-host-input" type="text" value="${esc(dnsHost)}" placeholder="e.g. dns.cloudflare.com">
+      <button class="btn-small btn-lock-dns" onclick="window._mdm.lockDns('${id}')">Lock DNS</button>
+      <button class="btn-small btn-clear-dns" onclick="window._mdm.clearDns('${id}')">Clear</button>
+    </div>
+    ${dnsHost?`<p style="font-size:11px;color:var(--textSec);margin-top:6px">Active DNS: <span style="font-family:monospace;color:var(--cyan)">${esc(dnsHost)}</span></p>`:''}
+  </div>
+  <div class="net-section">
+    <h3>Content Filter (DNS VPN)</h3>
+    <div class="policy-row" style="border:none;padding-top:0;">
+      <div class="policy-info">
+        <div class="policy-label">Enable Content Filter</div>
+        <div class="policy-sub">Starts the DNS VPN filter on the device — VPN permission must be pre-granted on device</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" ${filterOn?'checked':''} onchange="window._mdm.setPolicy('${esc(id)}','filterRunning',this.checked)">
+        <span class="toggle-track"></span><span class="toggle-thumb"></span>
+      </label>
+    </div>
+  </div>
+  <div class="net-section">
+    <h3>Kiosk Allowed Packages</h3>
+    <p style="font-size:12px;color:var(--textSec);margin-bottom:12px;">Apps allowed to run in kiosk/lock-task mode. Kiosk mode must be activated on the device.</p>
+    <div class="kiosk-pkg-list" id="kiosk-pkg-list">
+      ${pkgs.length
+        ? pkgs.map(pkg=>`<div class="kiosk-pkg-item"><span class="kiosk-pkg-name">${esc(pkg)}</span><button class="kiosk-pkg-remove" onclick="window._mdm.removePkg('${esc(id)}','${esc(pkg)}')" title="Remove">&#x2715;</button></div>`).join('')
+        : '<div style="font-size:12px;color:var(--textDim);padding:4px 0;">No packages added yet</div>'}
+    </div>
+    <div class="kiosk-add-row">
+      <input class="kiosk-add-input" id="kiosk-pkg-input" type="text" placeholder="com.example.app" autocomplete="off">
+      <button class="btn-add-pkg" onclick="window._mdm.addPkg('${esc(id)}')">+ Add</button>
+    </div>
+  </div>`;
+}
+
+function renderDangerTab(d) {
+  return `
+  <div class="danger-card">
+    <div class="danger-title">Wipe Device</div>
+    <div class="danger-desc">Permanently erase all data on <strong>${esc(d.model)}</strong> and restore it to factory settings. This action cannot be undone.</div>
+    <button class="btn-wipe" onclick="window._mdm.confirmWipe('${d.id}')">Wipe Device</button>
+  </div>`;
+}
+
+document.getElementById('modal-backdrop').addEventListener('click', closeModal);
+document.getElementById('btn-close-modal').addEventListener('click', closeModal);
+
+// ── Firestore commands ───────────────────────────────────────
+async function setField(id, field, val) {
+  try { await updateDoc(deviceRef(id), { [field]: val }); }
+  catch(e) { console.error('setField error:', e); alert('Command failed: '+e.message); }
+}
+async function setPolicyField(id, key, val) {
+  try { await updateDoc(deviceRef(id), { [`policies.${key}`]: val }); }
+  catch(e) { console.error('setPolicyField error:', e); alert('Policy update failed: '+e.message); }
+}
+
+function toggleAlarm(id, val)  { setField(id, 'alarmActive', val); }
+function sendLock(id)          { setField(id, 'lockCommand', true); }
+function sendReboot(id)        { setField(id, 'rebootCommand', true); }
+function sendFullLockdown(id)  {
+  if (!confirm('Apply full lockdown to this device? All major restrictions will be enabled immediately.')) return;
+  setField(id, 'fullLockdownCommand', true);
+}
+function setPolicy(id, key, val) { setPolicyField(id, key, val); }
+function lockDns(id) {
+  const host = (document.getElementById('dns-host-input')?.value || '').trim();
+  if (!host) { alert('Enter a DNS hostname first.'); return; }
+  setPolicyField(id, 'privateDnsHost', host);
+}
+function clearDns(id) {
+  const inp = document.getElementById('dns-host-input');
+  if (inp) inp.value = '';
+  setPolicyField(id, 'privateDnsHost', '');
+}
+async function addPkg(id) {
+  const inp = document.getElementById('kiosk-pkg-input');
+  const pkg = (inp?.value || '').trim();
+  if (!pkg) return;
+  try {
+    await updateDoc(deviceRef(id), { 'policies.kioskPackages': arrayUnion(pkg) });
+    if (inp) inp.value = '';
+  } catch(e) { alert('Failed to add package: '+e.message); }
+}
+async function removePkg(id, pkg) {
+  try { await updateDoc(deviceRef(id), { 'policies.kioskPackages': arrayRemove(pkg) }); }
+  catch(e) { alert('Failed to remove package: '+e.message); }
+}
+function confirmWipe(id) {
+  wipeTargetId = id;
+  document.getElementById('wipe-confirm').style.display = 'flex';
+}
+function cancelWipe() {
+  wipeTargetId = null;
+  document.getElementById('wipe-confirm').style.display = '';
+}
+async function executeWipe() {
+  if (!wipeTargetId) return;
+  await setField(wipeTargetId, 'wipeCommand', true);
+  cancelWipe();
+  closeModal();
+}
+
+// ── Global exposure ──────────────────────────────────────────
+window._mdm = {
+  openModal, switchTab, toggleAlarm, sendLock, sendReboot,
+  sendFullLockdown, setPolicy, lockDns, clearDns, addPkg, removePkg, confirmWipe,
+};
+window.cancelWipe  = cancelWipe;
+window.executeWipe = executeWipe;
+window.closeModal  = closeModal;
+</script>
+</body>
+</html>

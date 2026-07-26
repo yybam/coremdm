@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CORE MDM — Remote Control</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy:        #0d1b2a;
+    --navy-light:  #152237;
+    --card:        #1a2d47;
+    --card-border: #1e3a5f;
+    --cyan:        #00c8ff;
+    --red:         #ff3b5c;
+    --green:       #00e676;
+    --text:        #e8f0fe;
+    --text-sec:    #7a96b2;
+    --radius:      12px;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--navy);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── Auth screen ── */
+  #auth-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 24px;
+  }
+
+  .auth-card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius);
+    padding: 40px 36px;
+    width: 100%;
+    max-width: 400px;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 32px;
+    justify-content: center;
+  }
+
+  .logo-icon {
+    width: 40px; height: 40px;
+    background: linear-gradient(135deg, var(--cyan), #0066cc);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+  }
+
+  .logo-text { font-size: 22px; font-weight: 700; letter-spacing: 1px; }
+  .logo-text span { color: var(--cyan); }
+
+  h2 { font-size: 17px; font-weight: 600; margin-bottom: 20px; color: var(--text-sec); text-align: center; }
+
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; color: var(--text-sec); margin-bottom: 5px; letter-spacing: .5px; }
+
+  input[type=email], input[type=password] {
+    width: 100%;
+    background: var(--navy-light);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 14px;
+    padding: 11px 14px;
+    outline: none;
+    transition: border-color .2s;
+  }
+  input:focus { border-color: var(--cyan); }
+
+  .btn {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 9px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity .2s;
+  }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .btn-primary { background: var(--cyan); color: #000; margin-top: 6px; }
+  .btn-ghost   { background: transparent; color: var(--cyan); border: 1px solid var(--card-border); margin-top: 10px; }
+  .btn-danger  { background: var(--red); color: #fff; }
+  .btn-stop    { background: transparent; color: var(--red); border: 1px solid var(--red); }
+
+  .error-msg { color: var(--red); font-size: 12px; margin-top: 8px; text-align: center; min-height: 16px; }
+
+  /* ── Dashboard ── */
+  #dashboard { display: none; }
+
+  .topbar {
+    background: var(--navy-light);
+    border-bottom: 1px solid var(--card-border);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .topbar-left { display: flex; align-items: center; gap: 10px; }
+
+  .topbar-logo {
+    width: 30px; height: 30px;
+    background: linear-gradient(135deg, var(--cyan), #0066cc);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+
+  .topbar-title { font-size: 16px; font-weight: 700; }
+
+  .user-info { font-size: 12px; color: var(--text-sec); }
+
+  .btn-signout {
+    background: transparent;
+    border: 1px solid var(--card-border);
+    color: var(--text-sec);
+    padding: 6px 14px;
+    border-radius: 7px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .btn-signout:hover { border-color: var(--cyan); color: var(--cyan); }
+
+  .main { padding: 24px; max-width: 900px; margin: 0 auto; }
+
+  .section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-sec);
+    letter-spacing: .6px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  .devices-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 14px;
+    margin-bottom: 32px;
+  }
+
+  .device-card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius);
+    padding: 18px;
+    transition: border-color .2s;
+  }
+  .device-card.alarming { border-color: var(--red); }
+  .device-card.selected { border-color: var(--cyan); }
+
+  .device-header { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+  .device-icon { font-size: 24px; margin-top: 2px; }
+  .device-name { font-size: 15px; font-weight: 600; }
+  .device-os   { font-size: 11px; color: var(--text-sec); margin-top: 2px; }
+
+  .badges { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+
+  .badge {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: .5px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+  .badge-online  { background: rgba(0,230,118,.12); color: var(--green); }
+  .badge-offline { background: rgba(122,150,178,.1); color: var(--text-sec); }
+  .badge-alarm   { background: rgba(255,59,92,.12);  color: var(--red); }
+
+  .hw-info { font-size: 10px; color: var(--text-sec); margin-bottom: 10px; line-height: 1.7; }
+
+  .last-seen { font-size: 10px; color: var(--text-sec); margin-bottom: 12px; }
+
+  .card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .card-actions .btn { width: auto; padding: 7px 16px; font-size: 12px; }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 24px;
+    color: var(--text-sec);
+  }
+  .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-state p { font-size: 15px; }
+
+  /* ── Video panel ── */
+  #video-panel {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    display: none;
+    margin-bottom: 24px;
+  }
+
+  .video-header {
+    background: var(--navy-light);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--card-border);
+  }
+
+  .video-title { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .live-dot { width: 8px; height: 8px; background: var(--red); border-radius: 50%; animation: pulse 1.5s infinite; }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  video#remoteVideo {
+    width: 100%;
+    max-height: 420px;
+    background: #000;
+    display: block;
+  }
+
+  .video-status { padding: 12px 16px; font-size: 12px; color: var(--text-sec); }
+
+  /* ── Log panel ── */
+  #log-panel {
+    background: var(--navy-light);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: var(--text-sec);
+    max-height: 160px;
+    overflow-y: auto;
+  }
+
+  .log-entry { margin-bottom: 3px; }
+  .log-entry.info  { color: var(--text-sec); }
+  .log-entry.ok    { color: var(--green); }
+  .log-entry.warn  { color: #ffc107; }
+  .log-entry.error { color: var(--red); }
+
+  .refresh-btn {
+    background: transparent;
+    border: 1px solid var(--card-border);
+    color: var(--cyan);
+    padding: 6px 14px;
+    border-radius: 7px;
+    font-size: 12px;
+    cursor: pointer;
+    margin-bottom: 14px;
+  }
+  .refresh-btn:hover { background: rgba(0,200,255,.08); }
+</style>
+</head>
+<body>
+
+<!-- ── Auth Screen ── -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="logo">
+      <div class="logo-icon">🛡</div>
+      <div class="logo-text">CORE <span>MDM</span></div>
+    </div>
+    <h2>Admin Remote Control</h2>
+
+    <div class="field">
+      <label>EMAIL</label>
+      <input type="email" id="email" placeholder="admin@example.com" autocomplete="username" />
+    </div>
+    <div class="field">
+      <label>PASSWORD</label>
+      <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" />
+    </div>
+
+    <div class="error-msg" id="auth-error"></div>
+    <button class="btn btn-primary" id="signin-btn">Sign In</button>
+    <button class="btn btn-ghost"   id="reset-btn">Forgot Password?</button>
+  </div>
+</div>
+
+<!-- ── Dashboard ── -->
+<div id="dashboard">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-logo">🛡</div>
+      <div class="topbar-title">CORE MDM</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="user-info" id="user-email-display"></div>
+      <button class="btn-signout" id="signout-btn">Sign Out</button>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- Video / screen-share panel -->
+    <div id="video-panel">
+      <div class="video-header">
+        <div class="video-title">
+          <div class="live-dot"></div>
+          <span id="video-device-name">Device Screen</span>
+        </div>
+        <button class="btn btn-stop" id="disconnect-btn" style="padding:5px 14px;font-size:12px;border-radius:7px;">Disconnect</button>
+      </div>
+      <video id="remoteVideo" autoplay playsinline muted></video>
+      <div class="video-status" id="video-status">Connecting…</div>
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+      <div class="section-title">Enrolled Devices</div>
+      <button class="refresh-btn" id="refresh-btn">↻ Refresh</button>
+    </div>
+
+    <div class="devices-grid" id="devices-grid">
+      <div class="empty-state" style="grid-column:1/-1;">
+        <div class="icon">📱</div>
+        <p>Loading devices…</p>
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-top:8px;">Event Log</div>
+    <div id="log-panel"></div>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp }      from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut }
+  from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+
+// ── Firebase config (web app: CORE MDM Dashboard) ───────────────────────────
+const firebaseConfig = {
+  apiKey           : 'AIzaSyCWew6jKeAyEMUWY1DYjuzhxH0jSke3JhE',
+  authDomain       : 'techeaz-core-mdm.firebaseapp.com',
+  projectId        : 'techeaz-core-mdm',
+  storageBucket    : 'techeaz-core-mdm.firebasestorage.app',
+  messagingSenderId: '457812602789',
+  appId            : '1:457812602789:web:28f6e7ab364eef8738424c',
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const auth  = getAuth(fbApp);
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let idToken     = null;
+let ws          = null;
+let wsSessionId = null;
+let devices     = [];
+let activeDeviceId  = null;
+let peerConnection  = null;
+
+// ── Log helper ────────────────────────────────────────────────────────────────
+function log(msg, level = 'info') {
+  const panel = document.getElementById('log-panel');
+  const el    = document.createElement('div');
+  el.className = `log-entry ${level}`;
+  const now = new Date().toLocaleTimeString();
+  el.textContent = `[${now}] ${msg}`;
+  panel.prepend(el);
+  if (panel.children.length > 80) panel.lastChild.remove();
+}
+
+// ── Auth flow ─────────────────────────────────────────────────────────────────
+document.getElementById('signin-btn').addEventListener('click', async () => {
+  const email    = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const errEl    = document.getElementById('auth-error');
+  errEl.textContent = '';
+  const btn = document.getElementById('signin-btn');
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+  } catch (e) {
+    errEl.textContent = e.message.replace('Firebase: ', '');
+    btn.disabled = false; btn.textContent = 'Sign In';
+  }
+});
+
+document.getElementById('reset-btn').addEventListener('click', async () => {
+  const email = document.getElementById('email').value.trim();
+  if (!email) { document.getElementById('auth-error').textContent = 'Enter your email first.'; return; }
+  await sendPasswordResetEmail(auth, email).catch(() => {});
+  document.getElementById('auth-error').style.color = 'var(--green)';
+  document.getElementById('auth-error').textContent = 'Reset email sent.';
+});
+
+document.getElementById('signout-btn').addEventListener('click', () => {
+  disconnectWs();
+  signOut(auth);
+});
+
+document.getElementById('refresh-btn').addEventListener('click', loadDevices);
+
+// ── Periodic token refresh (every 45 min — tokens expire after 1h) ─────────
+let tokenRefreshInterval = null;
+function startTokenRefresh(user) {
+  if (tokenRefreshInterval) clearInterval(tokenRefreshInterval);
+  tokenRefreshInterval = setInterval(async () => {
+    try {
+      idToken = await user.getIdToken(true);
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'token_refresh', idToken }));
+      }
+    } catch (e) { log('Token refresh failed: ' + e.message, 'warn'); }
+  }, 45 * 60 * 1000);
+}
+
+// ── Auth state ────────────────────────────────────────────────────────────────
+onAuthStateChanged(auth, async user => {
+  if (user) {
+    idToken = await user.getIdToken();
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('dashboard').style.display   = 'block';
+    document.getElementById('user-email-display').textContent = user.email;
+    document.getElementById('signin-btn').disabled = false;
+    document.getElementById('signin-btn').textContent = 'Sign In';
+    log(`Signed in as ${user.email}`, 'ok');
+    startTokenRefresh(user);
+    loadDevices();
+    connectWs();
+  } else {
+    idToken = null;
+    if (tokenRefreshInterval) { clearInterval(tokenRefreshInterval); tokenRefreshInterval = null; }
+    disconnectWs();
+    document.getElementById('auth-screen').style.display = 'flex';
+    document.getElementById('dashboard').style.display   = 'none';
+  }
+});
+
+// ── Load devices from backend ─────────────────────────────────────────────────
+async function loadDevices() {
+  try {
+    const fresh = await auth.currentUser.getIdToken(true);
+    idToken = fresh;
+    const res  = await fetch('/api/devices', { headers: { Authorization: `Bearer ${idToken}` } });
+    devices    = await res.json();
+    renderDevices();
+    log(`Loaded ${devices.length} device(s)`, 'ok');
+  } catch (e) {
+    log('Failed to load devices: ' + e.message, 'error');
+  }
+}
+
+function renderDevices() {
+  const grid = document.getElementById('devices-grid');
+  if (!devices.length) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="icon">📱</div><p>No enrolled devices yet.</p></div>`;
+    return;
+  }
+  grid.innerHTML = '';
+  devices.forEach(d => {
+    const card = document.createElement('div');
+    card.className = ['device-card',
+      d.alarmActive ? 'alarming' : '',
+      d.id === activeDeviceId ? 'selected' : '',
+    ].filter(Boolean).join(' ');
+
+    const statusBadge = `<span class="badge badge-${d.status}">${d.status}</span>`;
+    const alarmBadge  = d.alarmActive ? `<span class="badge badge-alarm">🔔 ALARM</span>` : '';
+
+    const imeiLine   = d.imei   ? `<div>IMEI: ${d.imei}</div>` : '';
+    const serialLine = d.serial ? `<div>S/N: ${d.serial}</div>` : '';
+    const androidId  = d.androidId ? `<div>Android ID: ${d.androidId}</div>` : '';
+    const lastSeen   = d.lastSeen ? `Last seen ${new Date(d.lastSeen).toLocaleString()}` : 'Never seen';
+
+    const alarmBtn = d.alarmActive
+      ? `<button class="btn btn-stop"    onclick="stopAlarm('${d.id}')">Stop Alarm</button>`
+      : `<button class="btn btn-danger"  onclick="soundAlarm('${d.id}')">🔔 Sound Alarm</button>`;
+    const connectBtn = `<button class="btn btn-primary" onclick="startRemoteControl('${d.id}','${d.model||d.id}')"
+      ${d.status !== 'online' ? 'disabled' : ''}>▶ View Screen</button>`;
+
+    card.innerHTML = `
+      <div class="device-header">
+        <div class="device-icon">📱</div>
+        <div>
+          <div class="device-name">${d.model || 'Unknown Device'}</div>
+          <div class="device-os">${d.osVersion || ''}</div>
+        </div>
+      </div>
+      <div class="badges">${statusBadge}${alarmBadge}</div>
+      <div class="hw-info">${imeiLine}${serialLine}${androidId}</div>
+      <div class="last-seen">${lastSeen}</div>
+      <div class="card-actions">${alarmBtn}${connectBtn}</div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+// ── WebSocket signaling connection ────────────────────────────────────────────
+function connectWs() {
+  if (ws) return;
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  ws = new WebSocket(`${proto}//${location.host}`);
+
+  ws.addEventListener('open', () => {
+    ws.send(JSON.stringify({ type: 'auth', idToken, role: 'admin' }));
+  });
+
+  ws.addEventListener('message', async ev => {
+    let msg;
+    try { msg = JSON.parse(ev.data); } catch { return; }
+
+    switch (msg.type) {
+      case 'auth_ok':
+        wsSessionId = msg.sessionId;
+        log('Signaling server connected', 'ok');
+        break;
+
+      case 'offer':
+        log(`WebRTC offer from device ${msg.deviceId}`, 'info');
+        await handleOffer(msg);
+        break;
+
+      case 'ice':
+        if (peerConnection && msg.candidate) {
+          await peerConnection.addIceCandidate(msg.candidate).catch(() => {});
+        }
+        break;
+
+      case 'device_disconnected':
+        log(`Device disconnected: ${msg.deviceId}`, 'warn');
+        if (msg.deviceId === activeDeviceId) closeVideoPanel();
+        // refresh list to update status badge
+        setTimeout(loadDevices, 1000);
+        break;
+
+      case 'control_request_sent':
+        log(`Control request sent to ${msg.deviceId} — awaiting offer…`, 'info');
+        break;
+
+      case 'error':
+        log('Server: ' + msg.message, 'error');
+        break;
+    }
+  });
+
+  ws.addEventListener('close', () => {
+    ws = null;
+    log('Signaling disconnected — will retry in 5s', 'warn');
+    setTimeout(() => { if (auth.currentUser) connectWs(); }, 5000);
+  });
+
+  ws.addEventListener('error', () => log('WebSocket error', 'error'));
+}
+
+function disconnectWs() {
+  if (ws) { ws.close(); ws = null; }
+}
+
+// ── Alarm actions ─────────────────────────────────────────────────────────────
+window.soundAlarm = async (deviceId) => {
+  try {
+    const fresh = await auth.currentUser.getIdToken();
+    await fetch(`/api/devices/${deviceId}/alarm`, {
+      method : 'POST',
+      headers: { Authorization: `Bearer ${fresh}`, 'Content-Type': 'application/json' },
+      body   : JSON.stringify({ active: true }),
+    });
+    log(`Alarm triggered on ${deviceId}`, 'warn');
+    await loadDevices();
+  } catch (e) { log('Alarm error: ' + e.message, 'error'); }
+};
+
+window.stopAlarm = async (deviceId) => {
+  try {
+    const fresh = await auth.currentUser.getIdToken();
+    await fetch(`/api/devices/${deviceId}/alarm`, {
+      method : 'POST',
+      headers: { Authorization: `Bearer ${fresh}`, 'Content-Type': 'application/json' },
+      body   : JSON.stringify({ active: false }),
+    });
+    log(`Alarm stopped on ${deviceId}`, 'ok');
+    await loadDevices();
+  } catch (e) { log('Stop alarm error: ' + e.message, 'error'); }
+};
+
+// ── Remote control / WebRTC ────────────────────────────────────────────────────
+window.startRemoteControl = (deviceId, deviceName) => {
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    log('Not connected to signaling server', 'error');
+    return;
+  }
+  activeDeviceId = deviceId;
+  document.getElementById('video-device-name').textContent = deviceName;
+  document.getElementById('video-panel').style.display = 'block';
+  document.getElementById('video-status').textContent   = 'Requesting control…';
+  log(`Requesting remote control of ${deviceId}`, 'info');
+  ws.send(JSON.stringify({ type: 'control_request', deviceId }));
+  renderDevices(); // update selected state
+};
+
+async function handleOffer(msg) {
+  if (peerConnection) peerConnection.close();
+
+  peerConnection = new RTCPeerConnection({
+    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+  });
+
+  peerConnection.ontrack = ev => {
+    const video = document.getElementById('remoteVideo');
+    video.srcObject = ev.streams[0];
+    document.getElementById('video-status').textContent = 'Live';
+    log('Video stream active', 'ok');
+  };
+
+  peerConnection.onicecandidate = ev => {
+    if (ev.candidate && ws) {
+      ws.send(JSON.stringify({ type: 'ice', candidate: ev.candidate, deviceId: msg.deviceId }));
+    }
+  };
+
+  peerConnection.onconnectionstatechange = () => {
+    const state = peerConnection.connectionState;
+    document.getElementById('video-status').textContent = state;
+    if (state === 'failed' || state === 'closed') closeVideoPanel();
+  };
+
+  await peerConnection.setRemoteDescription(new RTCSessionDescription(msg.sdp));
+  const answer = await peerConnection.createAnswer();
+  await peerConnection.setLocalDescription(answer);
+
+  ws.send(JSON.stringify({ type: 'answer', sdp: answer, deviceId: msg.deviceId }));
+  log('Sent WebRTC answer', 'info');
+}
+
+document.getElementById('disconnect-btn').addEventListener('click', () => {
+  if (ws && activeDeviceId) {
+    ws.send(JSON.stringify({ type: 'disconnect', deviceId: activeDeviceId }));
+  }
+  closeVideoPanel();
+});
+
+function closeVideoPanel() {
+  if (peerConnection) { peerConnection.close(); peerConnection = null; }
+  const video = document.getElementById('remoteVideo');
+  video.srcObject = null;
+  document.getElementById('video-panel').style.display = 'none';
+  activeDeviceId = null;
+  renderDevices();
+  log('Remote session ended', 'info');
+}
+</script>
+</body>
+</html>

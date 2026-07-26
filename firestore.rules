@@ -1,0 +1,20 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Flat device collection — device owner has full access,
+    // query with whereEqualTo("ownerId", uid) is enforced here per-document.
+    match /devices/{deviceId} {
+      allow create: if request.auth != null
+                    && request.resource.data.ownerId == request.auth.uid;
+
+      allow read, update, delete: if request.auth != null
+                                  && resource.data.ownerId == request.auth.uid;
+    }
+
+    // Deny everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,55 @@
+spring:
+  application:
+    name: core-mdm-admin-backend
+
+  datasource:
+    url: ${DB_URL:jdbc:h2:mem:coremdm;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE}
+    driver-class-name: ${DB_DRIVER:org.h2.Driver}
+    username: ${DB_USER:sa}
+    password: ${DB_PASS:}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate          # schema.sql creates the tables; Hibernate validates them
+    show-sql: false
+    open-in-view: false
+
+  sql:
+    init:
+      mode: always                # always run schema.sql on startup (H2 dev mode)
+
+  # H2 console — disable in production
+  h2:
+    console:
+      enabled: ${H2_CONSOLE_ENABLED:true}
+      path: /h2-console
+
+server:
+  port: ${PORT:8080}
+
+firebase:
+  project-id: ${FIREBASE_PROJECT_ID:techeaz-core-mdm}
+  service-account-json: ${FIREBASE_SERVICE_ACCOUNT_JSON:}
+
+logging:
+  level:
+    com.core.mdm.admin: INFO
+    org.springframework.security: WARN
+
+---
+# Production profile — activate with SPRING_PROFILES_ACTIVE=prod
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    url: ${DB_URL}
+    driver-class-name: org.postgresql.Driver
+    username: ${DB_USER}
+    password: ${DB_PASS}
+  sql:
+    init:
+      mode: never
+  h2:
+    console:
+      enabled: false

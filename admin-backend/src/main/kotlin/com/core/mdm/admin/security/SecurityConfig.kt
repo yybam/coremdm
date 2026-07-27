@@ -23,7 +23,12 @@ class SecurityConfig(private val firebaseTokenFilter: FirebaseTokenFilter) {
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
             .authorizeHttpRequests { auth ->
                 auth
+                    // Public — no Firebase token required
                     .requestMatchers("/actuator/health", "/api/health").permitAll()
+                    .requestMatchers("/api/v1/mdm/enroll").permitAll()
+                    // Device inventory — ORGANIZATION_ADMIN may manage their own tenant's devices
+                    .requestMatchers("/api/admin/devices/**").hasAnyRole("SUPER_ADMIN", "ORGANIZATION_ADMIN")
+                    // All other admin routes remain SUPER_ADMIN only
                     .requestMatchers("/api/admin/**").hasRole("SUPER_ADMIN")
                     .anyRequest().authenticated()
             }

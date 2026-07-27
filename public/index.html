@@ -492,7 +492,7 @@ onAuthStateChanged(auth, user => {
     const appEl = document.getElementById('s-app');
     appEl.style.display = 'flex';
     appEl.style.flexDirection = 'column';
-    document.getElementById('btn-admin').style.display = isSuperAdmin ? '' : 'none';
+    document.getElementById('btn-admin').style.display = isSuperAdmin ? 'inline-block' : 'none';
     adminMode = false;
     startDeviceListener(user.uid);
     if (isSuperAdmin) logAudit('LOGIN', null, 'Super admin signed in');

@@ -389,7 +389,7 @@ import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendP
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { getFirestore, collection, query, where, orderBy, limit,
          onSnapshot, doc, updateDoc, deleteDoc, getDoc, setDoc,
-         addDoc, serverTimestamp, Timestamp }
+         addDoc, serverTimestamp, Timestamp, arrayUnion, arrayRemove }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const app = initializeApp({
@@ -463,6 +463,7 @@ const TABS = [
 function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+function jsStr(s) { return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
 function timeSince(ms) {
   if (!ms) return 'Never';
   const s = Math.floor((Date.now()-ms)/1000);
@@ -545,6 +546,7 @@ onAuthStateChanged(auth, user => {
 // ── Device listener ──────────────────────────────────────────
 function startDeviceListener(uid) {
   if (unsubDevices) unsubDevices();
+  Object.keys(devicesMap).forEach(k => delete devicesMap[k]);
   const q = query(collection(db,'devices'), where('ownerId','==',uid));
   unsubDevices = onSnapshot(q, snap => {
     snap.docChanges().forEach(change => {
@@ -730,7 +732,7 @@ function renderNetworkTab(id, p) {
     <p style="font-size:12px;color:var(--textSec);margin-bottom:12px;">Apps allowed to run in kiosk/lock-task mode. Kiosk mode must be activated on the device.</p>
     <div class="kiosk-pkg-list" id="kiosk-pkg-list">
       ${pkgs.length
-        ? pkgs.map(pkg=>`<div class="kiosk-pkg-item"><span class="kiosk-pkg-name">${esc(pkg)}</span><button class="kiosk-pkg-remove" onclick="window._mdm.removePkg('${esc(id)}','${esc(pkg)}')" title="Remove">&#x2715;</button></div>`).join('')
+        ? pkgs.map(pkg=>`<div class="kiosk-pkg-item"><span class="kiosk-pkg-name">${esc(pkg)}</span><button class="kiosk-pkg-remove" onclick="window._mdm.removePkg('${jsStr(id)}','${jsStr(pkg)}')" title="Remove">&#x2715;</button></div>`).join('')
         : '<div style="font-size:12px;color:var(--textDim);padding:4px 0;">No packages added yet</div>'}
     </div>
     <div class="kiosk-add-row">
@@ -895,7 +897,7 @@ function loadAdminDevices() {
     devices.sort((a,b) => (b.lastSeenMs||0)-(a.lastSeenMs||0));
 
     const total   = devices.length;
-    const online  = devices.filter(d => d.status === 'online' && d.lastSeenMs && (Date.now()-d.lastSeenMs) < 180_000).length;
+    const online  = devices.filter(d => d.status === 'online' && d.lastSeenMs && (Date.now()-d.lastSeenMs) < 300_000).length;
     const alarming = devices.filter(d => d.alarmActive).length;
     document.getElementById('admin-stats').innerHTML = `
       <div class="stat-card stat-total"><div class="stat-val">${total}</div><div class="stat-lbl">Total Devices</div></div>
@@ -914,7 +916,7 @@ function loadAdminDevices() {
             <th>Device</th><th>OS</th><th>Status</th><th>Owner</th><th>IMEI / Serial</th><th>Last Seen</th><th>Actions</th>
           </tr></thead>
           <tbody>${devices.map(d => {
-            const on    = d.status === 'online' && d.lastSeenMs && (Date.now()-d.lastSeenMs) < 180_000;
+            const on    = d.status === 'online' && d.lastSeenMs && (Date.now()-d.lastSeenMs) < 300_000;
             const alarm = d.alarmActive;
             return `<tr>
               <td><strong>${esc(d.model||'Unknown')}</strong></td>
@@ -954,8 +956,7 @@ function loadAuditLog() {
             <th>Timestamp</th><th>Action</th><th>User</th><th>Device</th><th>Details</th>
           </tr></thead>
           <tbody>${logs.map(l => {
-            const tagClass = `audit-${l.action}` in document.styleSheets[0] ? `audit-${l.action}` : 'audit-default';
-            const dt = l.ts ? new Date(l.ts).toLocaleString() : '—';
+              const dt = l.ts ? new Date(l.ts).toLocaleString() : '—';
             return `<tr>
               <td style="font-size:11px;color:var(--textSec);white-space:nowrap;">${dt}</td>
               <td><span class="audit-tag audit-${esc(l.action||'')}">${esc(l.action||'')}</span></td>
@@ -974,17 +975,12 @@ function loadAuditLog() {
 // Opens Manage modal while in admin view (syncs devicesMap entry first)
 function adminManage(id) {
   if (!devicesMap[id]) {
-    // device might not be in devicesMap if it belongs to another owner
-    // fetch it first, then open modal
-    import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js').then(({getDoc, doc: fsDoc}) => {
-      getDoc(fsDoc(db, 'devices', id)).then(snap => {
-        if (snap.exists()) {
-          const data = snap.data();
-          devicesMap[id] = { id, model: data.model||'Unknown', osVersion: data.osVersion||'', status: data.status||'offline', lastSeen: data.lastSeen?.toMillis?.()||null, alarmActive: data.alarmActive||false, imei: data.imei||'', serial: data.serial||'', policies: data.policies||{} };
-        }
-        openModal(id);
-      });
-    });
+    getDoc(doc(db, 'devices', id)).then(snap => {
+      if (!snap.exists()) { alert('Device not found.'); return; }
+      const data = snap.data();
+      devicesMap[id] = { id, model: data.model||'Unknown', osVersion: data.osVersion||'', status: data.status||'offline', lastSeen: data.lastSeen?.toMillis?.()||null, alarmActive: data.alarmActive||false, imei: data.imei||'', serial: data.serial||'', policies: data.policies||{} };
+      openModal(id);
+    }).catch(e => alert('Failed to load device: ' + e.message));
   } else {
     openModal(id);
   }

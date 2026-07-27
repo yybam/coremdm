@@ -54,7 +54,17 @@ class LoginViewModel : ViewModel() {
         }
     }
 
+    fun signInWithGoogleToken(idToken: String) {
+        _uiState.update { it.copy(isLoading = true, error = null) }
+        viewModelScope.launch {
+            AuthRepository.signInWithGoogle(idToken)
+                .onFailure { e -> _uiState.update { it.copy(isLoading = false, error = e.message) } }
+                .onSuccess  { _uiState.update { it.copy(isLoading = false) } }
+        }
+    }
+
     fun clearError() = _uiState.update { it.copy(error = null) }
+    fun setError(msg: String) = _uiState.update { it.copy(error = msg, isLoading = false) }
     fun clearResetSent() = _uiState.update { it.copy(resetEmailSent = false) }
 
     private fun validate(email: String, password: String): Boolean {

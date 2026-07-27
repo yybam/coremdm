@@ -2,6 +2,7 @@ package com.core.mdm.firebase
 
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.channels.awaitClose
@@ -31,6 +32,11 @@ object AuthRepository {
 
     suspend fun sendPasswordReset(email: String): Result<Unit> = runCatching {
         auth.sendPasswordResetEmail(email).await()
+    }
+
+    suspend fun signInWithGoogle(idToken: String): Result<FirebaseUser> = runCatching {
+        val credential = GoogleAuthProvider.getCredential(idToken, null)
+        auth.signInWithCredential(credential).await().user!!
     }
 
     fun signOut() = auth.signOut()

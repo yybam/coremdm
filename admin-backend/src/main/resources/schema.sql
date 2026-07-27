@@ -58,3 +58,44 @@ CREATE INDEX IF NOT EXISTS idx_audit_user   ON audit_logs (user_id);
 CREATE INDEX IF NOT EXISTS idx_audit_ip     ON audit_logs (ip_address);
 CREATE INDEX IF NOT EXISTS idx_audit_tenant ON audit_logs (tenant_id);
 CREATE INDEX IF NOT EXISTS idx_audit_time   ON audit_logs (timestamp);
+
+-- ── Device inventory (pre-provisioning records) ──────────────────────────────
+-- Populated by admins before physical deployment. Tracks the full enrollment
+-- lifecycle from PENDING through ENROLLED / DISENROLLED / BLOCKED.
+CREATE TABLE IF NOT EXISTS device_inventory (
+    id                            VARCHAR(36)   NOT NULL PRIMARY KEY,
+    serial_number                 VARCHAR(128)  NOT NULL UNIQUE,
+    device_identifier             VARCHAR(255)  NOT NULL UNIQUE,
+    imei                          VARCHAR(15)   UNIQUE,            -- NULL for Wi-Fi-only
+    tenant_id                     VARCHAR(128)  NOT NULL,
+    enrollment_status             VARCHAR(16)   NOT NULL DEFAULT 'PENDING',
+    enrollment_token_hash         VARCHAR(255),                    -- BCrypt; NULL after use
+    enrollment_token_expires_at   TIMESTAMP,
+    enrolled_at                   TIMESTAMP,
+    last_seen_at                  TIMESTAMP,
+    hardware_id                   VARCHAR(255),                    -- Android ID reported at enrollment
+    pre_registered_by             VARCHAR(128),                    -- Firebase UID of registering admin
+    created_at                    TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_inventory_tenant FOREIGN KEY (tenant_id) REFERENCES organizations (tenant_id) ON DELETE RESTRICT
+);
+
+CREATE INDEX IF NOT EXISTS idx_inv_tenant  ON device_inventory (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_inv_status  ON device_inventory (enrollment_status);
+CREATE INDEX IF NOT EXISTS idx_inv_hw_id   ON device_inventory (hardware_id);
+
+-- ── Device sessions (issued after successful enrollment) ─────────────────────
+-- One session per enrollment. Revoked on disenrollment.
+CREATE TABLE IF NOT EXISTS device_sessions (
+    id             VARCHAR(36)   NOT NULL PRIMARY KEY,
+    device_id      VARCHAR(36)   NOT NULL,     -- References device_inventory.id
+    session_token  VARCHAR(36)   NOT NULL UNIQUE,
+    issued_at      TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    expires_at     TIMESTAMP,
+    revoked        BOOLEAN       NOT NULL DEFAULT FALSE,
+
+    CONSTRAINT fk_session_device FOREIGN KEY (device_id) REFERENCES device_inventory (id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_session_token    ON device_sessions (session_token);
+CREATE INDEX IF NOT EXISTS idx_session_device   ON device_sessions (device_id);

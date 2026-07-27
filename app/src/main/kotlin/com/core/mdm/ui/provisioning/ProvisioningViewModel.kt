@@ -56,37 +56,28 @@ class ProvisioningViewModel(app: Application) : AndroidViewModel(app) {
                     return@addOnSuccessListener
                 }
 
-                // Step 2: cross-check token against device_inventory/{imei}
+                // Step 2: attempt the PENDING→ENROLLED update directly.
+                // The Firestore security rule enforces the PENDING precondition server-side,
+                // so we don't need a separate read (which would be blocked for non-admin users).
                 val invRef = Firebase.firestore.collection("device_inventory").document(imei)
-                invRef.get().addOnSuccessListener { invSnap ->
-                    if (!invSnap.exists()) {
-                        _state.update { it.copy(isLoading = false, error = "Device record not found") }
-                        return@addOnSuccessListener
-                    }
-                    if (invSnap.getString("enrollmentStatus") != "PENDING") {
-                        _state.update { it.copy(isLoading = false, error = "Device is already enrolled or blocked") }
-                        return@addOnSuccessListener
-                    }
-                    if (invSnap.getString("enrollmentToken") != token) {
-                        _state.update { it.copy(isLoading = false, error = "Token mismatch — may have been renewed") }
-                        return@addOnSuccessListener
-                    }
-
-                    // Step 3: mark ENROLLED, consume token
-                    invRef.update(
-                        "enrollmentStatus",          "ENROLLED",
-                        "enrolledAt",                FieldValue.serverTimestamp(),
-                        "enrollmentToken",           null,
-                        "enrollmentTokenExpiresAt",  null,
-                    ).addOnSuccessListener {
-                        Firebase.firestore.collection("enrollment_tokens").document(token).delete()
-                        markDone()
-                        _state.update { it.copy(isLoading = false, showDialog = false) }
-                    }.addOnFailureListener { e ->
-                        _state.update { it.copy(isLoading = false, error = "Could not confirm enrollment: ${e.message}") }
-                    }
+                invRef.update(
+                    "enrollmentStatus",         "ENROLLED",
+                    "enrolledAt",               FieldValue.serverTimestamp(),
+                    "enrollmentToken",          null,
+                    "enrollmentTokenExpiresAt", null,
+                ).addOnSuccessListener {
+                    Firebase.firestore.collection("enrollment_tokens").document(token).delete()
+                    markDone()
+                    _state.update { it.copy(isLoading = false, showDialog = false) }
                 }.addOnFailureListener { e ->
-                    _state.update { it.copy(isLoading = false, error = "Connection error: ${e.message}") }
+                    val msg = when {
+                        e.message?.contains("PERMISSION_DENIED") == true ->
+                            "Device is already enrolled, blocked, or token is invalid"
+                        e.message?.contains("NOT_FOUND") == true ->
+                            "Device record not found — contact your admin"
+                        else -> "Enrollment failed: ${e.message}"
+                    }
+                    _state.update { it.copy(isLoading = false, error = msg) }
                 }
             }
             .addOnFailureListener { e ->

@@ -27,6 +27,9 @@ import com.core.mdm.ui.login.LoginScreen
 import com.core.mdm.ui.pin.PinLockScreen
 import com.core.mdm.ui.pin.PinLockViewModel
 import com.core.mdm.ui.pin.PinScreenMode
+import com.core.mdm.ui.provisioning.ProvisioningState
+import com.core.mdm.ui.provisioning.ProvisioningTokenDialog
+import com.core.mdm.ui.provisioning.ProvisioningViewModel
 import com.core.mdm.ui.remote.RemoteControlScreen
 import com.core.mdm.ui.telemetry.TelemetryScreen
 import com.core.mdm.ui.theme.CoreMdmTheme
@@ -75,7 +78,17 @@ private fun AppRoot() {
         } else {
             // Start service once authenticated
             LaunchedEffect(Unit) { MdmCommandService.start(context) }
+            val provVm: ProvisioningViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+            val provState by provVm.state.collectAsState()
             MdmRoot()
+            if (provState.showDialog) {
+                ProvisioningTokenDialog(
+                    state         = provState,
+                    onTokenChange = provVm::onTokenChange,
+                    onVerify      = provVm::verify,
+                    onSkip        = provVm::skip,
+                )
+            }
         }
     }
 }

@@ -26,9 +26,25 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // Device inventory — pre-provisioning records, only super admin can access
-    match /device_inventory/{docId} {
+    // Device inventory — pre-provisioning records
+    match /device_inventory/{imei} {
       allow read, write: if isSuperAdmin();
+      // Devices mark themselves ENROLLED after verifying their token client-side
+      allow update: if request.auth != null
+                    && resource.data.enrollmentStatus == 'PENDING'
+                    && request.resource.data.enrollmentStatus == 'ENROLLED'
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['enrollmentStatus', 'enrolledAt',
+                                   'enrollmentToken', 'enrollmentTokenExpiresAt']);
+    }
+
+    // Enrollment token lookup — the 32-char random token itself is the secret.
+    // Any signed-in device can look up its record; only super admin can create tokens.
+    match /enrollment_tokens/{token} {
+      allow read:   if request.auth != null;
+      allow create: if isSuperAdmin();
+      allow update: if false;
+      allow delete: if request.auth != null;   // device consumes token after enrollment
     }
 
     // Deny everything else

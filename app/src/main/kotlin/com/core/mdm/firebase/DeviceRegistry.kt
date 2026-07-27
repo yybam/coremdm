@@ -5,27 +5,35 @@ import android.util.Log
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 
 object DeviceRegistry {
 
+    private const val TAG = "DeviceRegistry"
+
     private fun devices() = Firebase.firestore.collection("devices")
     private fun uid(): String? = Firebase.auth.currentUser?.uid
+
+    // Cache last-seen policies so we don't re-apply on every 60-second heartbeat snapshot.
+    private var lastPolicies: Map<String, Any>? = null
 
     fun updateLastSeen(context: Context) {
         uid() ?: return
         val id = EnrollmentManager.getHardwareId(context)
         devices().document(id)
             .update("lastSeen", FieldValue.serverTimestamp(), "status", "online")
-            .addOnSuccessListener { Log.d("DeviceRegistry", "lastSeen updated: $id") }
-            .addOnFailureListener { Log.e("DeviceRegistry", "updateLastSeen FAILED for $id: ${it.message}") }
+            .addOnSuccessListener { Log.d(TAG, "lastSeen updated: $id") }
+            .addOnFailureListener { Log.e(TAG, "updateLastSeen FAILED for $id: ${it.message}") }
     }
 
     fun storeFcmToken(context: Context, token: String) {
         uid() ?: return
+        // Use set-merge so this succeeds even before the device doc is created by enroll().
         devices().document(EnrollmentManager.getHardwareId(context))
-            .update("fcmToken", token)
+            .set(mapOf("fcmToken" to token), SetOptions.merge())
+            .addOnFailureListener { Log.e(TAG, "storeFcmToken failed: ${it.message}") }
     }
 
     fun watchCommands(
@@ -40,13 +48,19 @@ object DeviceRegistry {
         uid() ?: return null
         return devices().document(EnrollmentManager.getHardwareId(context))
             .addSnapshotListener { snap, error ->
-                if (error != null || snap == null) return@addSnapshotListener
+                if (error != null) {
+                    Log.e(TAG, "watchCommands listener error: ${error.message}")
+                    return@addSnapshotListener
+                }
+                if (snap == null || !snap.exists()) return@addSnapshotListener
                 onAlarmChange(snap.getBoolean("alarmActive") ?: false)
                 if (snap.getBoolean("lockCommand") == true) {
                     onLockCommand?.invoke()
                     snap.reference.update("lockCommand", false)
                 }
                 if (snap.getBoolean("wipeCommand") == true) {
+                    // ACK before invoking: device may not survive the wipe to clear it afterward.
+                    snap.reference.update("wipeCommand", false)
                     onWipeCommand?.invoke()
                 }
                 if (snap.getBoolean("rebootCommand") == true) {
@@ -58,7 +72,11 @@ object DeviceRegistry {
                     snap.reference.update("fullLockdownCommand", false)
                 }
                 @Suppress("UNCHECKED_CAST")
-                (snap.get("policies") as? Map<String, Any>)?.let { onPoliciesChange?.invoke(it) }
+                val policies = snap.get("policies") as? Map<String, Any>
+                if (policies != null && policies != lastPolicies) {
+                    lastPolicies = policies
+                    onPoliciesChange?.invoke(policies)
+                }
             }
     }
 

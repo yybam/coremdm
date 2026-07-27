@@ -8,6 +8,7 @@ import android.telephony.TelephonyManager
 import android.util.Log
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
@@ -110,7 +111,8 @@ object EnrollmentManager {
                 onSuccess?.invoke()
             }
             .addOnFailureListener { err ->
-                if (err.message?.contains("NOT_FOUND") == true) {
+                if ((err as? FirebaseFirestoreException)?.code ==
+                        FirebaseFirestoreException.Code.NOT_FOUND) {
                     // New device — create the doc and set ownerId to the current user.
                     val createData = HashMap(metadata)
                     createData["ownerId"] = uid

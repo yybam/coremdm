@@ -31,13 +31,20 @@ service cloud.firestore {
                         && !request.resource.data.diff(resource.data).affectedKeys()
                              .hasAny(['ownerId'])
                       )
-                      // Bootstrap: any authenticated user may write the device-info +
-                      // heartbeat fields only — used by enroll() on first run before
-                      // deviceUid is set in the doc.
-                      || request.resource.data.diff(resource.data).affectedKeys()
-                           .hasOnly(['lastSeen', 'status', 'fcmToken',
-                                     'hardwareId', 'androidId', 'model',
-                                     'manufacturer', 'osVersion', 'imei', 'serial', 'deviceUid'])
+                      // Bootstrap: any authenticated user may write device-info and heartbeat
+                      // fields before deviceUid is set. If deviceUid is included it must
+                      // equal the caller's own UID — prevents claiming another device.
+                      || (
+                        request.resource.data.diff(resource.data).affectedKeys()
+                          .hasOnly(['lastSeen', 'status', 'fcmToken',
+                                    'hardwareId', 'androidId', 'model',
+                                    'manufacturer', 'osVersion', 'imei', 'serial', 'deviceUid'])
+                        && (
+                          !request.resource.data.diff(resource.data).affectedKeys()
+                             .hasAll(['deviceUid'])
+                          || request.resource.data.deviceUid == request.auth.uid
+                        )
+                      )
                     );
 
       allow delete: if request.auth != null

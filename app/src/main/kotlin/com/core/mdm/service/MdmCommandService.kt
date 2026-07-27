@@ -49,7 +49,6 @@ class MdmCommandService : Service() {
                 // Enroll first so deviceUid is written to the doc before we open
                 // the watchCommands listener — the read rule requires deviceUid == auth.uid.
                 EnrollmentManager.enroll(applicationContext) {
-                    DeviceRegistry.updateLastSeen(applicationContext)
                     if (commandListener == null) {
                         commandListener = DeviceRegistry.watchCommands(
                             context = applicationContext,
@@ -102,6 +101,7 @@ class MdmCommandService : Service() {
     override fun onDestroy() {
         authStateListener?.let { Firebase.auth.removeAuthStateListener(it) }
         commandListener?.remove()
+        commandListener = null
         serviceScope.cancel()
         AlarmController.stopAlarm()
         super.onDestroy()

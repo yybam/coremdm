@@ -15,6 +15,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.core.mdm.firebase.AuthRepository
+import com.core.mdm.firebase.EnrollmentManager
 import com.core.mdm.security.AppLockState
 import com.core.mdm.security.PinManager
 import com.core.mdm.service.MdmCommandService
@@ -162,6 +163,8 @@ private fun MdmNavGraph(pinManager: PinManager) {
                 onNavigateToTelemetry = { navController.navigate(ROUTE_TELEMETRY) },
                 onNavigateToRemote    = { navController.navigate(ROUTE_REMOTE) },
                 onSignOut = {
+                    // setOffline while still authenticated — auth token is cleared by signOut().
+                    EnrollmentManager.setOffline(context)
                     MdmCommandService.stop(context)
                     AuthRepository.signOut()
                 }

@@ -234,6 +234,36 @@ header { background: var(--navy); border-bottom: 1px solid var(--border); paddin
 .audit-default       { background: var(--card); color: var(--textSec); }
 .admin-empty { text-align: center; padding: 48px 0; color: var(--textSec); font-size: 14px; }
 .admin-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
+
+/* ─── Device Inventory ───────────────────────────────────── */
+.inv-form-card { background: var(--navy); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 20px; }
+.inv-form-card h3 { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 16px; }
+.inv-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 640px) { .inv-form-grid { grid-template-columns: 1fr; } }
+.inv-field label { display: block; font-size: 11px; font-weight: 600; color: var(--textSec); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+.inv-field input { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; font-size: 13px; color: var(--text); font-family: monospace; }
+.inv-field input:focus { border-color: var(--cyan); outline: none; }
+.inv-field input::placeholder { color: var(--textDim); font-family: inherit; }
+.inv-field-sub { font-size: 11px; color: var(--textDim); margin-top: 4px; }
+.inv-form-row { display: flex; gap: 10px; margin-top: 14px; align-items: center; flex-wrap: wrap; }
+.btn-register { background: linear-gradient(135deg,#4DD2F0,#8B5CF6); color: #fff; border-radius: 9px; padding: 10px 20px; font-size: 13px; font-weight: 700; transition: opacity 0.2s; }
+.btn-register:hover { opacity: 0.85; }
+.inv-msg { font-size: 13px; min-height: 18px; }
+.token-box { background: rgba(34,197,94,0.06); border: 1px solid rgba(34,197,94,0.35); border-radius: 10px; padding: 16px; margin-top: 14px; display: none; }
+.token-box.show { display: block; }
+.token-box-hdr { font-size: 12px; font-weight: 700; color: var(--green); margin-bottom: 8px; }
+.token-val { font-family: monospace; font-size: 13px; color: var(--text); word-break: break-all; background: var(--bg); border: 1px solid var(--border); border-radius: 7px; padding: 10px 12px; margin-bottom: 8px; }
+.token-expiry { font-size: 11px; color: var(--textSec); margin-bottom: 10px; }
+.btn-copy { background: var(--green); color: var(--bg); border-radius: 7px; padding: 7px 14px; font-size: 12px; font-weight: 700; transition: opacity 0.2s; }
+.btn-copy:hover { opacity: 0.85; }
+.inv-badge-PENDING     { background: rgba(245,158,11,0.15); color: var(--yellow); }
+.inv-badge-ENROLLED    { background: #153A25; color: var(--green); }
+.inv-badge-BLOCKED     { background: #3A0000; color: var(--red); }
+.inv-badge-DISENROLLED { background: #1A1A30; color: var(--textSec); }
+.at-btn-block   { background: rgba(45,0,0,0.6); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+.at-btn-unblock { background: rgba(0,40,24,0.6); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
+.at-btn-del     { background: var(--card); color: var(--textSec); border: 1px solid var(--border); }
+.token-peek { font-family: monospace; font-size: 11px; color: var(--textDim); }
 </style>
 </head>
 <body>
@@ -358,8 +388,8 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { getFirestore, collection, query, where, orderBy, limit,
-         onSnapshot, doc, updateDoc, arrayUnion, arrayRemove,
-         addDoc, serverTimestamp }
+         onSnapshot, doc, updateDoc, deleteDoc, getDoc,
+         addDoc, serverTimestamp, Timestamp }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const app = initializeApp({
@@ -380,6 +410,8 @@ let adminMode           = false;
 let adminTab            = 'devices';
 let unsubAdminDevices   = null;
 let unsubAuditLog       = null;
+let unsubInventory      = null;
+let lastTokenPlain      = null;
 
 const devicesMap = {};
 let unsubDevices = null;
@@ -505,6 +537,7 @@ onAuthStateChanged(auth, user => {
     if (unsubDevices)      { unsubDevices(); unsubDevices = null; }
     if (unsubAdminDevices) { unsubAdminDevices(); unsubAdminDevices = null; }
     if (unsubAuditLog)     { unsubAuditLog(); unsubAuditLog = null; }
+    if (unsubInventory)    { unsubInventory(); unsubInventory = null; }
     closeModal();
   }
 });
@@ -827,25 +860,30 @@ function switchToDashboard() {
   appEl.style.flexDirection = 'column';
   if (unsubAdminDevices) { unsubAdminDevices(); unsubAdminDevices = null; }
   if (unsubAuditLog)     { unsubAuditLog(); unsubAuditLog = null; }
+  if (unsubInventory)    { unsubInventory(); unsubInventory = null; }
 }
 function switchAdminTab(tab) {
   adminTab = tab;
   if (unsubAdminDevices) { unsubAdminDevices(); unsubAdminDevices = null; }
   if (unsubAuditLog)     { unsubAuditLog(); unsubAuditLog = null; }
+  if (unsubInventory)    { unsubInventory(); unsubInventory = null; }
+  lastTokenPlain = null;
   renderAdminTabBar();
   loadAdminView(tab);
 }
 function renderAdminTabBar() {
   const tabs = [
-    { id:'devices', label:'All Devices' },
-    { id:'audit',   label:'Audit Log' },
+    { id:'devices',   label:'All Devices' },
+    { id:'inventory', label:'Enrollment' },
+    { id:'audit',     label:'Audit Log' },
   ];
   document.getElementById('admin-tab-bar').innerHTML = tabs.map(t =>
     `<button class="admin-tab-btn${t.id===adminTab?' active':''}" onclick="window._mdm.switchAdminTab('${t.id}')">${t.label}</button>`
   ).join('');
 }
 function loadAdminView(tab) {
-  if (tab === 'devices') loadAdminDevices();
+  if (tab === 'devices')   loadAdminDevices();
+  else if (tab === 'inventory') loadInventory();
   else loadAuditLog();
 }
 
@@ -952,11 +990,293 @@ function adminManage(id) {
   }
 }
 
+// ── Device Inventory ─────────────────────────────────────────
+
+function timeUntil(ms) {
+  if (!ms) return '—';
+  const diff = ms - Date.now();
+  if (diff <= 0) return 'Expired';
+  const h = Math.floor(diff / 3_600_000);
+  if (h < 1) return Math.floor(diff / 60_000) + 'm left';
+  if (h < 24) return h + 'h left';
+  return Math.floor(h / 24) + 'd left';
+}
+
+function generateEnrollmentToken() {
+  const arr = new Uint8Array(24);
+  crypto.getRandomValues(arr);
+  return btoa(String.fromCharCode(...arr)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+}
+
+function validateImeiLuhn(imei) {
+  if (!/^\d{15}$/.test(imei)) return false;
+  let sum = 0;
+  for (let i = 0; i < 15; i++) {
+    let d = +imei[i];
+    if (i % 2 === 1) { d *= 2; if (d > 9) d -= 9; }
+    sum += d;
+  }
+  return sum % 10 === 0;
+}
+
+function loadInventory() {
+  document.getElementById('admin-stats').innerHTML = '';
+  document.getElementById('admin-panel-body').innerHTML = `
+    <div class="inv-form-card">
+      <h3>Pre-Register Device for Enrollment</h3>
+      <div class="inv-form-grid">
+        <div class="inv-field">
+          <label>Serial Number *</label>
+          <input id="inv-serial" type="text" placeholder="e.g. R58M31ABCDE">
+        </div>
+        <div class="inv-field">
+          <label>Device Identifier (Android ID) *</label>
+          <input id="inv-devid" type="text" placeholder="e.g. 3f99c00e2cd057c8">
+          <div class="inv-field-sub">Settings → About phone → Android ID</div>
+        </div>
+        <div class="inv-field">
+          <label>IMEI <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional — blank for Wi-Fi-only)</span></label>
+          <input id="inv-imei" type="text" placeholder="15 digits" maxlength="15">
+        </div>
+        <div class="inv-field">
+          <label>Tenant ID *</label>
+          <input id="inv-tenant" type="text" placeholder="e.g. org-headquarters" value="default">
+        </div>
+      </div>
+      <div class="inv-form-row">
+        <button class="btn-register" onclick="window._mdm.preRegisterDevice()">Generate Enrollment Token</button>
+        <span class="inv-msg" id="inv-msg"></span>
+      </div>
+      <div class="token-box" id="inv-token-box">
+        <div class="token-box-hdr">Enrollment Token — copy and deliver to the device technician</div>
+        <div class="token-val" id="inv-token-val"></div>
+        <div class="token-expiry" id="inv-token-exp"></div>
+        <button class="btn-copy" onclick="window._mdm.copyLastToken()">Copy Token</button>
+      </div>
+    </div>
+    <div id="inv-table-wrap"><div class="admin-empty">Loading inventory…</div></div>`;
+
+  const q = collection(db, 'device_inventory');
+  unsubInventory = onSnapshot(q, snap => {
+    const records = snap.docs.map(d => {
+      const data = d.data();
+      return { id: d.id, ...data,
+        createdAtMs: data.createdAt?.toMillis?.() ?? null,
+        expiresAtMs: data.enrollmentTokenExpiresAt?.toMillis?.() ?? null,
+        enrolledAtMs: data.enrolledAt?.toMillis?.() ?? null,
+      };
+    });
+    records.sort((a, b) => (b.createdAtMs || 0) - (a.createdAtMs || 0));
+    renderInventoryTable(records);
+  }, err => {
+    const w = document.getElementById('inv-table-wrap');
+    if (w) w.innerHTML = `<div class="admin-empty" style="color:var(--red)">Error loading inventory: ${esc(err.message)}</div>`;
+  });
+}
+
+function renderInventoryTable(records) {
+  const wrap = document.getElementById('inv-table-wrap');
+  if (!wrap) return;
+  if (!records.length) {
+    wrap.innerHTML = '<div class="admin-empty">No devices pre-registered yet. Use the form above to add the first device.</div>';
+    return;
+  }
+  wrap.innerHTML = `
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead><tr>
+          <th>Serial Number</th><th>Android ID</th><th>IMEI</th><th>Tenant</th>
+          <th>Status</th><th>Token</th><th>Enrolled At</th><th>Actions</th>
+        </tr></thead>
+        <tbody>${records.map(r => {
+          const isPending  = r.enrollmentStatus === 'PENDING';
+          const isEnrolled = r.enrollmentStatus === 'ENROLLED';
+          const expired    = r.expiresAtMs && Date.now() > r.expiresAtMs;
+          const tokenCell  = isPending
+            ? `<span class="token-peek">${esc((r.enrollmentToken||'').slice(0,8))}…</span>
+               <button class="at-btn at-btn-manage" style="margin-left:6px;" onclick="window._mdm.copyInvToken('${r.id}')">Copy</button>
+               <span style="display:block;font-size:10px;color:${expired?'var(--red)':'var(--textDim)'};">${timeUntil(r.expiresAtMs)}</span>`
+            : '<span style="color:var(--textDim);font-size:12px;">—</span>';
+          const enrolledCell = r.enrolledAtMs
+            ? `<span style="font-size:11px;color:var(--textSec);">${new Date(r.enrolledAtMs).toLocaleDateString()}</span>`
+            : '—';
+          return `<tr>
+            <td class="mono">${esc(r.serialNumber||'')}</td>
+            <td class="mono" style="font-size:11px;">${esc(r.deviceIdentifier||'')}</td>
+            <td class="mono">${r.imei ? esc(r.imei) : '<span style="color:var(--textDim);font-size:11px;">Wi-Fi only</span>'}</td>
+            <td style="font-size:12px;">${esc(r.tenantId||'')}</td>
+            <td><span class="badge inv-badge-${esc(r.enrollmentStatus||'PENDING')}">${esc(r.enrollmentStatus||'PENDING')}</span></td>
+            <td>${tokenCell}</td>
+            <td>${enrolledCell}</td>
+            <td><div class="action-cell">
+              ${isPending && expired  ? `<button class="at-btn at-btn-lock" onclick="window._mdm.renewInvToken('${r.id}')">Renew</button>` : ''}
+              ${isPending             ? `<button class="at-btn at-btn-manage" onclick="window._mdm.markEnrolled('${r.id}')">Mark Enrolled</button>` : ''}
+              ${isEnrolled            ? `<button class="at-btn at-btn-lock" onclick="window._mdm.markDisenrolled('${r.id}')">Disenroll</button>` : ''}
+              ${r.enrollmentStatus !== 'BLOCKED'
+                ? `<button class="at-btn at-btn-block" onclick="window._mdm.blockInvDevice('${r.id}')">Block</button>`
+                : `<button class="at-btn at-btn-unblock" onclick="window._mdm.unblockInvDevice('${r.id}')">Unblock</button>`}
+              <button class="at-btn at-btn-del" onclick="window._mdm.deleteInvRecord('${r.id}')">Del</button>
+            </div></td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+    </div>`;
+}
+
+async function preRegisterDevice() {
+  const serial   = (document.getElementById('inv-serial')?.value || '').trim();
+  const devId    = (document.getElementById('inv-devid')?.value  || '').trim();
+  const imeiRaw  = (document.getElementById('inv-imei')?.value   || '').trim();
+  const tenantId = (document.getElementById('inv-tenant')?.value || '').trim();
+  const msgEl    = document.getElementById('inv-msg');
+  const tokenBox = document.getElementById('inv-token-box');
+
+  if (!serial || !devId || !tenantId) {
+    msgEl.style.color = 'var(--red)';
+    msgEl.textContent = 'Serial Number, Device Identifier, and Tenant ID are required.';
+    return;
+  }
+  const imei = imeiRaw || null;
+  if (imei && !/^\d{15}$/.test(imei)) {
+    msgEl.style.color = 'var(--red)'; msgEl.textContent = 'IMEI must be exactly 15 digits.'; return;
+  }
+  if (imei && !validateImeiLuhn(imei)) {
+    msgEl.style.color = 'var(--red)'; msgEl.textContent = 'IMEI fails Luhn validation — double-check the number.'; return;
+  }
+
+  msgEl.style.color = 'var(--textSec)'; msgEl.textContent = 'Saving…';
+  if (tokenBox) tokenBox.classList.remove('show');
+
+  const token     = generateEnrollmentToken();
+  const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000);
+
+  try {
+    await addDoc(collection(db, 'device_inventory'), {
+      serialNumber: serial,
+      deviceIdentifier: devId,
+      imei,
+      tenantId,
+      enrollmentStatus: 'PENDING',
+      enrollmentToken: token,
+      enrollmentTokenExpiresAt: Timestamp.fromDate(expiresAt),
+      enrolledAt: null,
+      createdBy: auth.currentUser?.email || '',
+      createdAt: serverTimestamp(),
+    });
+
+    // Show the token once — store so Copy button works
+    lastTokenPlain = token;
+    document.getElementById('inv-token-val').textContent = token;
+    document.getElementById('inv-token-exp').textContent =
+      'Expires: ' + expiresAt.toLocaleString() + ' (72 hours from now)';
+    if (tokenBox) tokenBox.classList.add('show');
+
+    // Clear form fields (keep tenant)
+    ['inv-serial','inv-devid','inv-imei'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.value = '';
+    });
+    msgEl.style.color = 'var(--green)';
+    msgEl.textContent = 'Device registered. Copy the enrollment token below.';
+
+    logAudit('DEVICE_PRE_REGISTERED', null, `serial:${serial} devId:${devId} tenant:${tenantId}`);
+  } catch(e) {
+    msgEl.style.color = 'var(--red)'; msgEl.textContent = 'Error: ' + e.message;
+  }
+}
+
+function copyLastToken() {
+  if (!lastTokenPlain) return;
+  navigator.clipboard.writeText(lastTokenPlain).then(() => {
+    const btn = document.querySelector('#inv-token-box .btn-copy');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(() => { btn.textContent = 'Copy Token'; }, 2000); }
+  });
+}
+
+async function copyInvToken(docId) {
+  try {
+    const snap = await getDoc(doc(db, 'device_inventory', docId));
+    const token = snap.data()?.enrollmentToken;
+    if (!token) { alert('No token available for this record.'); return; }
+    await navigator.clipboard.writeText(token);
+  } catch(e) { alert('Failed to copy: ' + e.message); }
+}
+
+async function renewInvToken(docId) {
+  const token     = generateEnrollmentToken();
+  const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000);
+  try {
+    await updateDoc(doc(db, 'device_inventory', docId), {
+      enrollmentToken: token,
+      enrollmentTokenExpiresAt: Timestamp.fromDate(expiresAt),
+      enrollmentStatus: 'PENDING',
+    });
+    lastTokenPlain = token;
+    const tokenBox = document.getElementById('inv-token-box');
+    if (tokenBox) {
+      document.getElementById('inv-token-val').textContent = token;
+      document.getElementById('inv-token-exp').textContent =
+        'Renewed. Expires: ' + expiresAt.toLocaleString();
+      tokenBox.classList.add('show');
+      const msgEl = document.getElementById('inv-msg');
+      if (msgEl) { msgEl.style.color = 'var(--green)'; msgEl.textContent = 'Token renewed — copy it below.'; }
+    }
+    logAudit('ENROLLMENT_TOKEN_RENEWED', docId, null);
+  } catch(e) { alert('Renew failed: ' + e.message); }
+}
+
+async function markEnrolled(docId) {
+  try {
+    await updateDoc(doc(db, 'device_inventory', docId), {
+      enrollmentStatus: 'ENROLLED',
+      enrolledAt: serverTimestamp(),
+      enrollmentToken: null,
+      enrollmentTokenExpiresAt: null,
+    });
+    logAudit('DEVICE_ENROLLED', docId, 'Manually marked enrolled');
+  } catch(e) { alert('Failed: ' + e.message); }
+}
+
+async function markDisenrolled(docId) {
+  try {
+    await updateDoc(doc(db, 'device_inventory', docId), { enrollmentStatus: 'DISENROLLED' });
+    logAudit('DEVICE_DISENROLLED', docId, null);
+  } catch(e) { alert('Failed: ' + e.message); }
+}
+
+async function blockInvDevice(docId) {
+  try {
+    await updateDoc(doc(db, 'device_inventory', docId), {
+      enrollmentStatus: 'BLOCKED',
+      enrollmentToken: null,
+      enrollmentTokenExpiresAt: null,
+    });
+    logAudit('DEVICE_BLOCKED', docId, null);
+  } catch(e) { alert('Failed: ' + e.message); }
+}
+
+async function unblockInvDevice(docId) {
+  try {
+    await updateDoc(doc(db, 'device_inventory', docId), { enrollmentStatus: 'PENDING' });
+    logAudit('DEVICE_UNBLOCKED', docId, null);
+  } catch(e) { alert('Failed: ' + e.message); }
+}
+
+async function deleteInvRecord(docId) {
+  if (!confirm('Delete this inventory record? This cannot be undone.')) return;
+  try {
+    await deleteDoc(doc(db, 'device_inventory', docId));
+    logAudit('DEVICE_INVENTORY_DELETED', docId, null);
+  } catch(e) { alert('Delete failed: ' + e.message); }
+}
+
 // ── Global exposure ──────────────────────────────────────────
 window._mdm = {
   openModal, switchTab, toggleAlarm, sendLock, sendReboot,
   sendFullLockdown, setPolicy, lockDns, clearDns, addPkg, removePkg, confirmWipe,
   switchToAdmin, switchToDashboard, switchAdminTab, adminManage,
+  preRegisterDevice, copyLastToken, copyInvToken,
+  renewInvToken, markEnrolled, markDisenrolled,
+  blockInvDevice, unblockInvDevice, deleteInvRecord,
 };
 window.cancelWipe  = cancelWipe;
 window.executeWipe = executeWipe;

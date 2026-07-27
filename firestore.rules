@@ -26,6 +26,11 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Device inventory — pre-provisioning records, only super admin can access
+    match /device_inventory/{docId} {
+      allow read, write: if isSuperAdmin();
+    }
+
     // Deny everything else
     match /{document=**} {
       allow read, write: if false;

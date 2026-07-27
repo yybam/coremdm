@@ -12,8 +12,33 @@ service cloud.firestore {
       allow create: if request.auth != null
                     && request.resource.data.ownerId == request.auth.uid;
 
-      allow read, update: if request.auth != null
-                          && (resource.data.ownerId == request.auth.uid || isSuperAdmin());
+      // Owner, super-admin, or the device itself (matched via deviceUid) can read.
+      allow read: if request.auth != null
+                  && (resource.data.ownerId == request.auth.uid
+                      || isSuperAdmin()
+                      || resource.data.deviceUid == request.auth.uid);
+
+      allow update: if request.auth != null
+                    && (
+                      // Owner or super-admin can change anything
+                      resource.data.ownerId == request.auth.uid
+                      || isSuperAdmin()
+                      // The device itself (matched by deviceUid) can update any field
+                      // except ownerId — this covers command ACK (resetting lockCommand etc.)
+                      // and heartbeat writes.
+                      || (
+                        resource.data.deviceUid == request.auth.uid
+                        && !request.resource.data.diff(resource.data).affectedKeys()
+                             .hasAny(['ownerId'])
+                      )
+                      // Bootstrap: any authenticated user may write the device-info +
+                      // heartbeat fields only — used by enroll() on first run before
+                      // deviceUid is set in the doc.
+                      || request.resource.data.diff(resource.data).affectedKeys()
+                           .hasOnly(['lastSeen', 'status', 'fcmToken',
+                                     'hardwareId', 'androidId', 'model',
+                                     'manufacturer', 'osVersion', 'imei', 'serial', 'deviceUid'])
+                    );
 
       allow delete: if request.auth != null
                     && resource.data.ownerId == request.auth.uid;

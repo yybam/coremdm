@@ -77,32 +77,53 @@ object EnrollmentManager {
      * Registers this device under /devices/{hardwareId} with the current user as ownerId.
      * Called by MdmCommandService on every start so status and lastSeen stay fresh.
      */
-    fun enroll(context: Context, fcmToken: String? = null) {
+    fun enroll(context: Context, fcmToken: String? = null, onSuccess: (() -> Unit)? = null) {
         val uid = Firebase.auth.currentUser?.uid ?: run {
             Log.w(TAG, "enroll() called without authenticated user — skipping")
             return
         }
         val hardwareId = getHardwareId(context)
+        val docRef = Firebase.firestore.collection("devices").document(hardwareId)
 
-        val data = hashMapOf<String, Any>(
+        // Fields the device always writes — never includes ownerId so we don't
+        // clobber an existing ownerId set by the admin in the web console.
+        val metadata = hashMapOf<String, Any>(
             "hardwareId"   to hardwareId,
             "androidId"    to getAndroidId(context),
             "model"        to "${Build.MANUFACTURER} ${Build.MODEL}",
             "manufacturer" to Build.MANUFACTURER,
             "osVersion"    to "Android ${Build.VERSION.RELEASE}",
             "status"       to "online",
-            "ownerId"      to uid,
+            "deviceUid"    to uid,
             "lastSeen"     to FieldValue.serverTimestamp(),
         )
-        getImei(context)?.let    { data["imei"]   = it }
-        getSerial(context)?.let  { data["serial"] = it }
-        fcmToken?.let            { data["fcmToken"] = it }
+        getImei(context)?.let    { metadata["imei"]     = it }
+        getSerial(context)?.let  { metadata["serial"]   = it }
+        fcmToken?.let            { metadata["fcmToken"] = it }
 
-        Log.i(TAG, "Enrolling device: hardwareId=$hardwareId ownerId=$uid")
-        Firebase.firestore.collection("devices").document(hardwareId)
-            .set(data, SetOptions.merge())
-            .addOnSuccessListener { Log.i(TAG, "Enrolled OK: $hardwareId") }
-            .addOnFailureListener { Log.e(TAG, "Enrollment FAILED: ${it.message}") }
+        Log.i(TAG, "Enrolling device: hardwareId=$hardwareId deviceUid=$uid")
+
+        // Try update first — preserves admin-assigned ownerId on existing docs.
+        docRef.update(metadata)
+            .addOnSuccessListener {
+                Log.i(TAG, "Enroll (update) OK: $hardwareId")
+                onSuccess?.invoke()
+            }
+            .addOnFailureListener { err ->
+                if (err.message?.contains("NOT_FOUND") == true) {
+                    // New device — create the doc and set ownerId to the current user.
+                    val createData = HashMap(metadata)
+                    createData["ownerId"] = uid
+                    docRef.set(createData, SetOptions.merge())
+                        .addOnSuccessListener {
+                            Log.i(TAG, "Enroll (create) OK: $hardwareId")
+                            onSuccess?.invoke()
+                        }
+                        .addOnFailureListener { Log.e(TAG, "Enroll create FAILED: ${it.message}") }
+                } else {
+                    Log.e(TAG, "Enroll update FAILED: ${err.message}")
+                }
+            }
     }
 
     fun setOffline(context: Context) {

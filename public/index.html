@@ -1026,20 +1026,12 @@ function loadInventory() {
       <h3>Pre-Register Device for Enrollment</h3>
       <div class="inv-form-grid">
         <div class="inv-field">
-          <label>Serial Number *</label>
-          <input id="inv-serial" type="text" placeholder="e.g. R58M31ABCDE">
+          <label>IMEI *</label>
+          <input id="inv-imei" type="text" placeholder="15-digit IMEI" maxlength="15" inputmode="numeric">
+          <div class="inv-field-sub">Dial *#06# on the device or check Settings → About phone</div>
         </div>
         <div class="inv-field">
-          <label>Device Identifier (Android ID) *</label>
-          <input id="inv-devid" type="text" placeholder="e.g. 3f99c00e2cd057c8">
-          <div class="inv-field-sub">Settings → About phone → Android ID</div>
-        </div>
-        <div class="inv-field">
-          <label>IMEI <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional — blank for Wi-Fi-only)</span></label>
-          <input id="inv-imei" type="text" placeholder="15 digits" maxlength="15">
-        </div>
-        <div class="inv-field">
-          <label>Tenant ID *</label>
+          <label>Tenant ID</label>
           <input id="inv-tenant" type="text" placeholder="e.g. org-headquarters" value="default">
         </div>
       </div>
@@ -1085,7 +1077,7 @@ function renderInventoryTable(records) {
     <div class="admin-table-wrap">
       <table class="admin-table">
         <thead><tr>
-          <th>Serial Number</th><th>Android ID</th><th>IMEI</th><th>Tenant</th>
+          <th>IMEI</th><th>Tenant</th>
           <th>Status</th><th>Token</th><th>Enrolled At</th><th>Actions</th>
         </tr></thead>
         <tbody>${records.map(r => {
@@ -1101,9 +1093,7 @@ function renderInventoryTable(records) {
             ? `<span style="font-size:11px;color:var(--textSec);">${new Date(r.enrolledAtMs).toLocaleDateString()}</span>`
             : '—';
           return `<tr>
-            <td class="mono">${esc(r.serialNumber||'')}</td>
-            <td class="mono" style="font-size:11px;">${esc(r.deviceIdentifier||'')}</td>
-            <td class="mono">${r.imei ? esc(r.imei) : '<span style="color:var(--textDim);font-size:11px;">Wi-Fi only</span>'}</td>
+            <td class="mono">${r.imei ? esc(r.imei) : '<span style="color:var(--textDim);font-size:11px;">—</span>'}</td>
             <td style="font-size:12px;">${esc(r.tenantId||'')}</td>
             <td><span class="badge inv-badge-${esc(r.enrollmentStatus||'PENDING')}">${esc(r.enrollmentStatus||'PENDING')}</span></td>
             <td>${tokenCell}</td>
@@ -1124,61 +1114,61 @@ function renderInventoryTable(records) {
 }
 
 async function preRegisterDevice() {
-  const serial   = (document.getElementById('inv-serial')?.value || '').trim();
-  const devId    = (document.getElementById('inv-devid')?.value  || '').trim();
-  const imeiRaw  = (document.getElementById('inv-imei')?.value   || '').trim();
-  const tenantId = (document.getElementById('inv-tenant')?.value || '').trim();
+  const imei     = (document.getElementById('inv-imei')?.value   || '').trim();
+  const tenantId = (document.getElementById('inv-tenant')?.value || '').trim() || 'default';
   const msgEl    = document.getElementById('inv-msg');
   const tokenBox = document.getElementById('inv-token-box');
 
-  if (!serial || !devId || !tenantId) {
-    msgEl.style.color = 'var(--red)';
-    msgEl.textContent = 'Serial Number, Device Identifier, and Tenant ID are required.';
-    return;
+  if (!imei) {
+    msgEl.style.color = 'var(--red)'; msgEl.textContent = 'IMEI is required.'; return;
   }
-  const imei = imeiRaw || null;
-  if (imei && !/^\d{15}$/.test(imei)) {
+  if (!/^\d{15}$/.test(imei)) {
     msgEl.style.color = 'var(--red)'; msgEl.textContent = 'IMEI must be exactly 15 digits.'; return;
   }
-  if (imei && !validateImeiLuhn(imei)) {
+  if (!validateImeiLuhn(imei)) {
     msgEl.style.color = 'var(--red)'; msgEl.textContent = 'IMEI fails Luhn validation — double-check the number.'; return;
   }
 
-  msgEl.style.color = 'var(--textSec)'; msgEl.textContent = 'Saving…';
+  msgEl.style.color = 'var(--textSec)'; msgEl.textContent = 'Checking…';
   if (tokenBox) tokenBox.classList.remove('show');
+
+  // Use IMEI as doc ID so duplicates are impossible at the Firestore level
+  const docRef = doc(db, 'device_inventory', imei);
+  const existing = await getDoc(docRef);
+  if (existing.exists()) {
+    msgEl.style.color = 'var(--red)';
+    msgEl.textContent = `IMEI ${imei} is already registered (status: ${existing.data().enrollmentStatus}).`;
+    return;
+  }
 
   const token     = generateEnrollmentToken();
   const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000);
 
   try {
-    await addDoc(collection(db, 'device_inventory'), {
-      serialNumber: serial,
-      deviceIdentifier: devId,
-      imei,
-      tenantId,
-      enrollmentStatus: 'PENDING',
-      enrollmentToken: token,
-      enrollmentTokenExpiresAt: Timestamp.fromDate(expiresAt),
-      enrolledAt: null,
-      createdBy: auth.currentUser?.email || '',
-      createdAt: serverTimestamp(),
-    });
+    msgEl.textContent = 'Saving…';
+    await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js')
+      .then(({ setDoc }) => setDoc(docRef, {
+        imei,
+        tenantId,
+        enrollmentStatus: 'PENDING',
+        enrollmentToken: token,
+        enrollmentTokenExpiresAt: Timestamp.fromDate(expiresAt),
+        enrolledAt: null,
+        createdBy: auth.currentUser?.email || '',
+        createdAt: serverTimestamp(),
+      }));
 
-    // Show the token once — store so Copy button works
     lastTokenPlain = token;
     document.getElementById('inv-token-val').textContent = token;
     document.getElementById('inv-token-exp').textContent =
       'Expires: ' + expiresAt.toLocaleString() + ' (72 hours from now)';
     if (tokenBox) tokenBox.classList.add('show');
 
-    // Clear form fields (keep tenant)
-    ['inv-serial','inv-devid','inv-imei'].forEach(id => {
-      const el = document.getElementById(id); if (el) el.value = '';
-    });
+    document.getElementById('inv-imei').value = '';
     msgEl.style.color = 'var(--green)';
     msgEl.textContent = 'Device registered. Copy the enrollment token below.';
 
-    logAudit('DEVICE_PRE_REGISTERED', null, `serial:${serial} devId:${devId} tenant:${tenantId}`);
+    logAudit('DEVICE_PRE_REGISTERED', imei, `imei:${imei} tenant:${tenantId}`);
   } catch(e) {
     msgEl.style.color = 'var(--red)'; msgEl.textContent = 'Error: ' + e.message;
   }

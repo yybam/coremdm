@@ -388,7 +388,7 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { getFirestore, collection, query, where, orderBy, limit,
-         onSnapshot, doc, updateDoc, deleteDoc, getDoc,
+         onSnapshot, doc, updateDoc, deleteDoc, getDoc, setDoc,
          addDoc, serverTimestamp, Timestamp }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
@@ -1154,17 +1154,23 @@ async function preRegisterDevice() {
 
   try {
     msgEl.textContent = 'Saving…';
-    await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js')
-      .then(({ setDoc }) => setDoc(docRef, {
-        imei,
-        tenantId,
-        enrollmentStatus: 'PENDING',
-        enrollmentToken: token,
-        enrollmentTokenExpiresAt: Timestamp.fromDate(expiresAt),
-        enrolledAt: null,
-        createdBy: auth.currentUser?.email || '',
-        createdAt: serverTimestamp(),
-      }));
+    // device_inventory/{imei} — super admin only (main record)
+    await setDoc(docRef, {
+      imei,
+      tenantId,
+      enrollmentStatus: 'PENDING',
+      enrollmentToken: token,
+      enrollmentTokenExpiresAt: Timestamp.fromDate(expiresAt),
+      enrolledAt: null,
+      createdBy: auth.currentUser?.email || '',
+      createdAt: serverTimestamp(),
+    });
+    // enrollment_tokens/{token} — any auth user can read (the random token is the secret)
+    await setDoc(doc(db, 'enrollment_tokens', token), {
+      imei,
+      expiresAt: Timestamp.fromDate(expiresAt),
+      createdAt: serverTimestamp(),
+    });
 
     lastTokenPlain = token;
     document.getElementById('inv-token-val').textContent = token;
@@ -1202,11 +1208,18 @@ async function copyInvToken(docId) {
 async function renewInvToken(docId) {
   const token     = generateEnrollmentToken();
   const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000);
+  const expTs     = Timestamp.fromDate(expiresAt);
   try {
     await updateDoc(doc(db, 'device_inventory', docId), {
       enrollmentToken: token,
-      enrollmentTokenExpiresAt: Timestamp.fromDate(expiresAt),
+      enrollmentTokenExpiresAt: expTs,
       enrollmentStatus: 'PENDING',
+    });
+    // Write new lookup doc (old token doc becomes stale but harmless — cross-check validates)
+    await setDoc(doc(db, 'enrollment_tokens', token), {
+      imei: docId,
+      expiresAt: expTs,
+      createdAt: serverTimestamp(),
     });
     lastTokenPlain = token;
     const tokenBox = document.getElementById('inv-token-box');

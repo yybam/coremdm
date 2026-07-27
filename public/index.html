@@ -1022,8 +1022,16 @@ function validateImeiLuhn(imei) {
 function loadInventory() {
   document.getElementById('admin-stats').innerHTML = '';
   document.getElementById('admin-panel-body').innerHTML = `
+    <div class="inv-form-card" style="background:rgba(77,210,240,0.05);border-color:rgba(77,210,240,0.25);margin-bottom:16px;">
+      <h3 style="color:var(--cyan);">Standard Enrollment (no setup required)</h3>
+      <p style="font-size:13px;color:var(--textSec);line-height:1.6;margin-bottom:0;">
+        Install <strong style="color:var(--text);">CORE MDM</strong> on any Android device, create or sign in with a Firebase account,
+        and the device enrolls automatically. Log into this console with the same email and password
+        to see and manage it instantly — no pre-registration needed.
+      </p>
+    </div>
     <div class="inv-form-card">
-      <h3>Pre-Register Device for Enrollment</h3>
+      <h3>Pre-Register by IMEI <span style="font-size:12px;font-weight:400;color:var(--textSec);">(optional — for tracking devices before deployment)</span></h3>
       <div class="inv-form-grid">
         <div class="inv-field">
           <label>IMEI *</label>
@@ -1036,7 +1044,7 @@ function loadInventory() {
         </div>
       </div>
       <div class="inv-form-row">
-        <button class="btn-register" onclick="window._mdm.preRegisterDevice()">Generate Enrollment Token</button>
+        <button class="btn-register" onclick="window._mdm.preRegisterDevice()">Pre-Register Device</button>
         <span class="inv-msg" id="inv-msg"></span>
       </div>
       <div class="token-box" id="inv-token-box">

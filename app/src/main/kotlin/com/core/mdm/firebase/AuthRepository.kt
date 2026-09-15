@@ -16,7 +16,7 @@ object AuthRepository {
 
     private const val AUTH_TIMEOUT_MS = 15_000L
     private const val TIMEOUT_MESSAGE =
-        "Request timed out. Check your internet connection and that Google Play Services is installed and up to date, then try again."
+        "Request timed out. Check your internet connection and try again."
 
     val currentUser: FirebaseUser? get() = auth.currentUser
     val currentUid: String? get() = auth.currentUser?.uid
@@ -42,11 +42,12 @@ object AuthRepository {
     fun signOut() = auth.signOut()
 
     /**
-     * Firebase Auth's underlying Task never completes on some devices (e.g. Google Play
-     * Services present but not passing its own certification check) instead of failing fast,
-     * which used to leave the login/sign-up screen spinning forever with no error shown.
-     * Bound every auth call with a timeout so a stuck request always surfaces as a visible,
-     * actionable error instead of an infinite loading spinner.
+     * Firebase Auth's underlying Task can sit unresolved for minutes instead of failing fast
+     * when the network path is broken below the app (observed: a Wi-Fi network that advertises
+     * IPv6 but can't route it — connections to Google's IPv6-first endpoints hang in SYN-SENT
+     * with no error ever surfaced to the app). That left the login/sign-up screen spinning
+     * forever with no message. Bound every auth call with a timeout so a stuck request always
+     * surfaces as a visible error instead of an infinite loading spinner.
      */
     private suspend fun <T> withAuthTimeout(block: suspend () -> T): Result<T> =
         try {

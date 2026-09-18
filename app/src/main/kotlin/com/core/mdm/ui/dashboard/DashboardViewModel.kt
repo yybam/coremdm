@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.core.mdm.UninstallFlag
 import com.core.mdm.data.PolicyRepository
 import com.core.mdm.policy.DevicePolicyHelper
+import com.core.mdm.policy.PolicyEvents
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -65,6 +66,13 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
     init {
         loadState()
+        // Policies pushed from the web console are applied by MdmCommandService directly to
+        // DevicePolicyManager; re-read so the toggles reflect them without a manual refresh.
+        viewModelScope.launch {
+            PolicyEvents.remoteChanges.collect {
+                loadStateInternal(fullScreenLoader = false, message = "Policies updated from console")
+            }
+        }
     }
 
     // ── State loading ─────────────────────────────────────────────────────────────
@@ -78,10 +86,10 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
      */
     fun refresh() {
         if (_uiState.value.isRefreshing) return
-        loadStateInternal(fullScreenLoader = false)
+        loadStateInternal(fullScreenLoader = false, message = "Policy state refreshed")
     }
 
-    private fun loadStateInternal(fullScreenLoader: Boolean) {
+    private fun loadStateInternal(fullScreenLoader: Boolean, message: String? = null) {
         viewModelScope.launch {
             _uiState.update {
                 if (fullScreenLoader) it.copy(isLoading = true)
@@ -122,7 +130,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                     privateDnsRestricted   = r.privateDnsRestricted,
                 )
             }
-            if (!fullScreenLoader) toast("Policy state refreshed")
+            if (message != null) toast(message)
         }
     }
 

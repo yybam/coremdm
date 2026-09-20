@@ -18,6 +18,7 @@ import com.core.mdm.R
 import com.core.mdm.firebase.DeviceRegistry
 import com.core.mdm.firebase.EnrollmentManager
 import com.core.mdm.policy.DevicePolicyHelper
+import com.core.mdm.policy.PolicyEvents
 import com.core.mdm.remote.AlarmController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -33,6 +34,7 @@ class MdmCommandService : Service() {
     private var commandListener: ListenerRegistration? = null
     private var authStateListener: FirebaseAuth.AuthStateListener? = null
     private var lastAlarmActive: Boolean? = null
+    private var lastAppliedPolicies: Map<String, Any>? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -75,7 +77,16 @@ class MdmCommandService : Service() {
                             serviceScope.launch(Dispatchers.Main) { applyFullLockdown(helper) }
                         },
                         onPoliciesChange = { policies ->
-                            serviceScope.launch(Dispatchers.Main) { applyRemotePolicies(helper, policies) }
+                            // The snapshot listener also fires for this service's own
+                            // lastSeen writes every 60s — only re-apply (and only tell the
+                            // UI to re-read) when the policy set actually changed.
+                            if (policies != lastAppliedPolicies) {
+                                lastAppliedPolicies = policies
+                                serviceScope.launch(Dispatchers.Main) {
+                                    applyRemotePolicies(helper, policies)
+                                    PolicyEvents.notifyRemoteChange()
+                                }
+                            }
                         },
                     )
                 }

@@ -1,4 +1,4 @@
-﻿plugins {
+plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
@@ -28,8 +28,8 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled  = true
-            isShrinkResources = true
+            isMinifyEnabled  = false
+            isShrinkResources = false
             signingConfig    = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

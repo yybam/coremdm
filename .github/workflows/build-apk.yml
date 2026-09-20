@@ -22,8 +22,9 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      # ubuntu-latest ships a fully licensed Android SDK already (ANDROID_HOME preset) —
+      # android-actions/setup-android@v3 tries to additionally install the legacy 'tools'
+      # package, which no longer exists in current SDK repos and fails the whole step.
 
       # app/build.gradle.kts signs the "release" build type with the well-known Android
       # debug keystore at ~/.android/debug.keystore (see local-build-tweaks branch history) —

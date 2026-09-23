@@ -64,8 +64,9 @@
     </ol>
     <button id="btn-connect" class="primary transition-transform duration-150 hover:scale-[1.02] active:scale-95">Connect device</button>
 
-    <!-- live progress line, shown once connect starts -->
+    <!-- live progress line + bar, shown once connect starts -->
     <p id="run-status" class="status" hidden></p>
+    <progress id="pipeline-prog" max="100" value="0" hidden></progress>
     <div id="device-facts" class="facts"></div>
 
     <!-- inline: accounts need clearing before Device Owner can be set -->
@@ -124,8 +125,8 @@
     <p id="restore-status" class="status"></p>
   </section>
 
-  <!-- Live log -->
-  <details class="log" open>
+  <!-- Live log — collapsed by default, only opens if the person clicks it -->
+  <details class="log">
     <summary>ADB log</summary>
     <pre id="log"></pre>
   </details>

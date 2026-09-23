@@ -42,12 +42,20 @@ function findingHtml(kind, title, body) {
   return `<div class="finding ${kind}"><div class="t">${esc(title)}</div><div class="muted">${body}</div></div>`;
 }
 
-// run-status line + the three mutually-exclusive outcome blocks
-function setRun(msg) {
+// run-status line + progress bar + the three mutually-exclusive outcome blocks.
+// pct is how far through the whole connect→done pipeline this stage is — a rough,
+// hand-assigned milestone per stage, not a measured quantity. Omit it to leave the bar
+// wherever it was (used for sub-steps like Samsung's extra Knox Guard check).
+function setRun(msg, pct) {
   const el = $("#run-status");
   el.hidden = false;
   el.className = "status busy";
   el.textContent = msg;
+  if (pct != null) {
+    const bar = $("#pipeline-prog");
+    bar.hidden = false;
+    bar.value = pct;
+  }
 }
 function hideAllOutcomes() {
   $("#need-accounts").hidden = true;
@@ -58,6 +66,7 @@ function hideAllOutcomes() {
 function showDone() {
   hideAllOutcomes();
   $("#run-status").hidden = true;
+  $("#pipeline-prog").hidden = true;
   $("#outcome-done").hidden = false;
   $("#done-summary").innerHTML =
     `<b>Owner</b><span>${esc(DO_COMPONENT)}</span>` +
@@ -66,6 +75,7 @@ function showDone() {
 function showFailed(reasonHtml) {
   hideAllOutcomes();
   $("#run-status").hidden = true;
+  $("#pipeline-prog").hidden = true;
   $("#outcome-failed").hidden = false;
   $("#failed-reason").innerHTML = reasonHtml;
   log("FAILED: " + reasonHtml.replace(/<[^>]+>/g, ""));
@@ -102,11 +112,17 @@ async function connect() {
   if (!manager) throw new Error("WebUSB unavailable");
 
   $("#btn-connect").disabled = true;
-  setRun("Select your phone in the popup…");
+  setRun("Select your phone in the popup…", 5);
   const device = await manager.requestDevice();
-  if (!device) { setRun(""); $("#run-status").hidden = true; $("#btn-connect").disabled = false; return; }
+  if (!device) {
+    setRun("");
+    $("#run-status").hidden = true;
+    $("#pipeline-prog").hidden = true;
+    $("#btn-connect").disabled = false;
+    return;
+  }
 
-  setRun("Authorising — tap “Allow USB debugging” on the phone…");
+  setRun("Authorising — tap “Allow USB debugging” on the phone…", 10);
   const AUTH_TIMEOUT_MS = 25_000;
   const AUTH_TIMEOUT_MSG =
     "Timed out waiting for the phone. Make sure its screen is unlocked, then tap “Allow” on the " +
@@ -165,7 +181,7 @@ const isManualAccount = (type) => MANUAL_TYPES.some((re) => re.test(type));
 async function runPipeline() {
   hideAllOutcomes();
   try {
-    setRun("Reading device info…");
+    setRun("Reading device info…", 20);
     const [manufacturer, model, release, sdk] = await Promise.all([
       getprop("ro.product.manufacturer"),
       getprop("ro.product.model"),
@@ -178,7 +194,7 @@ async function runPipeline() {
       `<b>Model</b><span>${esc(model)} (${esc(manufacturer)})</span>` +
       `<b>Android</b><span>${esc(release)} — API ${esc(sdk)}</span>`;
 
-    setRun("Checking device policy…");
+    setRun("Checking device policy…", 30);
     const owner = await detectDeviceOwner();
     if (owner.deviceOwner && owner.deviceOwner !== DO_PACKAGE) {
       return showFailed(`A different Device Owner is already set: <code>${esc(owner.deviceOwner)}</code>. ` +
@@ -190,7 +206,7 @@ async function runPipeline() {
     }
 
     if (isSamsung) {
-      setRun("Checking for Samsung Knox Guard…");
+      setRun("Checking for Samsung Knox Guard…", 35);
       const kg = (await shell("pm list packages")).toLowerCase();
       const hasKG = kg.includes("com.samsung.android.kgclient") || kg.includes("knoxguard");
       const kgEnabled = hasKG && !(await shell("pm list packages -d")).toLowerCase().includes("kgclient");
@@ -200,7 +216,7 @@ async function runPipeline() {
       }
     }
 
-    setRun("Checking accounts…");
+    setRun("Checking accounts…", 40);
     scanAccounts = parseAccounts(await shell("dumpsys account"));
     if (scanAccounts.length > 0) {
       await handleAccounts();
@@ -222,7 +238,7 @@ async function handleAccounts() {
   if (!isSamsung) {
     const auto = await autoMatchPackages(scanAccounts);
     if (auto.size > 0) {
-      setRun(`Disabling ${auto.size} account app(s)…`);
+      setRun(`Disabling ${auto.size} account app(s)…`, 45);
       const disabled = new Set(JSON.parse(localStorage.getItem(LS_DISABLED) || "[]"));
       for (const p of auto) {
         const r = await shell(`pm disable-user --user 0 ${p}`);
@@ -255,6 +271,7 @@ async function autoMatchPackages(accounts) {
 async function showNeedAccounts() {
   hideAllOutcomes();
   $("#run-status").hidden = true;
+  $("#pipeline-prog").hidden = true;
   $("#need-accounts").hidden = false;
   $("#samsung-warn").hidden = !isSamsung;
 
@@ -279,7 +296,7 @@ function renderPkgList(pkgs, checked) {
 async function disableSelected() {
   const sel = $$("#pkg-list input:checked").map((c) => c.value);
   if (!sel.length) return;
-  setRun(`Disabling ${sel.length} app(s)…`);
+  setRun(`Disabling ${sel.length} app(s)…`, 45);
   $("#need-accounts").hidden = true;
   const disabled = new Set(JSON.parse(localStorage.getItem(LS_DISABLED) || "[]"));
   for (const p of sel) {
@@ -291,7 +308,7 @@ async function disableSelected() {
 }
 
 async function recheckAccounts() {
-  setRun("Re-checking accounts…");
+  setRun("Re-checking accounts…", 50);
   scanAccounts = parseAccounts(await shell("dumpsys account"));
   if (scanAccounts.length === 0) {
     await proceedToInstall();
@@ -327,6 +344,7 @@ async function proceedToInstall() {
     return;
   }
   $("#run-status").hidden = true;
+  $("#pipeline-prog").hidden = true;
   $("#need-apk").hidden = false;
 }
 
@@ -343,10 +361,14 @@ async function installApk(preloadedPath) {
     size = file.size; stream = file.stream(); label = file.name;
   }
 
-  $("#need-apk").hidden = false;
-  $("#install-prog").hidden = false;
-  $("#install-prog").removeAttribute("value"); // indeterminate
-  setRun(`Installing ${label} (${(size / 1e6).toFixed(1)} MB)…`);
+  // The bundled APK installs with no picker shown at all — need-apk (and its own
+  // install-prog spinner) is only for the genuine manual-fallback path.
+  if (!preloadedPath) {
+    $("#need-apk").hidden = false;
+    $("#install-prog").hidden = false;
+    $("#install-prog").removeAttribute("value"); // indeterminate
+  }
+  setRun(`Installing ${label} (${(size / 1e6).toFixed(1)} MB)…`, 65);
   log(`installStream: ${label} (${size} bytes), allowTest=true`);
   try {
     await pm.installStream(size, stream, { allowTest: true, grantRuntimePermissions: true });
@@ -362,9 +384,14 @@ async function installApk(preloadedPath) {
 
 // ---------- set device owner ----------
 async function setOwner() {
-  setRun("Setting Device Owner…");
+  setRun("Setting Device Owner…", 90);
   const r = await shell(`dpm set-device-owner ${DO_COMPONENT}`);
   if (/Success/i.test(r)) {
+    // Whatever apps this run disabled to clear accounts for set-device-owner were only ever
+    // meant to be temporary — now that it's succeeded, restore them automatically instead of
+    // requiring a manual "Re-enable" click on the Restore tab.
+    setRun("Re-enabling any apps this disabled…", 95);
+    await reEnable();
     showDone();
   } else {
     let why = esc(r.trim()) || "See log.";

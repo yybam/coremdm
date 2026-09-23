@@ -23,7 +23,6 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px;
 
 main{max-width:820px;margin:0 auto;padding:20px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin:14px 0}
-.panel-secondary{background:var(--card2);border:1px dashed var(--line);border-radius:var(--radius);padding:18px;margin:14px 0}
 .muted{color:var(--muted)}
 .ok{color:var(--ok)} .danger{border-color:var(--danger)}
 

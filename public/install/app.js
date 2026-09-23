@@ -3,7 +3,8 @@
 // scan -> clear account blockers -> install APK -> set device owner -> done.
 // The pipeline only ever stops to ask for something software can't do itself
 // (pick an APK file, or remove an account by hand) or to report a failure.
-// Rescue: re-enable disabled apps + remove-active-admin (works on testOnly builds).
+// Anything disabled to clear accounts is re-enabled automatically when the run ends,
+// success or failure — see autoReenableDisabled().
 
 // Self-built single bundle — not esm.sh. esm.sh's split build of @yume-chan/stream-extra
 // ships two copies of the Consumable class, so every USB write went out as 0 bytes and the
@@ -32,11 +33,6 @@ function log(line) {
   const el = $("#log");
   el.textContent += line + "\n";
   el.scrollTop = el.scrollHeight;
-}
-function setStatus(sel, msg, kind = "") {
-  const el = $(sel);
-  el.className = "status " + kind;
-  el.textContent = msg;
 }
 function findingHtml(kind, title, body) {
   return `<div class="finding ${kind}"><div class="t">${esc(title)}</div><div class="muted">${body}</div></div>`;
@@ -71,6 +67,7 @@ function showDone() {
   $("#done-summary").innerHTML =
     `<b>Owner</b><span>${esc(DO_COMPONENT)}</span>` +
     `<b>Device</b><span>${esc(deviceFacts.model || "")}</span>`;
+  autoReenableDisabled();
 }
 function showFailed(reasonHtml) {
   hideAllOutcomes();
@@ -79,6 +76,25 @@ function showFailed(reasonHtml) {
   $("#outcome-failed").hidden = false;
   $("#failed-reason").innerHTML = reasonHtml;
   log("FAILED: " + reasonHtml.replace(/<[^>]+>/g, ""));
+  // Whatever got disabled to clear accounts was only ever meant to be temporary — a failed
+  // run shouldn't leave apps disabled with no visible way to undo it now that there's no
+  // Restore panel. Best-effort: only runs if there's actually anything to undo, and won't
+  // throw past this point if the device disconnected in the meantime.
+  autoReenableDisabled();
+}
+
+// No Restore panel to click anymore — whatever pm disable-user'd to clear accounts for
+// set-device-owner gets put back automatically the moment the run ends, success or failure.
+async function autoReenableDisabled() {
+  const disabled = JSON.parse(localStorage.getItem(LS_DISABLED) || "[]");
+  if (!disabled.length) return;
+  try {
+    log(`Re-enabling ${disabled.length} app(s) this run disabled…`);
+    for (const p of disabled) await shell(`pm enable ${p}`).catch(() => {});
+    localStorage.setItem(LS_DISABLED, "[]");
+  } catch (e) {
+    log("auto re-enable failed: " + (e.message || e));
+  }
 }
 
 // ---------- ADB session ----------
@@ -145,7 +161,6 @@ async function connect() {
   $("#conn-pill").className = "pill pill-on";
   $("#connect-hints").hidden = true;
   $("#btn-connect").hidden = true;
-  $('[data-panel="restore"]').hidden = false;
   log("Connected to " + device.serial);
   await runPipeline();
 }
@@ -387,42 +402,13 @@ async function setOwner() {
   setRun("Setting Device Owner…", 90);
   const r = await shell(`dpm set-device-owner ${DO_COMPONENT}`);
   if (/Success/i.test(r)) {
-    // Whatever apps this run disabled to clear accounts for set-device-owner were only ever
-    // meant to be temporary — now that it's succeeded, restore them automatically instead of
-    // requiring a manual "Re-enable" click on the Restore tab.
-    setRun("Re-enabling any apps this disabled…", 95);
-    await reEnable();
-    showDone();
+    showDone(); // also re-enables anything this run disabled — see autoReenableDisabled above
   } else {
     let why = esc(r.trim()) || "See log.";
     if (/already some accounts|account/i.test(r)) why = "An account still exists on the device.";
     else if (/already set|already exists/i.test(r)) why = "A Device Owner is already set.";
     showFailed("Couldn't set Device Owner: " + why);
   }
-}
-
-// ---------- restore / rescue ----------
-function paintRestore() {
-  const disabled = JSON.parse(localStorage.getItem(LS_DISABLED) || "[]");
-  $("#restore-list").innerHTML = disabled.length
-    ? disabled.map((p) => `<div class="acct"><span>${esc(p)}</span><span class="type">disabled</span></div>`).join("")
-    : `<div class="muted">No apps were disabled by this tool on this browser.</div>`;
-}
-async function reEnable() {
-  const disabled = JSON.parse(localStorage.getItem(LS_DISABLED) || "[]");
-  if (!disabled.length) { setStatus("#restore-status", "Nothing to re-enable.", ""); return; }
-  setStatus("#restore-status", `Re-enabling ${disabled.length} app(s)…`, "busy");
-  for (const p of disabled) await shell(`pm enable ${p}`);
-  localStorage.setItem(LS_DISABLED, "[]");
-  paintRestore();
-  setStatus("#restore-status", "Re-enabled. Re-add accounts in Settings as needed.", "ok");
-}
-async function removeOwner() {
-  setStatus("#restore-status", "Removing Device Owner…", "busy");
-  const r = await shell(`dpm remove-active-admin ${DO_COMPONENT}`);
-  if (/Success/i.test(r)) setStatus("#restore-status", "Device Owner removed.", "ok");
-  else setStatus("#restore-status",
-    "Failed — this only works on a testOnly build. Non-test owners must remove themselves from inside the app. Log has details.", "err");
 }
 
 // ---------- wire up ----------
@@ -455,10 +441,6 @@ function main() {
       showFailed("Retry failed: " + esc(e.message));
     });
   };
-  $("#btn-reenable").onclick = () => reEnable();
-  $("#btn-remove-owner").onclick = () => removeOwner();
-
-  paintRestore();
   wireModeSelect();
 }
 main();

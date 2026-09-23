@@ -112,19 +112,6 @@
     </div>
   </section>
 
-  <!-- Restore / rescue (always available once connected) -->
-  <section class="card panel-secondary" data-panel="restore" hidden>
-    <h2>Restore &amp; rescue</h2>
-    <p class="muted">Re-enable the apps this tool disabled, and (testOnly builds only) remove CoreMDM as Device Owner
-       via ADB &mdash; the escape hatch if the app is stuck or factory reset is blocked.</p>
-    <div id="restore-list" class="list"></div>
-    <div class="row">
-      <button id="btn-reenable" class="ghost transition-transform duration-150 hover:scale-[1.02] active:scale-95">Re-enable disabled apps</button>
-      <button id="btn-remove-owner" class="danger-btn transition-transform duration-150 hover:scale-[1.02] active:scale-95">Remove Device Owner (remove-active-admin)</button>
-    </div>
-    <p id="restore-status" class="status"></p>
-  </section>
-
   <!-- Live log — collapsed by default, only opens if the person clicks it -->
   <details class="log">
     <summary>ADB log</summary>

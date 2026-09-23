@@ -3,10 +3,12 @@
 import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
 import android.os.Build
 import android.os.UserManager
 import android.util.Log
 import com.core.mdm.MdmDeviceAdmin
+import com.core.mdm.vpn.DnsVpnService
 
 class DevicePolicyHelper private constructor(private val context: Context) {
 
@@ -270,8 +272,59 @@ class DevicePolicyHelper private constructor(private val context: Context) {
 
     fun areBrowsersHidden(): Boolean = BROWSER_PACKAGES.any { isAppHidden(it) }
 
-    /** Strips Device Owner and Device Admin status so the app can be uninstalled. */
+    /**
+     * Undoes every policy this app may have applied, then strips Device Owner and Device
+     * Admin status so the app can actually be uninstalled.
+     *
+     * Order matters: every call below needs Device Owner authority to succeed, so all of it
+     * has to happen BEFORE the two calls at the end relinquish that authority — after
+     * clearDeviceOwnerApp() runs, none of these would work anymore. Previously this function
+     * only did the last two calls; clearing Device Owner does NOT automatically undo policies
+     * like hidden apps, private DNS enforcement, or the self-uninstall-block flag, so devices
+     * were left with restrictions still active (and uninstall still blocked) after "removal."
+     */
     fun clearAllAdminPrivileges() {
+        if (isDeviceOwner) {
+            // Un-hide / un-suspend every package this admin touched, whatever it is — walking
+            // the actual enforced set instead of guessing at a fixed list of package names.
+            runCatching {
+                val apps = AppPolicyManager(context, this)
+                apps.getEnforcedPackages().forEach { app ->
+                    if (app.isHidden) apps.unhidePackage(app.packageName)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && app.isSuspended) {
+                        apps.unsuspendPackages(arrayOf(app.packageName))
+                    }
+                }
+            }.onFailure { Log.w(TAG, "clear hidden/suspended apps: ${it.message}") }
+
+            // Every currently active user restriction, whatever it is — same reasoning.
+            runCatching {
+                val restrictions = getRestrictionBundle()
+                for (key in restrictions.keySet()) {
+                    if (restrictions.getBoolean(key, false)) unrestrict(key)
+                }
+            }.onFailure { Log.w(TAG, "clear user restrictions: ${it.message}") }
+
+            runCatching { setLockTaskPackages(emptyArray()) }
+                .onFailure { Log.w(TAG, "clear lock task packages: ${it.message}") }
+            runCatching { setCameraDisabled(false) }
+            runCatching { setScreenCaptureDisabled(false) }
+            runCatching { setStatusBarDisabled(false) }
+            runCatching { setKeyguardDisabled(false) }
+            runCatching { clearPrivateDns() }
+            // Must happen before clearDeviceOwnerApp() below, or the uninstall this whole
+            // flow leads to (see MdmDeviceAdmin.onDisabled) can end up blocked.
+            runCatching { setSelfUninstallBlocked(false) }
+                .onFailure { Log.w(TAG, "clear self-uninstall-blocked: ${it.message}") }
+
+            // Stop the DNS content-filter VPN so it doesn't linger as an orphaned service.
+            runCatching {
+                context.startService(
+                    Intent(context, DnsVpnService::class.java).setAction(DnsVpnService.ACTION_STOP)
+                )
+            }.onFailure { Log.w(TAG, "stop DNS filter: ${it.message}") }
+        }
+
         runCatching { dpm.clearDeviceOwnerApp(context.packageName) }
         runCatching { dpm.removeActiveAdmin(admin) }
         Log.i(TAG, "Admin privileges cleared")

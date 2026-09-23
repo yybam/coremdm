@@ -305,7 +305,12 @@ let apkFromFolder = null;
 async function tryPreloadedApk() {
   try {
     const res = await fetch("apks/coremdm.apk", { method: "HEAD" });
-    if (res.ok) apkFromFolder = "apks/coremdm.apk";
+    // res.ok alone isn't enough to prove a real file is there: a catch-all SPA-style rewrite
+    // (present here before, now removed at the firebase.json level too — this is belt and
+    // suspenders) turns a 404 into a 200 serving index.html, and installApk() would then try
+    // to install that HTML page as an "APK" with no useful error until the OS parse fails.
+    const type = res.headers.get("content-type") || "";
+    if (res.ok && !type.includes("html")) apkFromFolder = "apks/coremdm.apk";
   } catch { /* no bundled apk */ }
   return apkFromFolder;
 }

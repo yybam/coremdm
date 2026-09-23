@@ -5,10 +5,16 @@
 // (pick an APK file, or remove an account by hand) or to report a failure.
 // Rescue: re-enable disabled apps + remove-active-admin (works on testOnly builds).
 
-import { Adb, AdbDaemonTransport } from "@yume-chan/adb";
-import { AdbDaemonWebUsbDeviceManager } from "@yume-chan/adb-daemon-webusb";
-import AdbWebCredentialStore from "@yume-chan/adb-credential-web"; // default export, not named
-import { PackageManager } from "@yume-chan/android-bin";
+// Self-built single bundle — not esm.sh. esm.sh's split build of @yume-chan/stream-extra
+// ships two copies of the Consumable class, so every USB write went out as 0 bytes and the
+// ADB handshake hung forever. Rebuild recipe is in the bundle's banner comment.
+import {
+  Adb,
+  AdbDaemonTransport,
+  AdbDaemonWebUsbDeviceManager,
+  AdbWebCredentialStore,
+  PackageManager,
+} from "./vendor/tango.js";
 
 const DO_COMPONENT = "com.core.mdm/.MdmDeviceAdmin";
 const DO_PACKAGE   = "com.core.mdm";

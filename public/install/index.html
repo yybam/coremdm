@@ -7,18 +7,6 @@
 <link rel="stylesheet" href="styles.css" />
 <!-- Self-hosted, purged Tailwind build (no runtime CDN script) -->
 <link rel="stylesheet" href="../tailwind.css" />
-<!-- ya-webadb (Tango) pinned. esm.sh dedups the shared @yume-chan/adb + stream-extra
-     copies via ?deps so the sibling packages don't each pull their own ADB core. -->
-<script type="importmap">
-{
-  "imports": {
-    "@yume-chan/adb": "https://esm.sh/@yume-chan/adb@2.6.4",
-    "@yume-chan/adb-daemon-webusb": "https://esm.sh/@yume-chan/adb-daemon-webusb@2.3.2?deps=@yume-chan/adb@2.6.4,@yume-chan/stream-extra@2.6.1",
-    "@yume-chan/adb-credential-web": "https://esm.sh/@yume-chan/adb-credential-web@2.1.0?deps=@yume-chan/adb@2.6.4",
-    "@yume-chan/android-bin": "https://esm.sh/@yume-chan/android-bin@2.1.0?deps=@yume-chan/adb@2.6.4,@yume-chan/stream-extra@2.6.1"
-  }
-}
-</script>
 <!-- QR code renderer (used by the QR provisioning flow) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>

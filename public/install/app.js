@@ -304,13 +304,17 @@ async function recheckAccounts() {
 let apkFromFolder = null;
 async function tryPreloadedApk() {
   try {
-    const res = await fetch("apks/coremdm.apk", { method: "HEAD" });
+    // .bin, not .apk: Firebase Hosting's free Spark plan hard-blocks serving any file whose
+    // name ends in .apk/.exe/.ipa (checked by extension, not content) -- upload fails outright.
+    // Neither installStream() below nor the phone's own QR/provisioning downloader care what
+    // the source filename was, only that the bytes are a valid APK, so renaming costs nothing.
+    const res = await fetch("apks/coremdm.apk.bin", { method: "HEAD" });
     // res.ok alone isn't enough to prove a real file is there: a catch-all SPA-style rewrite
     // (present here before, now removed at the firebase.json level too — this is belt and
     // suspenders) turns a 404 into a 200 serving index.html, and installApk() would then try
     // to install that HTML page as an "APK" with no useful error until the OS parse fails.
     const type = res.headers.get("content-type") || "";
-    if (res.ok && !type.includes("html")) apkFromFolder = "apks/coremdm.apk";
+    if (res.ok && !type.includes("html")) apkFromFolder = "apks/coremdm.apk.bin";
   } catch { /* no bundled apk */ }
   return apkFromFolder;
 }
@@ -451,20 +455,23 @@ function wireModeSelect() {
 }
 
 // ---------- QR provisioning ----------
-// Same file the ADB-over-USB flow streams from apks/coremdm.apk (see tryPreloadedApk below) —
-// one APK, self-hosted here so both paths install byte-identical builds and there's a single
-// place to update. GitHub Releases' download URL doesn't send CORS headers, so it can't be
-// fetch()'d by installStream() for the USB path — that's the whole reason this lives here
-// instead: QR provisioning (the phone's own OS downloader, not a browser fetch) would have
-// been fine with either, but USB needs same-origin.
+// Same file the ADB-over-USB flow streams from apks/coremdm.apk.bin (see tryPreloadedApk
+// below) — one APK, self-hosted here so both paths install byte-identical builds and there's
+// a single place to update. GitHub Releases' download URL doesn't send CORS headers, so it
+// can't be fetch()'d by installStream() for the USB path — that's the whole reason this lives
+// here instead: QR provisioning (the phone's own OS downloader, not a browser fetch) would
+// have been fine with either, but USB needs same-origin.
+// Filename is .apk.bin, not .apk: Firebase Hosting's free Spark plan hard-blocks serving any
+// file whose name ends in .apk/.exe/.ipa (checked by extension, not content) — the phone's
+// downloader doesn't care what the URL's extension is, only that the bytes are a valid APK.
 //   QR_APK_URL:      https:// location the phone downloads the APK from.
 //   QR_APK_CHECKSUM: SHA-256 of that exact APK file, base64url-encoded, no padding.
-//                    Compute it with: certutil -hashfile coremdm.apk SHA256   (Windows)
-//                    or: sha256sum coremdm.apk | ...                          (see README)
+//                    Compute it with: certutil -hashfile coremdm.apk.bin SHA256   (Windows)
+//                    or: sha256sum coremdm.apk.bin | ...                          (see README)
 // To ship a new build: download the release APK from GitHub, overwrite
-// public/install/apks/coremdm.apk with it, recompute the checksum, update both constants
+// public/install/apks/coremdm.apk.bin with it, recompute the checksum, update both constants
 // below, commit, push (auto-deploys).
-const QR_APK_URL = "https://coremdm.web.app/install/apks/coremdm.apk";
+const QR_APK_URL = "https://coremdm.web.app/install/apks/coremdm.apk.bin";
 const QR_APK_CHECKSUM = "RC_8QJLEjP7uy1TnQCnKUZNgAp1AIaLqcnjZxt1uXO4";
 
 // Builds the standard Android "QR code provisioning" JSON payload (the same one the

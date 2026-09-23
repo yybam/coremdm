@@ -79,6 +79,18 @@ async function shell(cmd) {
   return out;
 }
 
+// device.connect() / AdbDaemonTransport.authenticate() wait on the phone's own ADB RSA-key
+// handshake, which never resolves at all if the phone's screen is locked or its "Allow USB
+// debugging?" prompt is dismissed/ignored — with no timeout that looked exactly like a hang
+// ("Authorising…" forever, nothing to click, no error). Bound it and say what to do.
+function withTimeout(promise, ms, message) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(message)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 async function connect() {
   const manager = AdbDaemonWebUsbDeviceManager.BROWSER || new AdbDaemonWebUsbDeviceManager(navigator.usb);
   if (!manager) throw new Error("WebUSB unavailable");
@@ -89,13 +101,21 @@ async function connect() {
   if (!device) { setRun(""); $("#run-status").hidden = true; $("#btn-connect").disabled = false; return; }
 
   setRun("Authorising — tap “Allow USB debugging” on the phone…");
-  const connection = await device.connect();
+  const AUTH_TIMEOUT_MS = 25_000;
+  const AUTH_TIMEOUT_MSG =
+    "Timed out waiting for the phone. Make sure its screen is unlocked, then tap “Allow” on the " +
+    "“Allow USB debugging?” prompt (check the phone — it's easy to miss) and try again.";
+  const connection = await withTimeout(device.connect(), AUTH_TIMEOUT_MS, AUTH_TIMEOUT_MSG);
   const credentialStore = new AdbWebCredentialStore("CoreMDM Installer");
-  const transport = await AdbDaemonTransport.authenticate({
-    serial: device.serial,
-    connection,
-    credentialStore,
-  });
+  const transport = await withTimeout(
+    AdbDaemonTransport.authenticate({
+      serial: device.serial,
+      connection,
+      credentialStore,
+    }),
+    AUTH_TIMEOUT_MS,
+    AUTH_TIMEOUT_MSG
+  );
   adb = new Adb(transport);
   pm = new PackageManager(adb);
 

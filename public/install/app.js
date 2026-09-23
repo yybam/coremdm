@@ -448,8 +448,8 @@ function wireModeSelect() {
 //                    or: sha256sum coremdm.apk | ...                          (see README)
 // Built by yybam/coremdm's .github/workflows/build-apk.yml (GitHub Releases). Push a new
 // vX.Y.Z tag to publish a new build, then update both constants below to match.
-const QR_APK_URL = "https://github.com/yybam/coremdm/releases/download/v0.2.1/app-release.apk";
-const QR_APK_CHECKSUM = "7YoEdD1GGyRyjkWr5OqoKqhJRdBWppYbpQYmkFXNqeM";
+const QR_APK_URL = "https://github.com/yybam/coremdm/releases/download/v0.2.2/app-release.apk";
+const QR_APK_CHECKSUM = "RC_8QJLEjP7uy1TnQCnKUZNgAp1AIaLqcnjZxt1uXO4";
 
 // Builds the standard Android "QR code provisioning" JSON payload (the same one the
 // Settings-app QR scanner reads at the SetupWizard "tap 6x" screen) and renders it as a QR.

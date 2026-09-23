@@ -365,7 +365,6 @@ async function setOwner() {
   setRun("Setting Device Owner…");
   const r = await shell(`dpm set-device-owner ${DO_COMPONENT}`);
   if (/Success/i.test(r)) {
-    await shell(`pm grant ${DO_PACKAGE} android.permission.WRITE_SECURE_SETTINGS`).catch(() => {});
     showDone();
   } else {
     let why = esc(r.trim()) || "See log.";

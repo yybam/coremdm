@@ -5,23 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>CoreMDM WebUSB Installer</title>
 <link rel="stylesheet" href="styles.css" />
-<script src="https://cdn.tailwindcss.com"></script>
-<script>
-  tailwind.config = {
-    theme: {
-      extend: {
-        keyframes: {
-          fadeIn:  { '0%': { opacity: 0 }, '100%': { opacity: 1 } },
-          slideUp: { '0%': { opacity: 0, transform: 'translateY(12px)' }, '100%': { opacity: 1, transform: 'translateY(0)' } },
-        },
-        animation: {
-          fadeIn:  'fadeIn 0.25s ease-out',
-          slideUp: 'slideUp 0.3s ease-out',
-        },
-      },
-    },
-  };
-</script>
+<!-- Self-hosted, purged Tailwind build (no runtime CDN script) -->
+<link rel="stylesheet" href="../tailwind.css" />
 <!-- ya-webadb (Tango) pinned. esm.sh dedups the shared @yume-chan/adb + stream-extra
      copies via ?deps so the sibling packages don't each pull their own ADB core. -->
 <script type="importmap">

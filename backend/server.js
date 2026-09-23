@@ -20,6 +20,26 @@ const server = http.createServer(app);
 const wss    = new WebSocketServer({ server });
 
 app.use(express.json());
+
+// Security headers — CSP is Report-Only: both this console and the others in this repo use
+// inline <style>, inline style="", and inline onclick="" throughout, so an enforcing CSP
+// without 'unsafe-inline' would break every button and all styling. Report-Only logs
+// violations to the browser console without blocking anything.
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), usb=()');
+  res.setHeader(
+    'Content-Security-Policy-Report-Only',
+    "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; " +
+    "style-src 'self' 'unsafe-inline'; img-src 'self' data:; " +
+    "connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; " +
+    "frame-ancestors 'none'; base-uri 'self'"
+  );
+  next();
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ── Connection maps ──────────────────────────────────────────────────────────
@@ -143,7 +163,7 @@ async function deviceBelongsToUser(deviceId, uid, idToken) {
 }
 
 // ── REST — health ────────────────────────────────────────────────────────────
-app.get('/health', (_req, res) => res.json({ ok: true, project: PROJECT_ID }));
+app.get('/health', (_req, res) => res.json({ ok: true }));
 
 // ── REST — list devices ──────────────────────────────────────────────────────
 app.get('/api/devices', async (req, res) => {

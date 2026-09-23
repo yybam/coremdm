@@ -404,7 +404,16 @@ function main() {
     $$("#pkg-list label").forEach((l) => (l.style.display = l.textContent.toLowerCase().includes(q) ? "" : "none"));
   };
   $("#apk-file").onchange = () => installApk().catch((e) => showFailed(esc(e.message)));
-  $("#btn-retry").onclick = () => runPipeline();
+  // If the original connect attempt failed before `adb` was ever set (e.g. "device already
+  // in use"), retrying the pipeline directly crashes on adb.subprocess being null — retry the
+  // whole connection in that case instead.
+  $("#btn-retry").onclick = () => {
+    const attempt = adb ? runPipeline() : connect();
+    attempt.catch((e) => {
+      log("retry error: " + (e.stack || e.message));
+      showFailed("Retry failed: " + esc(e.message));
+    });
+  };
   $("#btn-reenable").onclick = () => reEnable();
   $("#btn-remove-owner").onclick = () => removeOwner();
 

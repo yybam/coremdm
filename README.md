@@ -81,12 +81,26 @@ coremdm/
 │           ├── filter/                # DNS filter controls
 │           └── telemetry/             # Device telemetry
 ├── public/
-│   └── index.html                     # Web admin console (single-file SPA)
+│   ├── index.html                     # Web admin console (single-file SPA)
+│   └── install/                       # WebUSB + QR-code provisioning installer
+│                                       #   live at coremdm.web.app/install
+├── admin-backend/                     # Kotlin + Spring Boot 3 service (JPA, Spring
+│                                       #   Security, Firebase Admin SDK); H2 for dev
+├── backend/                           # Node.js + Express/WebSocket server — serves
+│   └── public/index.html              #   its own console for live WebRTC screen
+│                                       #   remote-control of enrolled devices
+├── .github/workflows/
+│   ├── build-apk.yml                  # Builds + publishes a signed release APK as a
+│                                       #   GitHub Release on a pushed vX.Y.Z tag or
+│                                       #   manual dispatch
+│   └── deploy-hosting.yml             # Deploys Firebase Hosting on push to public/**
+│                                       #   (needs a FIREBASE_SERVICE_ACCOUNT repo
+│                                       #   secret — not yet configured)
 ├── releases/
-│   └── CoreMDM-v37.0.apk             # Latest debug build
+│   └── CoreMDM-v37.0.apk             # Older debug builds, committed directly
 ├── firebase.json                      # Firebase Hosting config (site: coremdm)
 ├── firestore.rules                    # Per-user device ownership rules
-└── .firebaserc                        # Firebase project: techeaz-core-mdm
+└── .firebaserc                        # Firebase Hosting config
 ```
 
 ---
@@ -197,8 +211,11 @@ match /devices/{deviceId} {
 
 ## Releases
 
+Releases are now built and published automatically by `.github/workflows/build-apk.yml`: pushing a `vX.Y.Z` tag (or a manual workflow run) builds the release APK and attaches it to a GitHub Release. That's a different scheme from the older entries below, which were committed directly as files under `releases/` — both exist in this repo's history, not just one.
+
 | Version | Notes |
 |---------|-------|
+| [v0.2.1](https://github.com/yybam/coremdm/releases/tag/v0.2.1) | Dropped `android:testOnly="true"` from the shipped manifest — installs from this build (and later) can no longer self-remove Device Owner via plain `adb shell dpm remove-active-admin` without root |
 | [v37.0](releases/CoreMDM-v37.0.apk) | Fixed auth timing bug — Firestore listener now starts after Firebase Auth session restores; all remote commands work correctly |
 | v36.0 | Full policy remote control, web console overhaul |
 | v35.0 | Core MDM branding, lock/wipe/reboot commands |

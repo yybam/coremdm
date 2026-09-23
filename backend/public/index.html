@@ -4,6 +4,23 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>CORE MDM — Remote Control</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        keyframes: {
+          fadeIn:  { '0%': { opacity: 0 }, '100%': { opacity: 1 } },
+          slideUp: { '0%': { opacity: 0, transform: 'translateY(12px)' }, '100%': { opacity: 1, transform: 'translateY(0)' } },
+        },
+        animation: {
+          fadeIn:  'fadeIn 0.25s ease-out',
+          slideUp: 'slideUp 0.3s ease-out',
+        },
+      },
+    },
+  };
+</script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -269,7 +286,7 @@
 
 <!-- ── Auth Screen ── -->
 <div id="auth-screen">
-  <div class="auth-card">
+  <div class="auth-card animate-slideUp">
     <div class="logo">
       <div class="logo-icon">🛡</div>
       <div class="logo-text">CORE <span>MDM</span></div>
@@ -286,8 +303,8 @@
     </div>
 
     <div class="error-msg" id="auth-error"></div>
-    <button class="btn btn-primary" id="signin-btn">Sign In</button>
-    <button class="btn btn-ghost"   id="reset-btn">Forgot Password?</button>
+    <button class="btn btn-primary transition-transform duration-150 hover:scale-[1.02] active:scale-95" id="signin-btn">Sign In</button>
+    <button class="btn btn-ghost transition-transform duration-150 hover:scale-[1.02] active:scale-95"   id="reset-btn">Forgot Password?</button>
   </div>
 </div>
 
@@ -300,20 +317,20 @@
     </div>
     <div style="display:flex;align-items:center;gap:12px;">
       <div class="user-info" id="user-email-display"></div>
-      <button class="btn-signout" id="signout-btn">Sign Out</button>
+      <button class="btn-signout transition-transform duration-150 hover:scale-105 active:scale-95" id="signout-btn">Sign Out</button>
     </div>
   </div>
 
   <div class="main">
 
     <!-- Video / screen-share panel -->
-    <div id="video-panel">
+    <div id="video-panel" class="animate-slideUp">
       <div class="video-header">
         <div class="video-title">
           <div class="live-dot"></div>
           <span id="video-device-name">Device Screen</span>
         </div>
-        <button class="btn btn-stop" id="disconnect-btn" style="padding:5px 14px;font-size:12px;border-radius:7px;">Disconnect</button>
+        <button class="btn btn-stop transition-transform duration-150 hover:scale-105 active:scale-95" id="disconnect-btn" style="padding:5px 14px;font-size:12px;border-radius:7px;">Disconnect</button>
       </div>
       <video id="remoteVideo" autoplay playsinline muted></video>
       <div class="video-status" id="video-status">Connecting…</div>
@@ -321,7 +338,7 @@
 
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
       <div class="section-title">Enrolled Devices</div>
-      <button class="refresh-btn" id="refresh-btn">↻ Refresh</button>
+      <button class="refresh-btn transition-transform duration-150 hover:scale-105 active:scale-95" id="refresh-btn">↻ Refresh</button>
     </div>
 
     <div class="devices-grid" id="devices-grid">
@@ -367,7 +384,7 @@ let peerConnection  = null;
 function log(msg, level = 'info') {
   const panel = document.getElementById('log-panel');
   const el    = document.createElement('div');
-  el.className = `log-entry ${level}`;
+  el.className = `log-entry ${level} animate-fadeIn`;
   const now = new Date().toLocaleTimeString();
   el.textContent = `[${now}] ${msg}`;
   panel.prepend(el);
@@ -464,13 +481,13 @@ function renderDevices() {
   grid.innerHTML = '';
   devices.forEach(d => {
     const card = document.createElement('div');
-    card.className = ['device-card',
+    card.className = ['device-card animate-fadeIn transition-transform duration-200 hover:-translate-y-0.5',
       d.alarmActive ? 'alarming' : '',
       d.id === activeDeviceId ? 'selected' : '',
     ].filter(Boolean).join(' ');
 
     const statusBadge = `<span class="badge badge-${d.status}">${d.status}</span>`;
-    const alarmBadge  = d.alarmActive ? `<span class="badge badge-alarm">🔔 ALARM</span>` : '';
+    const alarmBadge  = d.alarmActive ? `<span class="badge badge-alarm animate-pulse">🔔 ALARM</span>` : '';
 
     const imeiLine   = d.imei   ? `<div>IMEI: ${d.imei}</div>` : '';
     const serialLine = d.serial ? `<div>S/N: ${d.serial}</div>` : '';
@@ -478,9 +495,9 @@ function renderDevices() {
     const lastSeen   = d.lastSeen ? `Last seen ${new Date(d.lastSeen).toLocaleString()}` : 'Never seen';
 
     const alarmBtn = d.alarmActive
-      ? `<button class="btn btn-stop"    onclick="stopAlarm('${d.id}')">Stop Alarm</button>`
-      : `<button class="btn btn-danger"  onclick="soundAlarm('${d.id}')">🔔 Sound Alarm</button>`;
-    const connectBtn = `<button class="btn btn-primary" onclick="startRemoteControl('${d.id}','${d.model||d.id}')"
+      ? `<button class="btn btn-stop transition-transform duration-150 hover:scale-105 active:scale-95"    onclick="stopAlarm('${d.id}')">Stop Alarm</button>`
+      : `<button class="btn btn-danger transition-transform duration-150 hover:scale-105 active:scale-95"  onclick="soundAlarm('${d.id}')">🔔 Sound Alarm</button>`;
+    const connectBtn = `<button class="btn btn-primary transition-transform duration-150 hover:scale-105 active:scale-95" onclick="startRemoteControl('${d.id}','${d.model||d.id}')"
       ${d.status !== 'online' ? 'disabled' : ''}>▶ View Screen</button>`;
 
     card.innerHTML = `

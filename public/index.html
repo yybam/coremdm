@@ -4,6 +4,23 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CORE MDM Console</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        keyframes: {
+          fadeIn:  { '0%': { opacity: 0 }, '100%': { opacity: 1 } },
+          slideUp: { '0%': { opacity: 0, transform: 'translateY(12px)' }, '100%': { opacity: 1, transform: 'translateY(0)' } },
+        },
+        animation: {
+          fadeIn:  'fadeIn 0.25s ease-out',
+          slideUp: 'slideUp 0.25s ease-out',
+        },
+      },
+    },
+  };
+</script>
 <style>
 :root {
   --bg:       #080814;
@@ -270,7 +287,7 @@ header { background: var(--navy); border-bottom: 1px solid var(--border); paddin
 
 <!-- ─── Login ──────────────────────────────────────────── -->
 <div id="s-login">
-  <div class="login-card">
+  <div class="login-card animate-slideUp">
     <div class="logo">
       <div class="logo-mark">C</div>
       <div class="logo-text">CORE MDM</div>
@@ -285,12 +302,12 @@ header { background: var(--navy); border-bottom: 1px solid var(--border); paddin
       <input type="password" id="inp-pass" placeholder="••••••••" autocomplete="current-password">
     </div>
     <div id="login-msg"></div>
-    <button id="btn-login">Sign In</button>
+    <button id="btn-login" class="transition-transform duration-150 hover:scale-[1.02] active:scale-95">Sign In</button>
     <div class="login-footer">
       <button class="link-btn" id="btn-forgot">Forgot password?</button>
     </div>
   </div>
-  <div id="reset-panel">
+  <div id="reset-panel" class="animate-slideUp">
     <h3>Reset Password</h3>
     <p>Enter your email and we will send a reset link.</p>
     <div class="field">
@@ -313,8 +330,8 @@ header { background: var(--navy); border-bottom: 1px solid var(--border); paddin
       <div class="hdr-name">CORE MDM</div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;">
-      <button id="btn-admin" onclick="window._mdm.switchToAdmin()">&#9654; Super Admin</button>
-      <button id="btn-signout">Sign Out</button>
+      <button id="btn-admin" class="transition-transform duration-150 hover:scale-105 active:scale-95" onclick="window._mdm.switchToAdmin()">&#9654; Super Admin</button>
+      <button id="btn-signout" class="transition-transform duration-150 hover:scale-105 active:scale-95">Sign Out</button>
     </div>
   </header>
   <div class="main-content">
@@ -356,14 +373,14 @@ header { background: var(--navy); border-bottom: 1px solid var(--border); paddin
 
 <!-- ─── Device Management Modal ───────────────────────── -->
 <div id="dev-modal">
-  <div class="modal-backdrop" id="modal-backdrop"></div>
-  <div class="modal-panel">
+  <div class="modal-backdrop animate-fadeIn" id="modal-backdrop"></div>
+  <div class="modal-panel animate-slideUp">
     <div class="modal-hdr">
       <div class="modal-hdr-info">
         <div id="modal-device-name">Device</div>
         <div id="modal-device-sub"></div>
       </div>
-      <button id="btn-close-modal">&#x2715;</button>
+      <button id="btn-close-modal" class="transition-transform duration-150 hover:scale-110 active:scale-95">&#x2715;</button>
     </div>
     <div class="tab-bar" id="tab-bar"></div>
     <div class="tab-body" id="tab-body"></div>
@@ -372,13 +389,13 @@ header { background: var(--navy); border-bottom: 1px solid var(--border); paddin
 
 <!-- ─── Wipe Confirm Dialog ────────────────────────────── -->
 <div id="wipe-confirm">
-  <div class="wipe-backdrop" onclick="cancelWipe()"></div>
-  <div class="wipe-dialog">
+  <div class="wipe-backdrop animate-fadeIn" onclick="cancelWipe()"></div>
+  <div class="wipe-dialog animate-slideUp">
     <h2>Wipe Device?</h2>
     <p>This will permanently erase all data on the device. This action cannot be undone.</p>
     <div class="wipe-btns">
-      <button class="btn-cancel" onclick="cancelWipe()">Cancel</button>
-      <button class="btn-confirm-wipe" onclick="executeWipe()">Wipe Device</button>
+      <button class="btn-cancel transition-transform duration-150 hover:scale-[1.02] active:scale-95" onclick="cancelWipe()">Cancel</button>
+      <button class="btn-confirm-wipe transition-transform duration-150 hover:scale-[1.02] active:scale-95" onclick="executeWipe()">Wipe Device</button>
     </div>
   </div>
 </div>
@@ -592,12 +609,12 @@ function renderCards() {
   grid.innerHTML = shown.map(d => {
     const on    = isOnline(d);
     const alarm = d.alarmActive;
-    return `<div class="device-card${alarm?' alarming':''}">
+    return `<div class="device-card${alarm?' alarming':''} animate-fadeIn transition-transform duration-200 hover:-translate-y-0.5">
       <div class="dc-head">
         <div><div class="dc-name">${esc(d.model)}</div><div class="dc-sub">${esc(d.osVersion)}</div></div>
         <div class="dc-badges">
           <span class="badge ${on?'badge-online':'badge-offline'}">${on?'ONLINE':'OFFLINE'}</span>
-          ${alarm?'<span class="badge badge-alarm">ALARM</span>':''}
+          ${alarm?'<span class="badge badge-alarm animate-pulse">ALARM</span>':''}
         </div>
       </div>
       <div class="dc-ids">
@@ -606,8 +623,8 @@ function renderCards() {
       </div>
       <div class="dc-lastseen">Last seen: ${timeSince(d.lastSeen)}</div>
       <div class="dc-actions">
-        <button class="dc-btn dc-btn-alarm${alarm?' active':''}" onclick="window._mdm.toggleAlarm('${d.id}',${!alarm})">${alarm?'Stop Alarm':'Sound Alarm'}</button>
-        <button class="dc-btn dc-btn-manage" onclick="window._mdm.openModal('${d.id}')">Manage &rarr;</button>
+        <button class="dc-btn dc-btn-alarm${alarm?' active':''} transition-transform duration-150 hover:scale-105 active:scale-95" onclick="window._mdm.toggleAlarm('${d.id}',${!alarm})">${alarm?'Stop Alarm':'Sound Alarm'}</button>
+        <button class="dc-btn dc-btn-manage transition-transform duration-150 hover:scale-105 active:scale-95" onclick="window._mdm.openModal('${d.id}')">Manage &rarr;</button>
       </div>
     </div>`;
   }).join('');
@@ -634,12 +651,12 @@ function updateModalHeader(id) {
   const on = isOnline(d);
   document.getElementById('modal-device-sub').innerHTML =
     `<span class="badge ${on?'badge-online':'badge-offline'}">${on?'ONLINE':'OFFLINE'}</span>`
-    +(d.alarmActive?'<span class="badge badge-alarm">ALARM</span>':'')
+    +(d.alarmActive?'<span class="badge badge-alarm animate-pulse">ALARM</span>':'')
     +`<span>Last seen: ${timeSince(d.lastSeen)}</span>`;
 }
 function renderTabBar() {
   document.getElementById('tab-bar').innerHTML = TABS.map(t =>
-    `<button class="tab-btn${t.id===activeTab?' active':''}" onclick="window._mdm.switchTab('${t.id}')">`
+    `<button class="tab-btn${t.id===activeTab?' active':''} transition-colors duration-150" onclick="window._mdm.switchTab('${t.id}')">`
     +(t.danger?`<span style="color:var(--red)">${t.label}</span>`:t.label)
     +'</button>'
   ).join('');
@@ -664,7 +681,7 @@ function renderTabContent() {
     case 'network':  html = renderNetworkTab(d.id, p); break;
     case 'danger':   html = renderDangerTab(d); break;
   }
-  document.getElementById('tab-body').innerHTML = html;
+  document.getElementById('tab-body').innerHTML = `<div class="animate-fadeIn">${html}</div>`;
 }
 
 function renderCommandsTab(d) {
@@ -672,13 +689,13 @@ function renderCommandsTab(d) {
   const alarm = d.alarmActive;
   return `
   <div class="cmd-grid">
-    <button class="cmd-btn ${alarm?'cmd-alarm-on':'cmd-alarm-off'}" onclick="window._mdm.toggleAlarm('${id}',${!alarm})">
+    <button class="cmd-btn ${alarm?'cmd-alarm-on':'cmd-alarm-off'} transition-transform duration-150 hover:scale-105 active:scale-95" onclick="window._mdm.toggleAlarm('${id}',${!alarm})">
       ${alarm?'Stop Alarm':'Sound Alarm'}
     </button>
-    <button class="cmd-btn cmd-lock" onclick="window._mdm.sendLock('${id}')">Lock Screen</button>
-    <button class="cmd-btn cmd-reboot" onclick="window._mdm.sendReboot('${id}')">Reboot</button>
+    <button class="cmd-btn cmd-lock transition-transform duration-150 hover:scale-105 active:scale-95" onclick="window._mdm.sendLock('${id}')">Lock Screen</button>
+    <button class="cmd-btn cmd-reboot transition-transform duration-150 hover:scale-105 active:scale-95" onclick="window._mdm.sendReboot('${id}')">Reboot</button>
   </div>
-  <button class="cmd-lockdown" onclick="window._mdm.sendFullLockdown('${id}')">
+  <button class="cmd-lockdown transition-transform duration-150 hover:scale-[1.01] active:scale-95" onclick="window._mdm.sendFullLockdown('${id}')">
     <div class="ld-icon">!</div>
     <div class="ld-text">Apply Full Lockdown<span class="ld-sub">Enables all restrictions, disables camera, status bar, screen capture</span></div>
   </button>`;
@@ -745,7 +762,7 @@ function renderDangerTab(d) {
   <div class="danger-card">
     <div class="danger-title">Wipe Device</div>
     <div class="danger-desc">Permanently erase all data on <strong>${esc(d.model)}</strong> and restore it to factory settings. This action cannot be undone.</div>
-    <button class="btn-wipe" onclick="window._mdm.confirmWipe('${d.id}')">Wipe Device</button>
+    <button class="btn-wipe transition-transform duration-150 hover:scale-[1.02] active:scale-95" onclick="window._mdm.confirmWipe('${d.id}')">Wipe Device</button>
   </div>`;
 }
 
@@ -878,7 +895,7 @@ function renderAdminTabBar() {
     { id:'audit',     label:'Audit Log' },
   ];
   document.getElementById('admin-tab-bar').innerHTML = tabs.map(t =>
-    `<button class="admin-tab-btn${t.id===adminTab?' active':''}" onclick="window._mdm.switchAdminTab('${t.id}')">${t.label}</button>`
+    `<button class="admin-tab-btn${t.id===adminTab?' active':''} transition-colors duration-150" onclick="window._mdm.switchAdminTab('${t.id}')">${t.label}</button>`
   ).join('');
 }
 function loadAdminView(tab) {
@@ -908,7 +925,7 @@ function loadAdminDevices() {
       return;
     }
     document.getElementById('admin-panel-body').innerHTML = `
-      <div class="admin-table-wrap">
+      <div class="admin-table-wrap animate-fadeIn">
         <table class="admin-table">
           <thead><tr>
             <th>Device</th><th>OS</th><th>Status</th><th>Owner</th><th>IMEI / Serial</th><th>Last Seen</th><th>Actions</th>
@@ -919,14 +936,14 @@ function loadAdminDevices() {
             return `<tr>
               <td><strong>${esc(d.model||'Unknown')}</strong></td>
               <td class="mono">${esc(d.osVersion||'')}</td>
-              <td><span class="badge ${on?'badge-online':'badge-offline'}">${on?'ONLINE':'OFFLINE'}</span>${alarm?' <span class="badge badge-alarm">ALARM</span>':''}</td>
+              <td><span class="badge ${on?'badge-online':'badge-offline'}">${on?'ONLINE':'OFFLINE'}</span>${alarm?' <span class="badge badge-alarm animate-pulse">ALARM</span>':''}</td>
               <td class="mono" style="font-size:11px;">${esc(d.ownerId||'')}</td>
               <td class="mono">${d.imei?esc(d.imei):''}<br>${d.serial?esc(d.serial):''}</td>
               <td style="font-size:12px;color:var(--textSec);">${timeSince(d.lastSeenMs)}</td>
               <td><div class="action-cell">
-                <button class="at-btn at-btn-lock" onclick="window._mdm.sendLock('${d.id}')">Lock</button>
-                <button class="at-btn at-btn-alarm${alarm?' on':''}" onclick="window._mdm.toggleAlarm('${d.id}',${!alarm})">${alarm?'Stop Alarm':'Alarm'}</button>
-                <button class="at-btn at-btn-manage" onclick="window._mdm.adminManage('${d.id}')">Manage</button>
+                <button class="at-btn at-btn-lock transition-transform duration-150 hover:scale-105 active:scale-95" onclick="window._mdm.sendLock('${d.id}')">Lock</button>
+                <button class="at-btn at-btn-alarm${alarm?' on':''} transition-transform duration-150 hover:scale-105 active:scale-95" onclick="window._mdm.toggleAlarm('${d.id}',${!alarm})">${alarm?'Stop Alarm':'Alarm'}</button>
+                <button class="at-btn at-btn-manage transition-transform duration-150 hover:scale-105 active:scale-95" onclick="window._mdm.adminManage('${d.id}')">Manage</button>
               </div></td>
             </tr>`;
           }).join('')}</tbody>
@@ -948,7 +965,7 @@ function loadAuditLog() {
       return;
     }
     document.getElementById('admin-panel-body').innerHTML = `
-      <div class="admin-table-wrap">
+      <div class="admin-table-wrap animate-fadeIn">
         <table class="admin-table">
           <thead><tr>
             <th>Timestamp</th><th>Action</th><th>User</th><th>Device</th><th>Details</th>
@@ -1044,14 +1061,14 @@ function loadInventory() {
         </div>
       </div>
       <div class="inv-form-row">
-        <button class="btn-register" onclick="window._mdm.preRegisterDevice()">Pre-Register Device</button>
+        <button class="btn-register transition-transform duration-150 hover:scale-[1.02] active:scale-95" onclick="window._mdm.preRegisterDevice()">Pre-Register Device</button>
         <span class="inv-msg" id="inv-msg"></span>
       </div>
-      <div class="token-box" id="inv-token-box">
+      <div class="token-box animate-slideUp" id="inv-token-box">
         <div class="token-box-hdr">Enrollment Token — copy and deliver to the device technician</div>
         <div class="token-val" id="inv-token-val"></div>
         <div class="token-expiry" id="inv-token-exp"></div>
-        <button class="btn-copy" onclick="window._mdm.copyLastToken()">Copy Token</button>
+        <button class="btn-copy transition-transform duration-150 hover:scale-105 active:scale-95" onclick="window._mdm.copyLastToken()">Copy Token</button>
       </div>
     </div>
     <div id="inv-table-wrap"><div class="admin-empty">Loading inventory…</div></div>`;
@@ -1082,7 +1099,7 @@ function renderInventoryTable(records) {
     return;
   }
   wrap.innerHTML = `
-    <div class="admin-table-wrap">
+    <div class="admin-table-wrap animate-fadeIn">
       <table class="admin-table">
         <thead><tr>
           <th>IMEI</th><th>Tenant</th>

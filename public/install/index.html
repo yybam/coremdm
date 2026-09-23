@@ -5,6 +5,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>CoreMDM WebUSB Installer</title>
 <link rel="stylesheet" href="styles.css" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        keyframes: {
+          fadeIn:  { '0%': { opacity: 0 }, '100%': { opacity: 1 } },
+          slideUp: { '0%': { opacity: 0, transform: 'translateY(12px)' }, '100%': { opacity: 1, transform: 'translateY(0)' } },
+        },
+        animation: {
+          fadeIn:  'fadeIn 0.25s ease-out',
+          slideUp: 'slideUp 0.3s ease-out',
+        },
+      },
+    },
+  };
+</script>
 <!-- ya-webadb (Tango) pinned. esm.sh dedups the shared @yume-chan/adb + stream-extra
      copies via ?deps so the sibling packages don't each pull their own ADB core. -->
 <script type="importmap">
@@ -29,11 +46,11 @@
       <p class="sub">Set <code>com.core.mdm</code> as Device Owner &mdash; over USB or by QR code, no PC ADB needed</p>
     </div>
   </div>
-  <span id="conn-pill" class="pill pill-off">Not connected</span>
+  <span id="conn-pill" class="pill pill-off transition-colors duration-300">Not connected</span>
 </header>
 
 <main>
-  <div id="unsupported" class="card danger" hidden>
+  <div id="unsupported" class="card danger animate-slideUp" hidden>
     <h2>This browser can't do WebUSB</h2>
     <p>The <b>ADB over USB</b> method needs desktop <b>Chrome</b>, <b>Edge</b>, or another Chromium browser over
        <b>https://</b> (or localhost) &mdash; that method is disabled below. <b>QR code provisioning still works</b>
@@ -41,16 +58,16 @@
   </div>
 
   <!-- Method chooser -->
-  <section id="mode-select" class="card">
+  <section id="mode-select" class="card animate-fadeIn">
     <h2>Choose how to install</h2>
     <div class="modegrid">
-      <button id="mode-adb" class="modecard">
+      <button id="mode-adb" class="modecard transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]">
         <div class="mi">USB</div>
         <div class="mt">ADB over USB</div>
         <div class="md">Phone already set up. Plug in via USB, clear accounts, push the APK, set owner.
           Works without a factory reset. <b>Not ideal on Samsung.</b></div>
       </button>
-      <button id="mode-qr" class="modecard">
+      <button id="mode-qr" class="modecard transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]">
         <div class="mi">QR</div>
         <div class="mt">QR code (factory-reset)</div>
         <div class="md">Best for <b>Samsung</b>. On a freshly reset phone, tap the welcome screen 6&times; and scan.
@@ -61,25 +78,25 @@
 
   <!-- ================= ADB / WebUSB FLOW ================= -->
   <div id="adb-flow" hidden>
-  <button class="back-link" data-back>&larr; Choose another method</button>
+  <button class="back-link transition-transform duration-150 hover:translate-x-[-2px]" data-back>&larr; Choose another method</button>
 
   <!-- Single-screen run: connect, then everything else happens automatically. -->
-  <section class="card">
+  <section class="card animate-fadeIn">
     <h2>Install CoreMDM</h2>
     <ol class="hints" id="connect-hints">
       <li>On the phone: <b>Settings &rarr; About &rarr;</b> tap <b>Build number</b> 7&times; to unlock Developer options.</li>
       <li>Enable <b>USB debugging</b> in Developer options, then plug in via USB.</li>
       <li>Click connect, pick your phone in the Chrome popup, and tap <b>Allow</b> on the phone's "Allow USB debugging?" prompt.</li>
     </ol>
-    <button id="btn-connect" class="primary">Connect device</button>
+    <button id="btn-connect" class="primary transition-transform duration-150 hover:scale-[1.02] active:scale-95">Connect device</button>
 
     <!-- live progress line, shown once connect starts -->
     <p id="run-status" class="status" hidden></p>
     <div id="device-facts" class="facts"></div>
 
     <!-- inline: accounts need clearing before Device Owner can be set -->
-    <div id="need-accounts" hidden>
-      <div id="samsung-warn" class="finding warn" hidden>
+    <div id="need-accounts" class="animate-slideUp" hidden>
+      <div id="samsung-warn" class="finding warn animate-slideUp" hidden>
         <div class="t">Samsung caution</div>
         <div class="muted">Samsung's RKP / Knox watches package-state changes &mdash; on some models disabling apps
           can re-enable them, trip <b>FRP</b>, or cause boot issues. The <b>QR code</b> method (a factory-reset
@@ -93,30 +110,30 @@
           those in <b>Settings &rarr; Accounts</b>.</p>
         <input id="pkg-filter" class="filter" placeholder="Filter apps&hellip;" />
         <div id="pkg-list" class="list checkgrid"></div>
-        <div class="row"><button id="btn-disable" class="warn">Disable selected &amp; continue</button></div>
+        <div class="row"><button id="btn-disable" class="warn transition-transform duration-150 hover:scale-[1.02] active:scale-95">Disable selected &amp; continue</button></div>
       </div>
-      <div class="row"><button id="btn-resolve-rescan" class="ghost">I removed them &mdash; check again</button></div>
+      <div class="row"><button id="btn-resolve-rescan" class="ghost transition-transform duration-150 hover:scale-[1.02] active:scale-95">I removed them &mdash; check again</button></div>
     </div>
 
     <!-- inline: need an APK to install -->
-    <div id="need-apk" hidden>
+    <div id="need-apk" class="animate-slideUp" hidden>
       <h3>Select the CoreMDM APK</h3>
       <p class="muted">The <b>testOnly</b> build (installed with <code>-t</code> so it's accepted).</p>
       <input id="apk-file" type="file" accept=".apk" />
-      <progress id="install-prog" max="100" value="0" hidden></progress>
+      <progress id="install-prog" max="100" value="0" class="animate-pulse" hidden></progress>
     </div>
 
     <!-- final outcome -->
-    <div id="outcome-done" class="finding good" hidden>
+    <div id="outcome-done" class="finding good animate-slideUp" hidden>
       <div class="t">Done</div>
       <div class="muted"><code>com.core.mdm</code> is now Device Owner. Sign in to the CoreMDM app on the phone to
         finish enrollment, then re-add any Google/Samsung account you removed.</div>
       <div id="done-summary" class="facts"></div>
     </div>
-    <div id="outcome-failed" class="finding bad" hidden>
+    <div id="outcome-failed" class="finding bad animate-slideUp" hidden>
       <div class="t">Failed</div>
       <div class="muted" id="failed-reason"></div>
-      <div class="row"><button id="btn-retry" class="ghost">Retry</button></div>
+      <div class="row"><button id="btn-retry" class="ghost transition-transform duration-150 hover:scale-[1.02] active:scale-95">Retry</button></div>
     </div>
   </section>
 
@@ -127,8 +144,8 @@
        via ADB &mdash; the escape hatch if the app is stuck or factory reset is blocked.</p>
     <div id="restore-list" class="list"></div>
     <div class="row">
-      <button id="btn-reenable" class="ghost">Re-enable disabled apps</button>
-      <button id="btn-remove-owner" class="danger-btn">Remove Device Owner (remove-active-admin)</button>
+      <button id="btn-reenable" class="ghost transition-transform duration-150 hover:scale-[1.02] active:scale-95">Re-enable disabled apps</button>
+      <button id="btn-remove-owner" class="danger-btn transition-transform duration-150 hover:scale-[1.02] active:scale-95">Remove Device Owner (remove-active-admin)</button>
     </div>
     <p id="restore-status" class="status"></p>
   </section>
@@ -142,16 +159,16 @@
 
   <!-- ================= QR PROVISIONING FLOW ================= -->
   <div id="qr-flow" hidden>
-  <button class="back-link" data-back>&larr; Choose another method</button>
+  <button class="back-link transition-transform duration-150 hover:translate-x-[-2px]" data-back>&larr; Choose another method</button>
 
-  <section class="card">
+  <section class="card animate-fadeIn">
     <h2>Scan to install CoreMDM</h2>
-    <div id="qr-notconfigured" class="finding warn" hidden>
+    <div id="qr-notconfigured" class="finding warn animate-slideUp" hidden>
       <div class="t">Not set up yet</div>
       <div class="muted">The APK location hasn't been configured in this installer yet — nothing to scan until it
         is. (Edit the <code>QR_APK_URL</code> / <code>QR_APK_CHECKSUM</code> constants in <code>app.js</code>.)</div>
     </div>
-    <div id="qr-ready" hidden>
+    <div id="qr-ready" class="animate-slideUp" hidden>
       <div class="qrwrap"><div id="qr-canvas"></div></div>
       <ol class="hints">
         <li><b>Factory reset</b> the phone (Settings → General management → Reset, or reset in recovery).</li>

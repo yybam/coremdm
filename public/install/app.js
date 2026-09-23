@@ -451,15 +451,20 @@ function wireModeSelect() {
 }
 
 // ---------- QR provisioning ----------
-// Fill these in once the APK is hosted somewhere real, then redeploy — the QR tab renders
-// straight from these, no form for the person scanning it to fill out.
+// Same file the ADB-over-USB flow streams from apks/coremdm.apk (see tryPreloadedApk below) —
+// one APK, self-hosted here so both paths install byte-identical builds and there's a single
+// place to update. GitHub Releases' download URL doesn't send CORS headers, so it can't be
+// fetch()'d by installStream() for the USB path — that's the whole reason this lives here
+// instead: QR provisioning (the phone's own OS downloader, not a browser fetch) would have
+// been fine with either, but USB needs same-origin.
 //   QR_APK_URL:      https:// location the phone downloads the APK from.
 //   QR_APK_CHECKSUM: SHA-256 of that exact APK file, base64url-encoded, no padding.
 //                    Compute it with: certutil -hashfile coremdm.apk SHA256   (Windows)
 //                    or: sha256sum coremdm.apk | ...                          (see README)
-// Built by yybam/coremdm's .github/workflows/build-apk.yml (GitHub Releases). Push a new
-// vX.Y.Z tag to publish a new build, then update both constants below to match.
-const QR_APK_URL = "https://github.com/yybam/coremdm/releases/download/v0.2.2/app-release.apk";
+// To ship a new build: download the release APK from GitHub, overwrite
+// public/install/apks/coremdm.apk with it, recompute the checksum, update both constants
+// below, commit, push (auto-deploys).
+const QR_APK_URL = "https://coremdm.web.app/install/apks/coremdm.apk";
 const QR_APK_CHECKSUM = "RC_8QJLEjP7uy1TnQCnKUZNgAp1AIaLqcnjZxt1uXO4";
 
 // Builds the standard Android "QR code provisioning" JSON payload (the same one the

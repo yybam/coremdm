@@ -7,7 +7,17 @@ on:
       - "public/**"
       - "firebase.json"
       - ".firebaserc"
+      - ".github/workflows/deploy-hosting.yml"
   workflow_dispatch: {}
+
+permissions:
+  contents: read
+  id-token: write   # required for keyless GCP auth (OIDC) below
+
+# Avoid two deploys racing if pushes land close together.
+concurrency:
+  group: deploy-hosting
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -16,11 +26,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Project comes from .firebaserc already in this repo; the service account JSON in the
-      # FIREBASE_SERVICE_ACCOUNT secret determines which project it deploys to.
-      - name: Deploy to Firebase Hosting
-        uses: FirebaseExtended/action-hosting-deploy@v0
+      # Project ID is read from .firebaserc, never hardcoded here.
+      - name: Resolve Firebase project
+        id: project
+        run: |
+          id=$(jq -r '.projects.default' .firebaserc)
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+          echo "sa=github-hosting-deploy@${id}.iam.gserviceaccount.com" >> "$GITHUB_OUTPUT"
+
+      # Keyless: GitHub's own OIDC token proves this run came from this exact repo (matched
+      # by numeric repo/owner ID in the provider's attribute condition, set up once via
+      # scratchpad/setup-wif.ps1 — see that script's header for what it does). No key or
+      # secret is stored anywhere; nothing here to leak or rotate.
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
         with:
-          repoToken: "${{ secrets.GITHUB_TOKEN }}"
-          firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}"
-          channelId: live
+          workload_identity_provider: projects/457812602789/locations/global/workloadIdentityPools/github/providers/github
+          service_account: ${{ steps.project.outputs.sa }}
+
+      # firebase-tools picks up the Application Default Credentials the auth step above
+      # exported (GOOGLE_APPLICATION_CREDENTIALS) automatically — no `firebase login` needed.
+      - name: Deploy to Firebase Hosting
+        run: npx --yes firebase-tools@15.30.2 deploy --only hosting --project "${{ steps.project.outputs.id }}" --non-interactive

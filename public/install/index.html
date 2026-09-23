@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>CoreMDM WebUSB Installer</title>
+<link rel="stylesheet" href="styles.css" />
+<!-- ya-webadb (Tango) pinned. esm.sh dedups the shared @yume-chan/adb + stream-extra
+     copies via ?deps so the sibling packages don't each pull their own ADB core. -->
+<script type="importmap">
+{
+  "imports": {
+    "@yume-chan/adb": "https://esm.sh/@yume-chan/adb@2.6.4",
+    "@yume-chan/adb-daemon-webusb": "https://esm.sh/@yume-chan/adb-daemon-webusb@2.3.2?deps=@yume-chan/adb@2.6.4,@yume-chan/stream-extra@2.6.1",
+    "@yume-chan/adb-credential-web": "https://esm.sh/@yume-chan/adb-credential-web@2.1.0?deps=@yume-chan/adb@2.6.4",
+    "@yume-chan/android-bin": "https://esm.sh/@yume-chan/android-bin@2.1.0?deps=@yume-chan/adb@2.6.4,@yume-chan/stream-extra@2.6.1"
+  }
+}
+</script>
+<!-- QR code renderer (used by the QR provisioning flow) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="logo">C</div>
+    <div>
+      <h1>CoreMDM Installer</h1>
+      <p class="sub">Set <code>com.core.mdm</code> as Device Owner &mdash; over USB or by QR code, no PC ADB needed</p>
+    </div>
+  </div>
+  <span id="conn-pill" class="pill pill-off">Not connected</span>
+</header>
+
+<main>
+  <div id="unsupported" class="card danger" hidden>
+    <h2>This browser can't do WebUSB</h2>
+    <p>The <b>ADB over USB</b> method needs desktop <b>Chrome</b>, <b>Edge</b>, or another Chromium browser over
+       <b>https://</b> (or localhost) &mdash; that method is disabled below. <b>QR code provisioning still works</b>
+       here since it only needs Web Crypto, not WebUSB.</p>
+  </div>
+
+  <!-- Method chooser -->
+  <section id="mode-select" class="card">
+    <h2>Choose how to install</h2>
+    <div class="modegrid">
+      <button id="mode-adb" class="modecard">
+        <div class="mi">USB</div>
+        <div class="mt">ADB over USB</div>
+        <div class="md">Phone already set up. Plug in via USB, clear accounts, push the APK, set owner.
+          Works without a factory reset. <b>Not ideal on Samsung.</b></div>
+      </button>
+      <button id="mode-qr" class="modecard">
+        <div class="mi">QR</div>
+        <div class="mt">QR code (factory-reset)</div>
+        <div class="md">Best for <b>Samsung</b>. On a freshly reset phone, tap the welcome screen 6&times; and scan.
+          Sets Device Owner cleanly &mdash; no account clearing, no <code>pm disable</code>.</div>
+      </button>
+    </div>
+  </section>
+
+  <!-- ================= ADB / WebUSB FLOW ================= -->
+  <div id="adb-flow" hidden>
+  <button class="back-link" data-back>&larr; Choose another method</button>
+
+  <!-- Single-screen run: connect, then everything else happens automatically. -->
+  <section class="card">
+    <h2>Install CoreMDM</h2>
+    <ol class="hints" id="connect-hints">
+      <li>On the phone: <b>Settings &rarr; About &rarr;</b> tap <b>Build number</b> 7&times; to unlock Developer options.</li>
+      <li>Enable <b>USB debugging</b> in Developer options, then plug in via USB.</li>
+      <li>Click connect, pick your phone in the Chrome popup, and tap <b>Allow</b> on the phone's "Allow USB debugging?" prompt.</li>
+    </ol>
+    <button id="btn-connect" class="primary">Connect device</button>
+
+    <!-- live progress line, shown once connect starts -->
+    <p id="run-status" class="status" hidden></p>
+    <div id="device-facts" class="facts"></div>
+
+    <!-- inline: accounts need clearing before Device Owner can be set -->
+    <div id="need-accounts" hidden>
+      <div id="samsung-warn" class="finding warn" hidden>
+        <div class="t">Samsung caution</div>
+        <div class="muted">Samsung's RKP / Knox watches package-state changes &mdash; on some models disabling apps
+          can re-enable them, trip <b>FRP</b>, or cause boot issues. The <b>QR code</b> method (a factory-reset
+          device) avoids this entirely.</div>
+      </div>
+      <h3>Accounts still on the device</h3>
+      <div id="accounts-list" class="list"></div>
+      <div id="disable-ui">
+        <p class="muted">Apps below can be disabled to drop their account &mdash; <b>reversible</b>, re-enabled on the
+          Restore tab, no data wiped (unlike uninstall). Google/Samsung accounts can't be cleared this way; remove
+          those in <b>Settings &rarr; Accounts</b>.</p>
+        <input id="pkg-filter" class="filter" placeholder="Filter apps&hellip;" />
+        <div id="pkg-list" class="list checkgrid"></div>
+        <div class="row"><button id="btn-disable" class="warn">Disable selected &amp; continue</button></div>
+      </div>
+      <div class="row"><button id="btn-resolve-rescan" class="ghost">I removed them &mdash; check again</button></div>
+    </div>
+
+    <!-- inline: need an APK to install -->
+    <div id="need-apk" hidden>
+      <h3>Select the CoreMDM APK</h3>
+      <p class="muted">The <b>testOnly</b> build (installed with <code>-t</code> so it's accepted).</p>
+      <input id="apk-file" type="file" accept=".apk" />
+      <progress id="install-prog" max="100" value="0" hidden></progress>
+    </div>
+
+    <!-- final outcome -->
+    <div id="outcome-done" class="finding good" hidden>
+      <div class="t">Done</div>
+      <div class="muted"><code>com.core.mdm</code> is now Device Owner. Sign in to the CoreMDM app on the phone to
+        finish enrollment, then re-add any Google/Samsung account you removed.</div>
+      <div id="done-summary" class="facts"></div>
+    </div>
+    <div id="outcome-failed" class="finding bad" hidden>
+      <div class="t">Failed</div>
+      <div class="muted" id="failed-reason"></div>
+      <div class="row"><button id="btn-retry" class="ghost">Retry</button></div>
+    </div>
+  </section>
+
+  <!-- Restore / rescue (always available once connected) -->
+  <section class="card panel-secondary" data-panel="restore" hidden>
+    <h2>Restore &amp; rescue</h2>
+    <p class="muted">Re-enable the apps this tool disabled, and (testOnly builds only) remove CoreMDM as Device Owner
+       via ADB &mdash; the escape hatch if the app is stuck or factory reset is blocked.</p>
+    <div id="restore-list" class="list"></div>
+    <div class="row">
+      <button id="btn-reenable" class="ghost">Re-enable disabled apps</button>
+      <button id="btn-remove-owner" class="danger-btn">Remove Device Owner (remove-active-admin)</button>
+    </div>
+    <p id="restore-status" class="status"></p>
+  </section>
+
+  <!-- Live log -->
+  <details class="log" open>
+    <summary>ADB log</summary>
+    <pre id="log"></pre>
+  </details>
+  </div><!-- /adb-flow -->
+
+  <!-- ================= QR PROVISIONING FLOW ================= -->
+  <div id="qr-flow" hidden>
+  <button class="back-link" data-back>&larr; Choose another method</button>
+
+  <section class="card">
+    <h2>Scan to install CoreMDM</h2>
+    <div id="qr-notconfigured" class="finding warn" hidden>
+      <div class="t">Not set up yet</div>
+      <div class="muted">The APK location hasn't been configured in this installer yet — nothing to scan until it
+        is. (Edit the <code>QR_APK_URL</code> / <code>QR_APK_CHECKSUM</code> constants in <code>app.js</code>.)</div>
+    </div>
+    <div id="qr-ready" hidden>
+      <div class="qrwrap"><div id="qr-canvas"></div></div>
+      <ol class="hints">
+        <li><b>Factory reset</b> the phone (Settings → General management → Reset, or reset in recovery).</li>
+        <li>At the very first <b>Welcome / "Hi there"</b> screen, tap the screen <b>6 times</b> on the same spot.</li>
+        <li>The device asks to connect Wi-Fi, then opens a <b>QR scanner</b> — point it at the code above.</li>
+        <li>It downloads CoreMDM and sets it as Device Owner automatically. Finish setup, then sign in.</li>
+      </ol>
+    </div>
+  </section>
+  </div><!-- /qr-flow -->
+</main>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

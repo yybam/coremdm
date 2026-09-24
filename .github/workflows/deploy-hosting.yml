@@ -10,11 +10,6 @@ on:
       - ".github/workflows/deploy-hosting.yml"
   workflow_dispatch: {}
 
-permissions:
-  contents: read
-  id-token: write   # required for keyless GCP auth (OIDC) below
-
-# Avoid two deploys racing if pushes land close together.
 concurrency:
   group: deploy-hosting
   cancel-in-progress: false
@@ -26,25 +21,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Project ID is read from .firebaserc, never hardcoded here.
-      - name: Resolve Firebase project
-        id: project
-        run: |
-          id=$(jq -r '.projects.default' .firebaserc)
-          echo "id=$id" >> "$GITHUB_OUTPUT"
-          echo "sa=github-hosting-deploy@${id}.iam.gserviceaccount.com" >> "$GITHUB_OUTPUT"
-
-      # Keyless: GitHub's own OIDC token proves this run came from this exact repo (matched
-      # by numeric repo/owner ID in the provider's attribute condition, set up once via
-      # scratchpad/setup-wif.ps1 — see that script's header for what it does). No key or
-      # secret is stored anywhere; nothing here to leak or rotate.
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: projects/457812602789/locations/global/workloadIdentityPools/github/providers/github
-          service_account: ${{ steps.project.outputs.sa }}
-
-      # firebase-tools picks up the Application Default Credentials the auth step above
-      # exported (GOOGLE_APPLICATION_CREDENTIALS) automatically — no `firebase login` needed.
+      # Project comes from .firebaserc already in this repo; the FIREBASE_SERVICE_ACCOUNT
+      # secret (a Firebase Admin SDK service account key, added via repo Settings > Secrets)
+      # determines which project it authenticates as. Switched here from a keyless
+      # Workload Identity Federation setup -- that approach is more secure (no long-lived
+      # key at all) but its one-time gcloud setup needs a working Google OAuth token
+      # exchange, which a transparent network proxy on the machine doing that setup was
+      # actively breaking (serving the wrong certificate for oauth2.googleapis.com,
+      # unfixable client-side). This key-based approach only needs the Firebase Console
+      # (a normal browser page), so it sidesteps that entirely.
       - name: Deploy to Firebase Hosting
-        run: npx --yes firebase-tools@15.30.2 deploy --only hosting --project "${{ steps.project.outputs.id }}" --non-interactive
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: "${{ secrets.GITHUB_TOKEN }}"
+          firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}"
+          channelId: live

@@ -17,6 +17,8 @@ class BlocklistRepository private constructor(context: Context) {
             }
 
         private const val KEY_CUSTOM_BLOCKED = "custom_blocked"
+        private const val KEY_IMPORTED       = "imported_blocked"
+        private const val KEY_IMPORTED_COUNT = "imported_count"
         private const val KEY_WHITELIST      = "whitelist"
         private const val KEY_USE_DEFAULT    = "use_default"
         private const val KEY_URL            = "blocklist_url"
@@ -62,6 +64,11 @@ class BlocklistRepository private constructor(context: Context) {
     private val prefs: SharedPreferences =
         context.getSharedPreferences("mdm_blocklist", Context.MODE_PRIVATE)
 
+    // Remote lists can run to hundreds of thousands of domains, so they live in their
+    // own file: changing a setting or the custom list doesn't rewrite them.
+    private val importedPrefs: SharedPreferences =
+        context.getSharedPreferences("mdm_blocklist_imported", Context.MODE_PRIVATE)
+
     // ── Custom lists ──────────────────────────────────────────────────────────
 
     fun getCustomBlocked(): Set<String> =
@@ -74,6 +81,20 @@ class BlocklistRepository private constructor(context: Context) {
     fun removeBlocked(domain: String) = updateSet(KEY_CUSTOM_BLOCKED) { it - clean(domain) }
     fun addWhitelisted(domain: String) = updateSet(KEY_WHITELIST) { it + clean(domain) }
     fun removeWhitelisted(domain: String) = updateSet(KEY_WHITELIST) { it - clean(domain) }
+
+    // ── Imported list (from the remote blocklist URL) ─────────────────────────
+
+    fun getImportedBlocked(): Set<String> =
+        importedPrefs.getStringSet(KEY_IMPORTED, emptySet()) ?: emptySet()
+
+    // Kept in the small prefs file so the UI can show it without loading the whole list.
+    val importedCount: Int
+        get() = prefs.getInt(KEY_IMPORTED_COUNT, 0)
+
+    fun clearImported() {
+        importedPrefs.edit().remove(KEY_IMPORTED).apply()
+        prefs.edit().remove(KEY_IMPORTED_COUNT).apply()
+    }
 
     // ── Settings ──────────────────────────────────────────────────────────────
 
@@ -93,16 +114,19 @@ class BlocklistRepository private constructor(context: Context) {
 
     fun isDomainBlocked(domain: String): Boolean {
         val lower = domain.lowercase().trimEnd('.')
-        val whitelist = getWhitelist()
-        val allBlocked = getCustomBlocked() +
-                if (useDefaultBlocklist) DEFAULT_BLOCKED else emptySet()
+        val whitelist  = getWhitelist()
+        val custom     = getCustomBlocked()
+        val imported   = getImportedBlocked()
+        val useDefault = useDefaultBlocklist
 
         // Walk up the domain hierarchy: sub.example.com → example.com → com
         val parts = lower.split(".")
         for (i in parts.indices) {
             val candidate = parts.drop(i).joinToString(".")
             if (candidate in whitelist) return false
-            if (candidate in allBlocked) return true
+            // Check each set in place: merging them would copy the imported list on every query.
+            if (candidate in custom || candidate in imported ||
+                (useDefault && candidate in DEFAULT_BLOCKED)) return true
         }
         return false
     }
@@ -116,20 +140,24 @@ class BlocklistRepository private constructor(context: Context) {
                 readTimeout    = 15_000
                 setRequestProperty("User-Agent", "CoreMDM/1.0")
             }
-            val domains = conn.inputStream.bufferedReader().readLines()
-                .map { it.substringBefore('#').trim().lowercase() }
-                .filter { it.isNotEmpty() && it.contains('.') && !it.contains(' ') }
-                .toSet()
-            updateSet(KEY_CUSTOM_BLOCKED) { it + domains }
-            conn.disconnect()
+            val domains = try {
+                conn.inputStream.bufferedReader().useLines { BlocklistParser.parse(it) }
+            } finally {
+                conn.disconnect()
+            }
+            // Keep the previous import if the URL served something that isn't a blocklist.
+            require(domains.isNotEmpty()) { "no domains found in that list" }
+            // Replace rather than merge, so re-fetching drops domains removed upstream.
+            // commit() since we're already off the main thread and the write can be large.
+            importedPrefs.edit().putStringSet(KEY_IMPORTED, domains).commit()
+            prefs.edit().putInt(KEY_IMPORTED_COUNT, domains.size).apply()
             domains.size
         }
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private fun clean(domain: String) =
-        domain.lowercase().trim().removePrefix("www.").trimEnd('.')
+    private fun clean(domain: String) = BlocklistParser.cleanDomain(domain)
 
     private fun updateSet(key: String, transform: (Set<String>) -> Set<String>) {
         val current = prefs.getStringSet(key, emptySet()) ?: emptySet()

@@ -157,8 +157,9 @@ fun FilterScreen(
                     title = "Remote Blocklist", iconColor = LocalAppColors.current.cyan) {
                     Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text("Paste a URL to a hosts-format blocklist. " +
-                            "Domains are added to your custom list.",
+                        Text("Paste a URL to a hosts-format or one-domain-per-line blocklist. " +
+                            "Imported domains are kept apart from your custom list; " +
+                            "fetching again replaces them.",
                             color = LocalAppColors.current.textSecondary, fontSize = 12.sp)
                         OutlinedTextField(
                             value = state.blocklistUrl,
@@ -194,6 +195,19 @@ fun FilterScreen(
                                 Spacer(Modifier.width(8.dp))
                                 Text("Fetch & Import", color = LocalAppColors.current.cyan,
                                     fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+                        if (state.importedCount > 0) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("Imported domains: %,d".format(state.importedCount),
+                                    modifier = Modifier.weight(1f),
+                                    color = LocalAppColors.current.textPrimary, fontSize = 13.sp)
+                                TextButton(
+                                    onClick = viewModel::clearImported,
+                                    enabled = !state.isFetching,
+                                    colors = ButtonDefaults.textButtonColors(
+                                        contentColor = LocalAppColors.current.red)
+                                ) { Text("Clear", fontWeight = FontWeight.SemiBold) }
                             }
                         }
                     }

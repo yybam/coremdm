@@ -2,6 +2,8 @@
 
 An Android Mobile Device Management (MDM) app with a Firebase-powered cloud remote control web console. Remotely manage enrolled Android devices — lock screens, apply security policies, trigger alarms, enforce DNS, manage kiosk mode, and more — all from a browser.
 
+> **Status: Beta.** Still under active development — expect rough edges and breaking changes between releases.
+
 **Live Web Console:** [https://coremdm.web.app](https://coremdm.web.app)
 
 ---

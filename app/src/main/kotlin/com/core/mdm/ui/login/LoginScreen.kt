@@ -3,11 +3,9 @@ package com.core.mdm.ui.login
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.outlined.*
@@ -42,17 +40,13 @@ fun LoginScreen(vm: LoginViewModel = viewModel()) {
         modifier = Modifier
             .fillMaxSize()
             .background(c.navy)
-            // System bars + keyboard: edge-to-edge stops the window from shrinking for the keyboard.
-            .safeDrawingPadding(),
+            .systemBarsPadding(),
         contentAlignment = Alignment.Center
     ) {
-        // Scrollable so the fields and Sign In button can be reached above the keyboard on
-        // small screens; still centered when everything fits.
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 32.dp, vertical = 24.dp),
+                .padding(horizontal = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {

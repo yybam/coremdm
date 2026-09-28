@@ -234,6 +234,12 @@ Releases are now built and published automatically by `.github/workflows/build-a
 
 ---
 
+## Reporting a Vulnerability
+
+Found a security issue? Please report it by [opening a GitHub issue](https://github.com/yybam/coremdm/issues/new).
+
+---
+
 ## License
 
 MIT

@@ -4,11 +4,11 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -84,171 +84,171 @@ fun FilterScreen(
                     snackbarData = data)
             }
         },
-        containerColor = LocalAppColors.current.navy
+        containerColor = LocalAppColors.current.navy,
+        // Edge-to-edge stops the window from shrinking for the keyboard, so pad for it here —
+        // otherwise it covers the bottom of the scroll area and focused fields can't scroll into view.
+        contentWindowInsets = WindowInsets.safeDrawing
     ) { padding ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(16.dp),
+        // A plain scrollable Column, not a LazyColumn, for the same reason as DashboardScreen: a
+        // fixed handful of heavy cards that LazyColumn re-composed (text fields and all) every time
+        // one scrolled back into view — a visible stall on low-end devices, and it threw away
+        // half-typed input and closed the keyboard whenever a focused field scrolled off-screen.
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // ── Master toggle ─────────────────────────────────────────────────
-            item { FilterToggleCard(state.isFilterRunning, viewModel::requestToggleFilter) }
+            FilterToggleCard(state.isFilterRunning, viewModel::requestToggleFilter)
 
             // ── Default blocklist ─────────────────────────────────────────────
-            item {
-                PolicyCard(icon = Icons.Outlined.Block, title = "Default Blocklist",
-                    iconColor = LocalAppColors.current.red) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(Modifier.weight(1f)) {
-                            Text("Block social media & adult content",
-                                fontWeight = FontWeight.SemiBold,
-                                color = LocalAppColors.current.textPrimary, fontSize = 14.sp)
-                            Text("Instagram, TikTok, YouTube, adult sites + more",
-                                color = LocalAppColors.current.textSecondary, fontSize = 11.sp)
-                        }
-                        Switch(
-                            checked = state.useDefaultBlocklist,
-                            onCheckedChange = viewModel::setUseDefaultBlocklist,
-                            colors = SwitchDefaults.colors(
-                                checkedTrackColor   = LocalAppColors.current.green,
-                                uncheckedTrackColor = LocalAppColors.current.navy,
-                                uncheckedBorderColor = LocalAppColors.current.cardBorder
-                            )
-                        )
+            PolicyCard(icon = Icons.Outlined.Block, title = "Default Blocklist",
+                iconColor = LocalAppColors.current.red) {
+                Row(
+                    modifier = Modifier.fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Block social media & adult content",
+                            fontWeight = FontWeight.SemiBold,
+                            color = LocalAppColors.current.textPrimary, fontSize = 14.sp)
+                        Text("Instagram, TikTok, YouTube, adult sites + more",
+                            color = LocalAppColors.current.textSecondary, fontSize = 11.sp)
                     }
+                    Switch(
+                        checked = state.useDefaultBlocklist,
+                        onCheckedChange = viewModel::setUseDefaultBlocklist,
+                        colors = SwitchDefaults.colors(
+                            checkedTrackColor   = LocalAppColors.current.green,
+                            uncheckedTrackColor = LocalAppColors.current.navy,
+                            uncheckedBorderColor = LocalAppColors.current.cardBorder
+                        )
+                    )
                 }
             }
 
             // ── Custom blocked domains ────────────────────────────────────────
-            item {
-                DomainListCard(
-                    title       = "Custom Blocked Sites",
-                    subtitle    = "Block specific domains",
-                    iconColor   = LocalAppColors.current.red,
-                    icon        = Icons.Outlined.Block,
-                    domains     = state.customBlocked,
-                    placeholder = "e.g. reddit.com",
-                    onAdd       = viewModel::addBlocked,
-                    onRemove    = viewModel::removeBlocked
-                )
-            }
+            DomainListCard(
+                title       = "Custom Blocked Sites",
+                subtitle    = "Block specific domains",
+                iconColor   = LocalAppColors.current.red,
+                icon        = Icons.Outlined.Block,
+                domains     = state.customBlocked,
+                placeholder = "e.g. reddit.com",
+                onAdd       = viewModel::addBlocked,
+                onRemove    = viewModel::removeBlocked
+            )
 
             // ── Whitelist ─────────────────────────────────────────────────────
-            item {
-                DomainListCard(
-                    title       = "Always Allowed",
-                    subtitle    = "These domains bypass all blocking",
-                    iconColor   = LocalAppColors.current.green,
-                    icon        = Icons.Outlined.CheckCircle,
-                    domains     = state.whitelist,
-                    placeholder = "e.g. school.edu",
-                    onAdd       = viewModel::addWhitelisted,
-                    onRemove    = viewModel::removeWhitelisted
-                )
-            }
+            DomainListCard(
+                title       = "Always Allowed",
+                subtitle    = "These domains bypass all blocking",
+                iconColor   = LocalAppColors.current.green,
+                icon        = Icons.Outlined.CheckCircle,
+                domains     = state.whitelist,
+                placeholder = "e.g. school.edu",
+                onAdd       = viewModel::addWhitelisted,
+                onRemove    = viewModel::removeWhitelisted
+            )
 
             // ── Remote blocklist updater ──────────────────────────────────────
-            item {
-                PolicyCard(icon = Icons.Outlined.CloudDownload,
-                    title = "Remote Blocklist", iconColor = LocalAppColors.current.cyan) {
-                    Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text("Paste a URL to a hosts-format blocklist. " +
-                            "Domains are added to your custom list.",
-                            color = LocalAppColors.current.textSecondary, fontSize = 12.sp)
-                        OutlinedTextField(
-                            value = state.blocklistUrl,
-                            onValueChange = viewModel::setBlocklistUrl,
-                            modifier = Modifier.fillMaxWidth(),
-                            placeholder = { Text("https://example.com/blocklist.txt",
-                                color = LocalAppColors.current.textSecondary, fontSize = 12.sp) },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Uri,
-                                imeAction = ImeAction.Done),
-                            colors = mdmTextFieldColors(),
-                            shape = RoundedCornerShape(10.dp),
-                            textStyle = androidx.compose.ui.text.TextStyle(
-                                fontSize = 12.sp, fontFamily = FontFamily.Monospace,
-                                color = LocalAppColors.current.textPrimary)
-                        )
-                        Button(
-                            onClick = viewModel::fetchBlocklist,
-                            enabled = !state.isFetching,
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(10.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = LocalAppColors.current.cyanDim)
-                        ) {
-                            if (state.isFetching) {
-                                CircularProgressIndicator(modifier = Modifier.size(16.dp),
-                                    color = LocalAppColors.current.cyan, strokeWidth = 2.dp)
-                                Spacer(Modifier.width(8.dp))
-                                Text("Fetching…", color = LocalAppColors.current.cyan)
-                            } else {
-                                Icon(Icons.Filled.CloudDownload, null,
-                                    modifier = Modifier.size(16.dp), tint = LocalAppColors.current.cyan)
-                                Spacer(Modifier.width(8.dp))
-                                Text("Fetch & Import", color = LocalAppColors.current.cyan,
-                                    fontWeight = FontWeight.SemiBold)
-                            }
+            PolicyCard(icon = Icons.Outlined.CloudDownload,
+                title = "Remote Blocklist", iconColor = LocalAppColors.current.cyan) {
+                Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Paste a URL to a hosts-format blocklist. " +
+                        "Domains are added to your custom list.",
+                        color = LocalAppColors.current.textSecondary, fontSize = 12.sp)
+                    OutlinedTextField(
+                        value = state.blocklistUrl,
+                        onValueChange = viewModel::setBlocklistUrl,
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("https://example.com/blocklist.txt",
+                            color = LocalAppColors.current.textSecondary, fontSize = 12.sp) },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Uri,
+                            imeAction = ImeAction.Done),
+                        colors = mdmTextFieldColors(),
+                        shape = RoundedCornerShape(10.dp),
+                        textStyle = androidx.compose.ui.text.TextStyle(
+                            fontSize = 12.sp, fontFamily = FontFamily.Monospace,
+                            color = LocalAppColors.current.textPrimary)
+                    )
+                    Button(
+                        onClick = viewModel::fetchBlocklist,
+                        enabled = !state.isFetching,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = LocalAppColors.current.cyanDim)
+                    ) {
+                        if (state.isFetching) {
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp),
+                                color = LocalAppColors.current.cyan, strokeWidth = 2.dp)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Fetching…", color = LocalAppColors.current.cyan)
+                        } else {
+                            Icon(Icons.Filled.CloudDownload, null,
+                                modifier = Modifier.size(16.dp), tint = LocalAppColors.current.cyan)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Fetch & Import", color = LocalAppColors.current.cyan,
+                                fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
             }
 
             // ── Upstream DNS ──────────────────────────────────────────────────
-            item {
-                PolicyCard(icon = Icons.Outlined.Dns, title = "Upstream DNS Server",
-                    iconColor = LocalAppColors.current.purple) {
-                    var dns by remember { mutableStateOf(state.upstreamDns) }
-                    val focusManager = LocalFocusManager.current
-                    Row(
-                        Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        OutlinedTextField(
-                            value = dns,
-                            onValueChange = { dns = it },
-                            modifier = Modifier.weight(1f),
-                            label = { Text("DNS IP", color = LocalAppColors.current.textSecondary) },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Decimal,
-                                imeAction = ImeAction.Done),
-                            keyboardActions = KeyboardActions(onDone = {
-                                viewModel.setUpstreamDns(dns); focusManager.clearFocus()
-                            }),
-                            colors = mdmTextFieldColors(),
-                            shape = RoundedCornerShape(10.dp),
-                            textStyle = androidx.compose.ui.text.TextStyle(
-                                fontSize = 13.sp, fontFamily = FontFamily.Monospace,
-                                color = LocalAppColors.current.textPrimary)
-                        )
-                        // Quick presets
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            listOf("1.1.1.1" to "CF", "8.8.8.8" to "G").forEach { (ip, lbl) ->
-                                OutlinedButton(
-                                    onClick = { dns = ip; viewModel.setUpstreamDns(ip) },
-                                    shape = RoundedCornerShape(8.dp),
-                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                                    colors = ButtonDefaults.outlinedButtonColors(
-                                        contentColor = LocalAppColors.current.cyan),
-                                    border = androidx.compose.foundation.BorderStroke(
-                                        1.dp, LocalAppColors.current.cyanDim),
-                                    modifier = Modifier.height(32.dp)
-                                ) { Text(lbl, fontSize = 11.sp) }
-                            }
+            PolicyCard(icon = Icons.Outlined.Dns, title = "Upstream DNS Server",
+                iconColor = LocalAppColors.current.purple) {
+                var dns by remember { mutableStateOf(state.upstreamDns) }
+                val focusManager = LocalFocusManager.current
+                Row(
+                    Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = dns,
+                        onValueChange = { dns = it },
+                        modifier = Modifier.weight(1f),
+                        label = { Text("DNS IP", color = LocalAppColors.current.textSecondary) },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Decimal,
+                            imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = {
+                            viewModel.setUpstreamDns(dns); focusManager.clearFocus()
+                        }),
+                        colors = mdmTextFieldColors(),
+                        shape = RoundedCornerShape(10.dp),
+                        textStyle = androidx.compose.ui.text.TextStyle(
+                            fontSize = 13.sp, fontFamily = FontFamily.Monospace,
+                            color = LocalAppColors.current.textPrimary)
+                    )
+                    // Quick presets
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        listOf("1.1.1.1" to "CF", "8.8.8.8" to "G").forEach { (ip, lbl) ->
+                            OutlinedButton(
+                                onClick = { dns = ip; viewModel.setUpstreamDns(ip) },
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = LocalAppColors.current.cyan),
+                                border = androidx.compose.foundation.BorderStroke(
+                                    1.dp, LocalAppColors.current.cyanDim),
+                                modifier = Modifier.height(32.dp)
+                            ) { Text(lbl, fontSize = 11.sp) }
                         }
                     }
                 }
             }
 
-            item { Spacer(Modifier.height(16.dp)) }
+            Spacer(Modifier.height(16.dp))
         }
     }
 }

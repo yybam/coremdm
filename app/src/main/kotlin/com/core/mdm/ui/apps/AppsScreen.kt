@@ -1,6 +1,6 @@
 ﻿package com.core.mdm.ui.apps
 
-import android.graphics.Bitmap
+import android.graphics.drawable.Drawable
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -23,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.core.mdm.policy.AppStatus
@@ -85,10 +86,7 @@ fun AppsScreen(
                 )
             }
         },
-        containerColor = LocalAppColors.current.navy,
-        // Edge-to-edge stops the window from shrinking for the keyboard, so pad for it here —
-        // otherwise it covers the bottom of the scroll area and focused fields can't scroll into view.
-        contentWindowInsets = WindowInsets.safeDrawing
+        containerColor = LocalAppColors.current.navy
     ) { padding ->
 
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
@@ -261,7 +259,7 @@ private fun AppRow(
         ) {
 
             // App icon
-            AppIcon(icon = app.icon, modifier = Modifier.size(42.dp))
+            AppIcon(drawable = app.icon, modifier = Modifier.size(42.dp))
 
             Spacer(Modifier.width(12.dp))
 
@@ -360,16 +358,19 @@ private fun SmallActionButton(
 }
 
 @Composable
-private fun AppIcon(icon: Bitmap?, modifier: Modifier = Modifier) {
-    if (icon != null) {
-        // Already rendered off the main thread (see AppStatus.icon); wrapping it is free.
-        val bitmap = remember(icon) { icon.asImageBitmap() }
-        Image(
-            bitmap = bitmap,
-            contentDescription = null,
-            modifier = modifier.clip(RoundedCornerShape(10.dp))
-        )
-        return
+private fun AppIcon(drawable: Drawable?, modifier: Modifier = Modifier) {
+    if (drawable != null) {
+        val bitmap = remember(drawable) {
+            runCatching { drawable.toBitmap(96, 96).asImageBitmap() }.getOrNull()
+        }
+        if (bitmap != null) {
+            Image(
+                bitmap = bitmap,
+                contentDescription = null,
+                modifier = modifier.clip(RoundedCornerShape(10.dp))
+            )
+            return
+        }
     }
     // Fallback
     Box(

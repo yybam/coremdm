@@ -125,7 +125,10 @@ fun DashboardScreen(
                 )
             }
         },
-        containerColor = LocalAppColors.current.navy
+        containerColor = LocalAppColors.current.navy,
+        // Edge-to-edge stops the window from shrinking for the keyboard, so pad for it here —
+        // otherwise it covers the bottom of the scroll area and focused fields can't scroll into view.
+        contentWindowInsets = WindowInsets.safeDrawing
     ) { padding ->
 
         if (state.isLoading) {

@@ -101,11 +101,14 @@ private fun MdmRoot() {
     val context    = LocalContext.current
     val pinManager = remember { PinManager.getInstance(context) }
     val isLocked   by AppLockState.isLocked.collectAsState()
+    val lockEpoch  by AppLockState.lockEpoch.collectAsState()
 
     DisposableEffect(Unit) {
         val observer = object : DefaultLifecycleObserver {
+            // Always lock when the app goes to background — no conditional.
+            // The PIN screen picks VERIFY or SETUP depending on whether a PIN exists.
             override fun onStop(owner: LifecycleOwner) {
-                if (pinManager.isPinSet) AppLockState.lock()
+                AppLockState.lock()
             }
         }
         ProcessLifecycleOwner.get().lifecycle.addObserver(observer)
@@ -125,12 +128,19 @@ private fun MdmRoot() {
         label = "lock_gate"
     ) { locked ->
         if (locked) {
+            // If no PIN is set yet, go straight to SETUP so the user creates one before
+            // entering the app. If a PIN is already set, go to VERIFY as normal.
+            // lockEpoch is used as the ViewModel key: each lock() call increments it,
+            // forcing a brand-new ViewModel per lock cycle so stale isAuthenticated=true
+            // from a previous unlock never causes an instant auto-unlock.
+            val lockMode = if (pinManager.isPinSet) PinScreenMode.VERIFY else PinScreenMode.SETUP
             PinLockScreen(
-                preventBack      = true,
-                onAuthenticated  = { AppLockState.unlock() },
-                viewModel        = androidx.lifecycle.viewmodel.compose.viewModel(
-                    key     = "lock_overlay",
-                    factory = PinLockViewModel.factory(PinScreenMode.VERIFY)
+                preventBack     = true,
+                onAuthenticated = { AppLockState.unlock() },
+                onComplete      = { AppLockState.unlock() },
+                viewModel       = androidx.lifecycle.viewmodel.compose.viewModel(
+                    key     = "lock_$lockEpoch",
+                    factory = PinLockViewModel.factory(lockMode)
                 )
             )
         } else {

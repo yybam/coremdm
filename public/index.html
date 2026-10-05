@@ -776,10 +776,35 @@ function sendReboot(id)        {
   setField(id, 'rebootCommand', true);
   logAudit('REBOOT', id, devicesMap[id]?.model || id);
 }
-function sendFullLockdown(id)  {
+async function sendFullLockdown(id)  {
   if (!confirm('Apply full lockdown to this device? All major restrictions will be enabled immediately.')) return;
-  setField(id, 'fullLockdownCommand', true);
-  logAudit('FULL_LOCKDOWN', id, devicesMap[id]?.model || id);
+  // Write the command AND sync all lockdown policy values to Firestore so the
+  // policies map stays consistent. Without this, the next single-policy change
+  // from the web would trigger applyRemotePolicies with stale (false) values
+  // and silently revert the lockdown (camera, status bar, screen capture, etc.).
+  const lockdownPolicies = {
+    'policies.safeBootBlocked':        true,
+    'policies.factoryResetBlocked':    true,
+    'policies.debuggingBlocked':       true,
+    'policies.addUserBlocked':         true,
+    'policies.installAppsBlocked':     true,
+    'policies.unknownSourcesBlocked':  true,
+    'policies.uninstallAppsBlocked':   true,
+    'policies.wifiConfigBlocked':      true,
+    'policies.bluetoothConfigBlocked': true,
+    'policies.mobileNetworksBlocked':  true,
+    'policies.statusBarDisabled':      true,
+    'policies.screenCaptureDisabled':  true,
+    'policies.cameraDisabled':         true,
+    fullLockdownCommand:               true,
+  };
+  try {
+    await updateDoc(deviceRef(id), lockdownPolicies);
+    logAudit('FULL_LOCKDOWN', id, devicesMap[id]?.model || id);
+  } catch(e) {
+    console.error('sendFullLockdown error:', e);
+    alert('Full lockdown failed: ' + e.message);
+  }
 }
 function setPolicy(id, key, val) {
   setPolicyField(id, key, val);
@@ -789,11 +814,13 @@ function lockDns(id) {
   const host = (document.getElementById('dns-host-input')?.value || '').trim();
   if (!host) { alert('Enter a DNS hostname first.'); return; }
   setPolicyField(id, 'privateDnsHost', host);
+  logAudit('POLICY', id, `privateDnsHost=${host} on ${devicesMap[id]?.model || id}`);
 }
 function clearDns(id) {
   const inp = document.getElementById('dns-host-input');
   if (inp) inp.value = '';
   setPolicyField(id, 'privateDnsHost', '');
+  logAudit('POLICY', id, `privateDnsHost cleared on ${devicesMap[id]?.model || id}`);
 }
 async function addPkg(id) {
   const inp = document.getElementById('kiosk-pkg-input');

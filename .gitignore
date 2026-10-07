@@ -5,7 +5,6 @@ build/
 *.apk
 *.aab
 !releases/*.apk
-!public/install/apks/*.apk
 
 # Android local config
 local.properties

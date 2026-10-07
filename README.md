@@ -83,9 +83,7 @@ coremdm/
 │           ├── filter/                # DNS filter controls
 │           └── telemetry/             # Device telemetry
 ├── public/
-│   ├── index.html                     # Web admin console (single-file SPA)
-│   └── install/                       # WebUSB + QR-code provisioning installer
-│                                       #   live at coremdm.web.app/install
+│   └── index.html                     # Web admin console (single-file SPA)
 ├── admin-backend/                     # Kotlin + Spring Boot 3 service (JPA, Spring
 │                                       #   Security, Firebase Admin SDK); H2 for dev
 ├── backend/                           # Node.js + Express/WebSocket server — serves

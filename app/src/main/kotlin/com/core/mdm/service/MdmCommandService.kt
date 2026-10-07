@@ -17,6 +17,7 @@ import com.google.firebase.ktx.Firebase
 import com.core.mdm.R
 import com.core.mdm.firebase.DeviceRegistry
 import com.core.mdm.firebase.EnrollmentManager
+import com.core.mdm.policy.AppPolicyManager
 import com.core.mdm.policy.DevicePolicyHelper
 import com.core.mdm.policy.PolicyEvents
 import com.core.mdm.remote.AlarmController
@@ -32,9 +33,17 @@ class MdmCommandService : Service() {
 
     private val serviceScope  = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var commandListener: ListenerRegistration? = null
+    private var queueListener: ListenerRegistration? = null
     private var authStateListener: FirebaseAuth.AuthStateListener? = null
     private var lastAlarmActive: Boolean? = null
     private var lastAppliedPolicies: Map<String, Any>? = null
+    // Previous per-app enforcement, so a package removed from the web list gets un-blocked.
+    private var lastBlockedApps: Set<String> = emptySet()
+    private var lastSocialBlocked: Boolean? = null
+
+    private val appPolicy by lazy {
+        AppPolicyManager(applicationContext, DevicePolicyHelper.getInstance(applicationContext))
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -52,6 +61,8 @@ class MdmCommandService : Service() {
             } else {
                 commandListener?.remove()
                 commandListener = null
+                queueListener?.remove()
+                queueListener = null
             }
         }
         Firebase.auth.addAuthStateListener(authStateListener!!)
@@ -60,9 +71,10 @@ class MdmCommandService : Service() {
             while (isActive) {
                 delay(60_000L)
                 DeviceRegistry.updateLastSeen(applicationContext)
-                // If enrollment failed or the listener was dropped by an error, keep
+                // If enrollment failed or a listener was dropped by an error, keep
                 // retrying — otherwise web console commands would silently stop arriving.
-                if (commandListener == null && Firebase.auth.currentUser != null) {
+                if ((commandListener == null || queueListener == null) &&
+                        Firebase.auth.currentUser != null) {
                     launch(Dispatchers.Main) { connectCommandListener(helper) }
                 }
             }
@@ -75,6 +87,22 @@ class MdmCommandService : Service() {
         // the watchCommands listener — the read rule requires deviceUid == auth.uid.
         EnrollmentManager.enroll(applicationContext) {
             DeviceRegistry.updateLastSeen(applicationContext) // immediate; don't wait for first 60s tick
+            // Refresh the installed-app inventory shown in the web console.
+            serviceScope.launch { DeviceRegistry.updateInstalledApps(applicationContext) }
+            if (queueListener == null) {
+                queueListener = DeviceRegistry.watchCommandQueue(
+                    context = applicationContext,
+                    onCommand = { type, ref ->
+                        DeviceRegistry.claimCommand(ref) { claimed ->
+                            if (claimed) runQueuedCommand(type, helper)
+                        }
+                    },
+                    onError = {
+                        queueListener?.remove()
+                        queueListener = null
+                    },
+                )
+            }
             if (commandListener == null) {
                 commandListener = DeviceRegistry.watchCommands(
                     context = applicationContext,
@@ -124,12 +152,26 @@ class MdmCommandService : Service() {
         }
     }
 
+    /** Dispatches a queued command that this service just claimed (state == executed). */
+    private fun runQueuedCommand(type: String, helper: DevicePolicyHelper) {
+        Log.i(TAG, "Executing queued command: $type")
+        when (type) {
+            "lock"     -> helper.lockNow()
+            "reboot"   -> helper.reboot()
+            "wipe"     -> helper.wipeDevice(includeExternal = false)
+            "lockdown" -> serviceScope.launch(Dispatchers.Main) { applyFullLockdown(helper) }
+            else       -> Log.w(TAG, "Unknown queued command type: $type")
+        }
+    }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int) = START_STICKY
 
     override fun onDestroy() {
         authStateListener?.let { Firebase.auth.removeAuthStateListener(it) }
         commandListener?.remove()
         commandListener = null
+        queueListener?.remove()
+        queueListener = null
         serviceScope.cancel()
         AlarmController.stopAlarm()
         super.onDestroy()
@@ -208,8 +250,52 @@ class MdmCommandService : Service() {
                 Log.w(TAG, "Kiosk packages: ${e.message}")
             }
         }
+        // Stronger lock-screen PIN: enforce a numeric password of at least the configured
+        // length (admin picks 4 / 6 / 8 from the console). Also used as the minimum for the
+        // in-app PIN so both stay in step.
+        (policies["pinMinLength"] as? Number)?.toInt()?.let { len ->
+            if (len in 4..16) {
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+                    @Suppress("DEPRECATION")
+                    runCatching {
+                        helper.dpm.setPasswordQuality(
+                            helper.admin,
+                            android.app.admin.DevicePolicyManager.PASSWORD_QUALITY_NUMERIC
+                        )
+                    }
+                }
+                helper.setPasswordMinimumLength(len)
+                com.core.mdm.security.PinManager.getInstance(applicationContext)
+                    .setRequiredMinLength(len)
+            }
+        }
+        // Block social media: suspend a preset list of social/chat apps in one toggle.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            (policies["socialMediaBlocked"] as? Boolean)?.let { blocked ->
+                if (blocked != lastSocialBlocked) {
+                    lastSocialBlocked = blocked
+                    val present = SOCIAL_PACKAGES.filter { isInstalled(it) }.toTypedArray()
+                    if (present.isNotEmpty()) {
+                        if (blocked) appPolicy.suspendPackages(present)
+                        else appPolicy.unsuspendPackages(present)
+                    }
+                }
+            }
+        }
+        // Per-app block list from the Installed Apps tab: hide the listed packages, and
+        // un-hide any that were dropped from the list since last time.
+        (policies["blockedApps"] as? List<*>)?.let { list ->
+            val desired = list.filterIsInstance<String>().toSet()
+            (lastBlockedApps - desired).forEach { appPolicy.unhidePackage(it) }
+            desired.forEach { if (isInstalled(it)) appPolicy.hidePackage(it) }
+            lastBlockedApps = desired
+        }
         Log.d(TAG, "Remote policies applied (${policies.size} keys)")
     }
+
+    private fun isInstalled(pkg: String): Boolean = runCatching {
+        packageManager.getApplicationInfo(pkg, 0); true
+    }.getOrDefault(false)
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -233,6 +319,17 @@ class MdmCommandService : Service() {
         private const val TAG       = "MdmCommandService"
         private const val CHANNEL_ID = "mdm_command_service"
         private const val NOTIF_ID   = 9001
+
+        // Suspended together by the "Block Social Media" toggle in the web console.
+        private val SOCIAL_PACKAGES = arrayOf(
+            "com.whatsapp",                 // WhatsApp
+            "com.facebook.katana",          // Facebook
+            "com.instagram.android",        // Instagram
+            "com.zhiliaoapp.musically",     // TikTok
+            "com.snapchat.android",         // Snapchat
+            "com.twitter.android",          // X / Twitter
+            "com.facebook.orca",            // Messenger
+        )
 
         fun start(context: Context) {
             val intent = Intent(context, MdmCommandService::class.java)

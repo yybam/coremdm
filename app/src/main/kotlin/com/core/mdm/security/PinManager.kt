@@ -18,6 +18,8 @@ class PinManager private constructor(context: Context) {
         private const val KEY_SALT           = "pin_salt"
         private const val KEY_FAILED         = "failed_attempts"
         private const val KEY_LOCKOUT_UNTIL  = "lockout_until"
+        private const val KEY_MIN_LENGTH     = "pin_min_length"   // admin-configured minimum
+        private const val KEY_PIN_LEN        = "pin_len"          // length of the PIN in use
         private const val PBKDF2_ITERATIONS  = 50_000
         private const val PBKDF2_KEY_BITS    = 256
         private const val MIN_PIN_LENGTH     = 4
@@ -57,8 +59,23 @@ class PinManager private constructor(context: Context) {
     /** Instant — reads a plain SharedPreferences boolean, no Keystore involved. */
     val isPinSet: Boolean get() = metaPrefs.getBoolean(KEY_PIN_SET_FLAG, false)
 
+    /**
+     * Minimum PIN length the user must use, as pushed from the web console
+     * ("pinMinLength" policy). Never drops below the hard floor of [MIN_PIN_LENGTH].
+     */
+    val requiredPinLength: Int
+        get() = maxOf(MIN_PIN_LENGTH, metaPrefs.getInt(KEY_MIN_LENGTH, MIN_PIN_LENGTH))
+
+    /** Stores the admin-configured minimum PIN length (clamped to a sane range). */
+    fun setRequiredMinLength(length: Int) {
+        metaPrefs.edit().putInt(KEY_MIN_LENGTH, length.coerceIn(MIN_PIN_LENGTH, 16)).apply()
+    }
+
+    /** Length of the PIN currently in use, so the verify screen knows when entry is complete. */
+    val storedPinLength: Int get() = metaPrefs.getInt(KEY_PIN_LEN, MIN_PIN_LENGTH)
+
     fun setPin(pin: String): Boolean {
-        if (pin.length < MIN_PIN_LENGTH) return false
+        if (pin.length < requiredPinLength) return false
         val salt = ByteArray(32).also { SecureRandom().nextBytes(it) }
         // Write hash+salt to encrypted prefs
         securePrefs.edit()
@@ -67,8 +84,12 @@ class PinManager private constructor(context: Context) {
             .putInt(KEY_FAILED, 0)
             .remove(KEY_LOCKOUT_UNTIL)
             .commit()   // commit() (sync) so flag is always in sync with the hash
-        // Write fast-path flag to plain prefs
-        metaPrefs.edit().putBoolean(KEY_PIN_SET_FLAG, true).apply()
+        // Write fast-path flag + PIN length to plain prefs (length is not sensitive;
+        // the verify screen uses it to know when the entered PIN is complete).
+        metaPrefs.edit()
+            .putBoolean(KEY_PIN_SET_FLAG, true)
+            .putInt(KEY_PIN_LEN, pin.length)
+            .apply()
         return true
     }
 

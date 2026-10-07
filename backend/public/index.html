@@ -340,20 +340,15 @@
 </div>
 
 <!-- Firebase SDK -->
+<!-- Firebase config is served by the Node server from env (no project id hardcoded here). -->
+<script src="/firebase-config.js"></script>
 <script type="module">
 import { initializeApp }      from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
-// ── Firebase config (web app: CORE MDM Dashboard) ───────────────────────────
-const firebaseConfig = {
-  apiKey           : 'AIzaSyCWew6jKeAyEMUWY1DYjuzhxH0jSke3JhE',
-  authDomain       : 'techeaz-core-mdm.firebaseapp.com',
-  projectId        : 'techeaz-core-mdm',
-  storageBucket    : 'techeaz-core-mdm.firebasestorage.app',
-  messagingSenderId: '457812602789',
-  appId            : '1:457812602789:web:28f6e7ab364eef8738424c',
-};
+// ── Firebase config (web app: CORE MDM Dashboard) — from /firebase-config.js ──
+const firebaseConfig = window.__FIREBASE_CONFIG__;
 
 const fbApp = initializeApp(firebaseConfig);
 const auth  = getAuth(fbApp);

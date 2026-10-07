@@ -28,7 +28,7 @@ server:
   port: ${PORT:8080}
 
 firebase:
-  project-id: ${FIREBASE_PROJECT_ID:techeaz-core-mdm}
+  project-id: ${FIREBASE_PROJECT_ID}
   service-account-json: ${FIREBASE_SERVICE_ACCOUNT_JSON:}
 
 logging:

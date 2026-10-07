@@ -2,7 +2,9 @@
 const { initializeApp, cert, applicationDefault } = require('firebase-admin/app');
 const { getFirestore, Timestamp } = require('firebase-admin/firestore');
 
-const app = initializeApp({ projectId: 'techeaz-core-mdm' });
+const projectId = process.env.FIREBASE_PROJECT_ID;
+if (!projectId) throw new Error('Set FIREBASE_PROJECT_ID before running the seed script');
+const app = initializeApp({ projectId });
 const db = getFirestore(app);
 
 // Simple known token easy to verify but complex enough to test the system

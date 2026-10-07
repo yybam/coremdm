@@ -9,7 +9,8 @@ const admin    = require('firebase-admin');
 const path     = require('path');
 const crypto   = require('crypto');
 
-const PROJECT_ID = process.env.FIREBASE_PROJECT_ID || 'techeaz-core-mdm';
+const PROJECT_ID = process.env.FIREBASE_PROJECT_ID;
+if (!PROJECT_ID) throw new Error('FIREBASE_PROJECT_ID env var is required');
 const FS_BASE    = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
 
 // Firebase Admin — only used for verifyIdToken (uses Google public keys, no credentials needed)
@@ -38,6 +39,21 @@ app.use((req, res, next) => {
     "frame-ancestors 'none'; base-uri 'self'"
   );
   next();
+});
+
+// Serve the browser Firebase config from env so the project id isn't hardcoded in the page.
+// apiKey / appId / senderId are public web-config values (no project name) and may be
+// overridden by env; the project-name-bearing fields are derived from FIREBASE_PROJECT_ID.
+app.get('/firebase-config.js', (_req, res) => {
+  const cfg = {
+    apiKey:            process.env.FIREBASE_API_KEY            || 'AIzaSyCWew6jKeAyEMUWY1DYjuzhxH0jSke3JhE',
+    authDomain:        `${PROJECT_ID}.firebaseapp.com`,
+    projectId:         PROJECT_ID,
+    storageBucket:     `${PROJECT_ID}.firebasestorage.app`,
+    messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || '457812602789',
+    appId:             process.env.FIREBASE_APP_ID             || '1:457812602789:web:28f6e7ab364eef8738424c',
+  };
+  res.type('application/javascript').send(`window.__FIREBASE_CONFIG__ = ${JSON.stringify(cfg)};`);
 });
 
 app.use(express.static(path.join(__dirname, 'public')));

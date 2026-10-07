@@ -38,7 +38,11 @@ jobs:
         run: |
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
           export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
-          npx -y firebase-tools@13 deploy --only firestore:rules --project techeaz-core-mdm --non-interactive
+          # Project id comes from the service account, not a hardcoded literal.
+          pid=$(grep -oE '"project_id"[[:space:]]*:[[:space:]]*"[^"]+"' "$RUNNER_TEMP/sa.json" \
+            | head -1 | sed -E 's/.*"([^"]+)"$/\1/')
+          test -n "$pid" || { echo "Could not resolve project_id from service account"; exit 1; }
+          npx -y firebase-tools@13 deploy --only firestore:rules --project "$pid" --non-interactive
 
       - name: Report result
         run: |

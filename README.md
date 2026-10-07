@@ -114,7 +114,7 @@ coremdm/
 ├── firebase.json                        # Firebase Hosting config (site: coremdm)
 ├── firestore.rules                      # Per-user ownership + command-queue rules
 ├── seed.js                              # Firestore seed helper (firebase-admin)
-└── .firebaserc                          # Firebase project (techeaz-core-mdm)
+└── .firebaserc                          # Firebase project selection
 ```
 
 ---

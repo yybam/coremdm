@@ -49,9 +49,23 @@ jobs:
       # actively breaking (serving the wrong certificate for oauth2.googleapis.com,
       # unfixable client-side). This key-based approach only needs the Firebase Console
       # (a normal browser page), so it sidesteps that entirely.
+      # Resolve the Firebase project id from the service-account secret at runtime, so the
+      # literal project id isn't stored in the repo (.firebaserc no longer hardcodes it).
+      - name: Resolve Firebase project id
+        id: fb
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          pid=$(printf '%s' "$FIREBASE_SERVICE_ACCOUNT" | tr -d '\n' \
+            | grep -oE '"project_id"[[:space:]]*:[[:space:]]*"[^"]+"' | head -1 \
+            | sed -E 's/.*"([^"]+)"$/\1/')
+          test -n "$pid" || { echo "Could not resolve project_id from FIREBASE_SERVICE_ACCOUNT"; exit 1; }
+          echo "pid=$pid" >> "$GITHUB_OUTPUT"
+
       - name: Deploy to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: "${{ secrets.GITHUB_TOKEN }}"
           firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}"
+          projectId: "${{ steps.fb.outputs.pid }}"
           channelId: live

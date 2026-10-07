@@ -184,6 +184,40 @@ class DevicePolicyHelper private constructor(private val context: Context) {
         }
     }
 
+    // ── Content filter VPN authorization ───────────────────────────────────────
+
+    /**
+     * A VpnService normally needs a one-time on-device consent tap before it can run, which
+     * the web console can't trigger. A Device Owner can skip that by registering its own VPN
+     * as the always-on VPN — this both pre-authorizes the tunnel and (re)starts the service.
+     * Used so the "content filter" toggle works straight from the console.
+     *
+     * @return true if handled here (Device Owner). false means the caller should fall back to
+     *         starting the service directly (which still needs manual consent).
+     */
+    fun setContentFilterVpnEnabled(enable: Boolean): Boolean {
+        if (!isDeviceOwner || Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return false
+        return runCatching {
+            if (enable) {
+                dpm.setAlwaysOnVpnPackage(admin, context.packageName, false)
+            } else if (dpm.getAlwaysOnVpnPackage(admin) == context.packageName) {
+                dpm.setAlwaysOnVpnPackage(admin, null, false)
+            }
+            Log.i(TAG, "Content filter VPN always-on ${if (enable) "enabled" else "disabled"}")
+            true
+        }.getOrElse {
+            Log.e(TAG, "setContentFilterVpnEnabled($enable): ${it.message}")
+            false
+        }
+    }
+
+    /** Returns true if CoreMDM is currently registered as the always-on VPN. */
+    fun isContentFilterVpnEnabled(): Boolean {
+        if (!isDeviceOwner || Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return false
+        return runCatching { dpm.getAlwaysOnVpnPackage(admin) == context.packageName }
+            .getOrDefault(false)
+    }
+
     // ── Global settings ───────────────────────────────────────────────────────
 
     fun setGlobalSetting(key: String, value: String) {

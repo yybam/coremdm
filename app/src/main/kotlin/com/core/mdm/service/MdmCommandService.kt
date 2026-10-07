@@ -233,12 +233,23 @@ class MdmCommandService : Service() {
         (policies["privateDnsHost"] as? String)?.let { host ->
             if (host.isNotEmpty()) helper.setPrivateDnsHostname(host) else helper.clearPrivateDns()
         }
-        // Content filter VPN
+        // Content filter VPN. On a Device Owner device, register ourselves as the always-on
+        // VPN — this pre-authorizes the tunnel (no on-device consent tap) and the system
+        // starts the service for us, so the console toggle works on its own. When turning
+        // off, also send STOP to tear the tunnel down immediately. On non-Device-Owner
+        // devices, fall back to starting the service directly (still needs manual consent).
         (policies["filterRunning"] as? Boolean)?.let { running ->
+            val handled = helper.setContentFilterVpnEnabled(running)
             try {
-                val intent = Intent(applicationContext, com.core.mdm.vpn.DnsVpnService::class.java)
-                    .setAction(if (running) com.core.mdm.vpn.DnsVpnService.ACTION_START else com.core.mdm.vpn.DnsVpnService.ACTION_STOP)
-                applicationContext.startService(intent)
+                if (!handled) {
+                    val intent = Intent(applicationContext, com.core.mdm.vpn.DnsVpnService::class.java)
+                        .setAction(if (running) com.core.mdm.vpn.DnsVpnService.ACTION_START else com.core.mdm.vpn.DnsVpnService.ACTION_STOP)
+                    applicationContext.startService(intent)
+                } else if (!running) {
+                    applicationContext.startService(
+                        Intent(applicationContext, com.core.mdm.vpn.DnsVpnService::class.java)
+                            .setAction(com.core.mdm.vpn.DnsVpnService.ACTION_STOP))
+                }
             } catch (e: Exception) {
                 Log.w(TAG, "Filter toggle: ${e.message}")
             }

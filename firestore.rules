@@ -51,6 +51,24 @@ service cloud.firestore {
                     && resource.data.ownerId == request.auth.uid;
     }
 
+    // Per-device command queue. Owner/super-admin dispatch and cancel commands; the device
+    // (matched via its parent doc's deviceUid) reads them and marks them executed.
+    match /devices/{deviceId}/commands/{cmdId} {
+      function parentDevice() {
+        return get(/databases/$(database)/documents/devices/$(deviceId)).data;
+      }
+      allow read: if request.auth != null
+                  && (parentDevice().ownerId == request.auth.uid
+                      || isSuperAdmin()
+                      || parentDevice().deviceUid == request.auth.uid);
+      allow create, delete: if request.auth != null
+                  && (parentDevice().ownerId == request.auth.uid || isSuperAdmin());
+      allow update: if request.auth != null
+                  && (parentDevice().ownerId == request.auth.uid
+                      || isSuperAdmin()
+                      || parentDevice().deviceUid == request.auth.uid);
+    }
+
     // Audit log — any authenticated user can write, only super admin can read
     match /audit_logs/{logId} {
       allow create: if request.auth != null;

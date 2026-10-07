@@ -138,6 +138,25 @@ header { background: var(--navy); border-bottom: 1px solid var(--border); paddin
 .ld-text {}
 .ld-sub { display: block; font-size: 11px; font-weight: 400; color: rgba(239,68,68,0.7); margin-top: 2px; }
 
+/* Rename button in modal header */
+.rename-btn { background: none; border: none; color: var(--textSec); font-size: 14px; cursor: pointer; padding: 2px 4px; line-height: 1; }
+.rename-btn:hover { color: var(--cyan); }
+
+/* Pending commands (Commands tab) */
+.pending-cmds { margin-top: 20px; }
+.pending-cmds h3 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--textSec); margin-bottom: 4px; }
+.pending-sub { font-size: 11px; color: var(--textSec); margin-bottom: 10px; }
+.pending-cmd { display: flex; align-items: center; justify-content: space-between; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 6px; }
+.pending-cmd-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pending-cmd-type { font-size: 13px; font-weight: 600; color: var(--text); }
+.pending-cmd-time { font-size: 11px; color: var(--textSec); }
+.pending-cancel { background: rgba(239,68,68,0.12); color: var(--red); border: 1px solid rgba(239,68,68,0.3); border-radius: 7px; padding: 6px 14px; font-size: 12px; font-weight: 700; flex-shrink: 0; cursor: pointer; }
+.pending-cancel:hover { opacity: 0.85; }
+
+/* PIN length selector (System tab) */
+.pin-select { background: var(--bg); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 8px 10px; font-size: 13px; flex-shrink: 0; cursor: pointer; }
+.pin-select:focus { border-color: var(--cyan); outline: none; }
+
 /* Policy toggles */
 .policy-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); gap: 12px; }
 .policy-row:last-child { border-bottom: none; }
@@ -422,6 +441,8 @@ let selectedId   = null;
 let activeTab    = 'commands';
 let wipeTargetId = null;
 let searchQuery  = '';
+let unsubCommands  = null;   // live listener for the selected device's command queue
+let pendingCommands = [];    // pending commands for the open device
 
 // ── Policy groups ────────────────────────────────────────────
 const APP_POLICIES = [
@@ -430,6 +451,7 @@ const APP_POLICIES = [
   { key:'unknownSourcesBlocked', label:'Block Sideloading',            sub:'Blocks unknown-source APK installs' },
   { key:'playStoreHidden',       label:'Hide Play Store',              sub:'Hides Play Store from launcher' },
   { key:'browsersHidden',        label:'Hide Browsers',                sub:'Hides Chrome and all installed browsers' },
+  { key:'socialMediaBlocked',    label:'Block Social Media',           sub:'Suspends WhatsApp, Facebook, Instagram, TikTok, Snapchat, X, Messenger' },
   { key:'cameraDisabled',        label:'Disable Camera',               sub:'Blocks all camera access' },
   { key:'screenCaptureDisabled', label:'Disable Screen Capture',       sub:'Blocks screenshots and screen recording' },
 ];
@@ -454,18 +476,21 @@ const HW_POLICIES = [
   { key:'mdmUninstallProtected',  label:'Protect MDM from Uninstall',   sub:'Prevents CORE MDM app removal' },
 ];
 const TABS = [
-  { id:'commands', label:'Commands' },
-  { id:'apps',     label:'App Policies' },
-  { id:'system',   label:'System' },
-  { id:'hardware', label:'Hardware' },
-  { id:'network',  label:'Network' },
-  { id:'danger',   label:'Danger', danger: true },
+  { id:'commands',  label:'Commands' },
+  { id:'apps',      label:'App Policies' },
+  { id:'installed', label:'Installed Apps' },
+  { id:'system',    label:'System' },
+  { id:'hardware',  label:'Hardware' },
+  { id:'network',   label:'Network' },
+  { id:'danger',    label:'Danger', danger: true },
 ];
 
 // ── Utility ──────────────────────────────────────────────────
 function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+// Friendly name set by the admin, falling back to the device model.
+function dispName(d) { return (d && d.customName) ? d.customName : (d ? d.model : ''); }
 function jsStr(s) { return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
 function timeSince(ms) {
   if (!ms) return 'Never';
@@ -558,6 +583,8 @@ function startDeviceListener(uid) {
       devicesMap[change.doc.id] = {
         id:          change.doc.id,
         model:       data.model || 'Unknown Device',
+        customName:  data.customName || '',
+        installedApps: Array.isArray(data.installedApps) ? data.installedApps : [],
         osVersion:   data.osVersion || '',
         status:      data.status || 'offline',
         lastSeen:    data.lastSeen?.toMillis?.() ?? null,
@@ -581,7 +608,7 @@ document.getElementById('search').addEventListener('input', e => {
 function renderCards() {
   const all     = Object.values(devicesMap);
   const shown   = all.filter(d => !searchQuery ||
-    (d.model+d.imei+d.serial).toLowerCase().includes(searchQuery));
+    (d.model+d.customName+d.imei+d.serial).toLowerCase().includes(searchQuery));
   const online  = all.filter(isOnline).length;
   const alarming= all.filter(d=>d.alarmActive).length;
   document.getElementById('st-total').textContent  = all.length;
@@ -599,7 +626,7 @@ function renderCards() {
     const alarm = d.alarmActive;
     return `<div class="device-card${alarm?' alarming':''} animate-fadeIn transition-transform duration-200 hover:-translate-y-0.5">
       <div class="dc-head">
-        <div><div class="dc-name">${esc(d.model)}</div><div class="dc-sub">${esc(d.osVersion)}</div></div>
+        <div><div class="dc-name">${esc(dispName(d))}</div><div class="dc-sub">${esc(d.osVersion)}</div></div>
         <div class="dc-badges">
           <span class="badge ${on?'badge-online':'badge-offline'}">${on?'ONLINE':'OFFLINE'}</span>
           ${alarm?'<span class="badge badge-alarm animate-pulse">ALARM</span>':''}
@@ -624,18 +651,35 @@ function openModal(id) {
   activeTab  = 'commands';
   document.getElementById('dev-modal').style.display = 'flex';
   document.body.style.overflow = 'hidden';
+  startCommandListener(id);
   renderTabBar();
   updateModalHeader(id);
   renderTabContent();
 }
 function closeModal() {
   selectedId = null;
+  if (unsubCommands) { unsubCommands(); unsubCommands = null; }
+  pendingCommands = [];
   document.getElementById('dev-modal').style.display = '';
   document.body.style.overflow = '';
 }
+// Live list of pending commands for the open device, so the admin can cancel one
+// before the device runs it.
+function startCommandListener(id) {
+  if (unsubCommands) unsubCommands();
+  pendingCommands = [];
+  const q = query(collection(db, 'devices', id, 'commands'), where('state','==','pending'));
+  unsubCommands = onSnapshot(q, snap => {
+    pendingCommands = snap.docs
+      .map(dref => ({ id: dref.id, ...dref.data() }))
+      .sort((a,b) => (a.createdAt?.toMillis?.()||0) - (b.createdAt?.toMillis?.()||0));
+    if (selectedId === id && activeTab === 'commands') renderTabContent();
+  }, err => console.error('command listener error:', err));
+}
 function updateModalHeader(id) {
   const d = devicesMap[id]; if (!d) return;
-  document.getElementById('modal-device-name').textContent = d.model;
+  const nameEl = document.getElementById('modal-device-name');
+  nameEl.innerHTML = `${esc(dispName(d))} <button class="rename-btn" title="Rename device" onclick="window._mdm.renameDevice('${jsStr(id)}')">&#9998;</button>`;
   const on = isOnline(d);
   document.getElementById('modal-device-sub').innerHTML =
     `<span class="badge ${on?'badge-online':'badge-offline'}">${on?'ONLINE':'OFFLINE'}</span>`
@@ -664,7 +708,8 @@ function renderTabContent() {
   switch (activeTab) {
     case 'commands': html = renderCommandsTab(d); break;
     case 'apps':     html = renderPoliciesTab(d.id, p, APP_POLICIES); break;
-    case 'system':   html = renderPoliciesTab(d.id, p, SYS_POLICIES); break;
+    case 'installed':html = renderInstalledAppsTab(d, p); break;
+    case 'system':   html = renderPoliciesTab(d.id, p, SYS_POLICIES) + renderPinPolicy(d.id, p); break;
     case 'hardware': html = renderPoliciesTab(d.id, p, HW_POLICIES); break;
     case 'network':  html = renderNetworkTab(d.id, p); break;
     case 'danger':   html = renderDangerTab(d); break;
@@ -686,7 +731,26 @@ function renderCommandsTab(d) {
   <button class="cmd-lockdown transition-transform duration-150 hover:scale-[1.01] active:scale-95" onclick="window._mdm.sendFullLockdown('${id}')">
     <div class="ld-icon">!</div>
     <div class="ld-text">Apply Full Lockdown<span class="ld-sub">Enables all restrictions, disables camera, status bar, screen capture</span></div>
-  </button>`;
+  </button>
+  ${renderPendingCommands(id)}`;
+}
+
+const CMD_LABELS = { lock:'Lock Screen', reboot:'Reboot', wipe:'Wipe Device', lockdown:'Full Lockdown' };
+function renderPendingCommands(id) {
+  if (!pendingCommands.length) return '';
+  return `
+  <div class="pending-cmds">
+    <h3>Pending Commands</h3>
+    <p class="pending-sub">Waiting for the device to pick them up. Cancel before it does.</p>
+    ${pendingCommands.map(c => `
+      <div class="pending-cmd">
+        <div class="pending-cmd-info">
+          <span class="pending-cmd-type">${esc(CMD_LABELS[c.type] || c.type)}</span>
+          <span class="pending-cmd-time">${c.createdAt?.toMillis?.() ? timeSince(c.createdAt.toMillis()) : 'just now'}</span>
+        </div>
+        <button class="pending-cancel" onclick="window._mdm.cancelCommand('${jsStr(id)}','${jsStr(c.id)}')">Cancel</button>
+      </div>`).join('')}
+  </div>`;
 }
 
 function renderPoliciesTab(id, p, policies) {
@@ -701,6 +765,61 @@ function renderPoliciesTab(id, p, policies) {
       <span class="toggle-track"></span><span class="toggle-thumb"></span>
     </label>
   </div>`).join('');
+}
+
+function renderPinPolicy(id, p) {
+  const cur = Number(p.pinMinLength) || 4;
+  return `
+  <div class="net-section">
+    <h3>Lock-Screen PIN</h3>
+    <div class="policy-row" style="border:none;padding-top:0;">
+      <div class="policy-info">
+        <div class="policy-label">Minimum PIN length</div>
+        <div class="policy-sub">Requires a numeric lock-screen PIN of at least this many digits (needs Device Owner)</div>
+      </div>
+      <select class="pin-select" onchange="window._mdm.setPinLen('${jsStr(id)}',this.value)">
+        ${[4,6,8].map(n=>`<option value="${n}" ${cur===n?'selected':''}>${n} digits</option>`).join('')}
+      </select>
+    </div>
+  </div>`;
+}
+
+function renderInstalledAppsTab(d, p) {
+  const apps    = Array.isArray(d.installedApps) ? d.installedApps : [];
+  const blocked = new Set(Array.isArray(p.blockedApps) ? p.blockedApps : []);
+  if (!apps.length) {
+    return `<div class="net-section"><h3>Installed Apps</h3>
+      <p class="policy-sub">No app list reported yet. The device uploads its installed apps the next time it checks in — reopen this tab in a moment.</p></div>`;
+  }
+  return `
+  <div class="net-section">
+    <h3>Installed Apps (${apps.length})</h3>
+    <p class="policy-sub" style="margin-bottom:12px">Toggle an app to hide it from the device. Hiding requires Device Owner.</p>
+    ${apps.map(a => {
+      const pkg = a.pkg || ''; const label = a.label || pkg; const isB = blocked.has(pkg);
+      return `<div class="policy-row">
+        <div class="policy-info">
+          <div class="policy-label">${esc(label)}</div>
+          <div class="policy-sub" style="font-family:monospace">${esc(pkg)}${a.version?(' · v'+esc(a.version)):''}</div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" ${isB?'checked':''} onchange="window._mdm.toggleBlockApp('${jsStr(d.id)}','${jsStr(pkg)}',this.checked)">
+          <span class="toggle-track"></span><span class="toggle-thumb"></span>
+        </label>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+function setPinLen(id, val) {
+  setPolicyField(id, 'pinMinLength', Number(val));
+  logAudit('POLICY', id, `pinMinLength=${val} on ${dispName(devicesMap[id]) || id}`);
+}
+async function toggleBlockApp(id, pkg, block) {
+  try {
+    await updateDoc(deviceRef(id), { 'policies.blockedApps': block ? arrayUnion(pkg) : arrayRemove(pkg) });
+    logAudit('POLICY', id, `${block?'block':'unblock'} app ${pkg} on ${dispName(devicesMap[id]) || id}`);
+  } catch(e) { alert('Failed to update app: ' + e.message); }
 }
 
 function renderNetworkTab(id, p) {
@@ -767,17 +886,46 @@ async function setPolicyField(id, key, val) {
   catch(e) { console.error('setPolicyField error:', e); alert('Policy update failed: '+e.message); }
 }
 
+// Queue a command the device will pick up. Returns the new command's id.
+// Queued commands start as 'pending' and can be cancelled before the device runs them.
+async function enqueueCommand(id, type) {
+  const ref = await addDoc(collection(db, 'devices', id, 'commands'), {
+    type,
+    state:     'pending',
+    createdAt: serverTimestamp(),
+    issuedBy:  auth.currentUser?.email || null,
+  });
+  return ref.id;
+}
+async function cancelCommand(id, cmdId) {
+  try {
+    await updateDoc(doc(db, 'devices', id, 'commands', cmdId), { state: 'cancelled' });
+    logAudit('CANCEL_CMD', id, `cancelled command on ${dispName(devicesMap[id]) || id}`);
+  } catch(e) { alert('Could not cancel: ' + e.message); }
+}
+
 function toggleAlarm(id, val)  {
   setField(id, 'alarmActive', val);
-  logAudit(val ? 'ALARM_ON' : 'ALARM_OFF', id, devicesMap[id]?.model || id);
+  logAudit(val ? 'ALARM_ON' : 'ALARM_OFF', id, dispName(devicesMap[id]) || id);
 }
-function sendLock(id)          {
-  setField(id, 'lockCommand', true);
-  logAudit('LOCK_SCREEN', id, devicesMap[id]?.model || id);
+async function sendLock(id)    {
+  try { await enqueueCommand(id, 'lock'); logAudit('LOCK_SCREEN', id, dispName(devicesMap[id]) || id); }
+  catch(e) { alert('Command failed: ' + e.message); }
 }
-function sendReboot(id)        {
-  setField(id, 'rebootCommand', true);
-  logAudit('REBOOT', id, devicesMap[id]?.model || id);
+async function sendReboot(id)  {
+  try { await enqueueCommand(id, 'reboot'); logAudit('REBOOT', id, dispName(devicesMap[id]) || id); }
+  catch(e) { alert('Command failed: ' + e.message); }
+}
+async function renameDevice(id) {
+  const d = devicesMap[id]; if (!d) return;
+  const current = d.customName || '';
+  const name = prompt('Device name (leave blank to use the model):', current);
+  if (name === null) return;               // cancelled
+  try {
+    await updateDoc(deviceRef(id), { customName: name.trim() });
+    logAudit('RENAME', id, `renamed to "${name.trim() || d.model}"`);
+    updateModalHeader(id);
+  } catch(e) { alert('Rename failed: ' + e.message); }
 }
 async function sendFullLockdown(id)  {
   if (!confirm('Apply full lockdown to this device? All major restrictions will be enabled immediately.')) return;
@@ -803,7 +951,8 @@ async function sendFullLockdown(id)  {
   };
   try {
     await updateDoc(deviceRef(id), lockdownPolicies);
-    logAudit('FULL_LOCKDOWN', id, devicesMap[id]?.model || id);
+    await enqueueCommand(id, 'lockdown');
+    logAudit('FULL_LOCKDOWN', id, dispName(devicesMap[id]) || id);
   } catch(e) {
     console.error('sendFullLockdown error:', e);
     alert('Full lockdown failed: ' + e.message);
@@ -848,8 +997,11 @@ function cancelWipe() {
 }
 async function executeWipe() {
   if (!wipeTargetId) return;
-  logAudit('WIPE', wipeTargetId, devicesMap[wipeTargetId]?.model || wipeTargetId);
-  await setField(wipeTargetId, 'wipeCommand', true);
+  const id = wipeTargetId;
+  try {
+    await enqueueCommand(id, 'wipe');
+    logAudit('WIPE', id, dispName(devicesMap[id]) || id);
+  } catch(e) { alert('Wipe command failed: ' + e.message); }
   cancelWipe();
   closeModal();
 }
@@ -1008,7 +1160,7 @@ function adminManage(id) {
     getDoc(doc(db, 'devices', id)).then(snap => {
       if (!snap.exists()) { alert('Device not found.'); return; }
       const data = snap.data();
-      devicesMap[id] = { id, model: data.model||'Unknown', osVersion: data.osVersion||'', status: data.status||'offline', lastSeen: data.lastSeen?.toMillis?.()||null, alarmActive: data.alarmActive||false, imei: data.imei||'', serial: data.serial||'', policies: data.policies||{} };
+      devicesMap[id] = { id, model: data.model||'Unknown', customName: data.customName||'', installedApps: Array.isArray(data.installedApps)?data.installedApps:[], osVersion: data.osVersion||'', status: data.status||'offline', lastSeen: data.lastSeen?.toMillis?.()||null, alarmActive: data.alarmActive||false, imei: data.imei||'', serial: data.serial||'', policies: data.policies||{} };
       openModal(id);
     }).catch(e => alert('Failed to load device: ' + e.message));
   } else {
@@ -1310,6 +1462,7 @@ async function deleteInvRecord(docId) {
 window._mdm = {
   openModal, switchTab, toggleAlarm, sendLock, sendReboot,
   sendFullLockdown, setPolicy, lockDns, clearDns, addPkg, removePkg, confirmWipe,
+  renameDevice, cancelCommand, setPinLen, toggleBlockApp,
   switchToAdmin, switchToDashboard, switchAdminTab, adminManage,
   preRegisterDevice, copyLastToken, copyInvToken,
   renewInvToken, markEnrolled, markDisenrolled,

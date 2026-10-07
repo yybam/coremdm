@@ -1,0 +1,59 @@
+name: Bug report
+description: Something isn't working in the app or web console
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report! Please check the [Troubleshooting](https://github.com/yybam/coremdm/wiki/Troubleshooting) page first — many issues (install failures, Device Owner, permissions) are covered there.
+        **Do not report security vulnerabilities here** — see [SECURITY.md](https://github.com/yybam/coremdm/blob/main/SECURITY.md).
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+      placeholder: I pressed Lock in the console, but the device didn't lock…
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open coremdm.web.app
+        2. Open device → Commands
+        3. Press Lock
+    validations:
+      required: true
+  - type: input
+    id: app-version
+    attributes:
+      label: App version
+      description: Settings/About in the app, or the release you installed (e.g. v0.4.1 / app 39.0)
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Management mode
+      options:
+        - Device Owner
+        - Device Admin only
+        - Not sure
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device & Android version
+      placeholder: Pixel 8, Android 17  (or Emulator, API 30)
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs (optional)
+      description: |
+        If you can, attach logcat output:
+        `adb logcat -v time MdmCommandService:* DeviceRegistry:* EnrollmentManager:* *:S`
+      render: shell

@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation / Wiki
+    url: https://github.com/yybam/coremdm/wiki
+    about: Setup, usage, troubleshooting, FAQ — check here first.
+  - name: Troubleshooting
+    url: https://github.com/yybam/coremdm/wiki/Troubleshooting
+    about: Common install, Device Owner, and permission problems.
+  - name: Report a security vulnerability
+    url: https://github.com/yybam/coremdm/security/advisories/new
+    about: Please report security issues privately, not as a public issue.

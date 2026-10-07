@@ -27,3 +27,7 @@ backend/server.err
 # OS
 .DS_Store
 Thumbs.db
+
+# Installer APK + version, fetched at hosting-deploy time (see deploy-hosting.yml)
+public/coremdm.apk
+public/version.json

@@ -90,6 +90,8 @@ header { background: rgba(10,13,24,.55); border-bottom: 1px solid var(--border);
 .hdr-name { font-size: 15px; font-weight: 800; letter-spacing: 1.5px; }
 #btn-signout { background: var(--card); border: 1px solid var(--border); color: var(--textSec); border-radius: 99px; padding: 7px 16px; font-size: 12px; font-weight: 600; transition: color 0.2s, border-color 0.2s; }
 #btn-signout:hover { color: var(--text); border-color: var(--borderLt); }
+#btn-install { background: var(--brand-soft); border: 1px solid rgba(46,154,230,.4); color: #cfeafe; border-radius: 99px; padding: 7px 16px; font-size: 12px; font-weight: 700; text-decoration: none; transition: opacity 0.2s; }
+#btn-install:hover { opacity: 0.85; }
 .main-content { padding: 28px 24px; max-width: 1400px; width: 100%; margin: 0 auto; flex: 1; }
 #stats-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
 .stat-card { background: var(--navy); border: 1px solid var(--border); border-radius: 16px; padding: 18px; box-shadow: var(--shadow); }
@@ -332,8 +334,9 @@ header { background: rgba(10,13,24,.55); border-bottom: 1px solid var(--border);
     </div>
     <div id="login-msg"></div>
     <button id="btn-login" class="transition-transform duration-150 hover:scale-[1.02] active:scale-95">Sign In</button>
-    <div class="login-footer">
+    <div class="login-footer" style="justify-content:space-between;">
       <button class="link-btn" id="btn-forgot">Forgot password?</button>
+      <a class="link-btn" href="install.html" style="text-decoration:none;">Enroll a device →</a>
     </div>
   </div>
   <div id="reset-panel" class="animate-slideUp">
@@ -359,6 +362,7 @@ header { background: rgba(10,13,24,.55); border-bottom: 1px solid var(--border);
       <div class="hdr-name">CORE MDM</div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;">
+      <a id="btn-install" href="install.html" class="transition-transform duration-150 hover:scale-105 active:scale-95">+ Enroll device</a>
       <button id="btn-admin" class="transition-transform duration-150 hover:scale-105 active:scale-95" onclick="window._mdm.switchToAdmin()">&#9654; Super Admin</button>
       <button id="btn-signout" class="transition-transform duration-150 hover:scale-105 active:scale-95">Sign Out</button>
     </div>

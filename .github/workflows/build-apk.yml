@@ -12,6 +12,9 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      KEYSTORE_B64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+      RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,10 +29,19 @@ jobs:
       # android-actions/setup-android@v3 tries to additionally install the legacy 'tools'
       # package, which no longer exists in current SDK repos and fails the whole step.
 
-      # app/build.gradle.kts signs the "release" build type with the well-known Android
-      # debug keystore at ~/.android/debug.keystore (see local-build-tweaks branch history) —
-      # generate it deterministically since a fresh runner doesn't have one.
+      # Permanent release key, stored as repo secrets. Without it, fall back to a
+      # throwaway debug keystore (that APK won't install over previous releases).
+      - name: Restore release keystore
+        if: ${{ env.KEYSTORE_B64 != '' }}
+        run: |
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.p12"
+          echo "RELEASE_KEYSTORE_FILE=$RUNNER_TEMP/release.p12" >> "$GITHUB_ENV"
+
+      # Fallback: app/build.gradle.kts signs with the Android debug keystore at
+      # ~/.android/debug.keystore when no release key is provided — generate one
+      # since a fresh runner doesn't have it.
       - name: Generate debug keystore
+        if: ${{ env.RELEASE_KEYSTORE_FILE == '' }}
         run: |
           mkdir -p ~/.android
           keytool -genkeypair -v \

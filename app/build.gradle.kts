@@ -19,10 +19,22 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile     = file("${System.getProperty("user.home")}/.android/debug.keystore")
-            storePassword = "android"
-            keyAlias      = "androiddebugkey"
-            keyPassword   = "android"
+            // CI provides the permanent release key via env vars (see build-apk.yml) so
+            // every release has the same signature and installs as an update. Local
+            // builds without them fall back to the Android debug keystore.
+            val releaseStore = System.getenv("RELEASE_KEYSTORE_FILE")
+            if (releaseStore != null) {
+                storeFile     = file(releaseStore)
+                storePassword = System.getenv("RELEASE_KEYSTORE_PASSWORD")
+                keyAlias      = System.getenv("RELEASE_KEY_ALIAS") ?: "coremdm"
+                keyPassword   = System.getenv("RELEASE_KEYSTORE_PASSWORD")
+                storeType     = "pkcs12"
+            } else {
+                storeFile     = file("${System.getProperty("user.home")}/.android/debug.keystore")
+                storePassword = "android"
+                keyAlias      = "androiddebugkey"
+                keyPassword   = "android"
+            }
         }
     }
 

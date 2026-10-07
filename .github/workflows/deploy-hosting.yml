@@ -35,9 +35,10 @@ jobs:
                  | grep -m1 '"tag_name"' | sed -E 's/.*"v?([^"]+)".*/\1/')
           echo "latest version: ${ver:-unknown}"
           printf '{"version":"%s"}\n' "${ver:-0.0.0}" > public/version.json
-          curl -fL -o public/coremdm.apk \
+          # Served as .bin: Firebase Hosting's Spark plan rejects .apk (executable) files.
+          curl -fL -o public/coremdm.apk.bin \
             "https://github.com/${{ github.repository }}/releases/latest/download/app-release.apk"
-          ls -la public/coremdm.apk public/version.json
+          ls -la public/coremdm.apk.bin public/version.json
 
       # Project comes from .firebaserc already in this repo; the FIREBASE_SERVICE_ACCOUNT
       # secret (a Firebase Admin SDK service account key, added via repo Settings > Secrets)

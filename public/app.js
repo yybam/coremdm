@@ -4,7 +4,7 @@ import AdbWebCredentialStore from "https://cdn.jsdelivr.net/npm/@yume-chan/adb-c
 
 const PACKAGE = "com.core.mdm";
 const ADMIN_COMPONENT = `${PACKAGE}/.MdmDeviceAdmin`;
-const BUNDLED_APK = "coremdm.apk";
+const BUNDLED_APK = "coremdm.apk.bin";  // .bin so Firebase Hosting (Spark) will serve it
 const REMOTE_PATH = "/data/local/tmp/coremdm.apk";
 
 const $ = (id) => document.getElementById(id);

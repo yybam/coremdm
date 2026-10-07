@@ -29,5 +29,5 @@ backend/server.err
 Thumbs.db
 
 # Installer APK + version, fetched at hosting-deploy time (see deploy-hosting.yml)
-public/coremdm.apk
+public/coremdm.apk.bin
 public/version.json

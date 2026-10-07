@@ -11,10 +11,19 @@ import kotlinx.coroutines.flow.asStateFlow
  * which correctly re-prompts for the PIN on the next cold start.
  */
 object AppLockState {
-    // Default true — MdmApplication.onCreate() will unlock immediately if no PIN is set.
+    // Default true — the PIN screen is always the first thing shown on process start.
     private val _isLocked = MutableStateFlow(true)
     val isLocked: StateFlow<Boolean> = _isLocked.asStateFlow()
 
-    fun lock()   { _isLocked.value = true  }
+    // Incremented on every lock() call. Used as the ViewModel key in MdmRoot so each
+    // lock cycle gets a brand-new ViewModel with clean state — prevents the stale
+    // isAuthenticated=true from a prior unlock from instantly unlocking the next cycle.
+    private val _lockEpoch = MutableStateFlow(0)
+    val lockEpoch: StateFlow<Int> = _lockEpoch.asStateFlow()
+
+    fun lock() {
+        _isLocked.value = true
+        _lockEpoch.value += 1
+    }
     fun unlock() { _isLocked.value = false }
 }

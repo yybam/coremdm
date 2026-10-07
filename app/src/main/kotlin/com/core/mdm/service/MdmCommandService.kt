@@ -48,47 +48,50 @@ class MdmCommandService : Service() {
         // otherwise watchCommands() returns null and no commands are received.
         authStateListener = FirebaseAuth.AuthStateListener { fbAuth ->
             if (fbAuth.currentUser != null) {
-                EnrollmentManager.enroll(applicationContext)
-                DeviceRegistry.updateLastSeen(applicationContext) // immediate; don't wait for first 60s tick
-                if (commandListener == null) {
-                    commandListener = DeviceRegistry.watchCommands(
-                        context = applicationContext,
-                        onAlarmChange = { alarmActive ->
-                            if (alarmActive == lastAlarmActive) return@watchCommands
-                            lastAlarmActive = alarmActive
-                            Log.d(TAG, "Alarm state: $alarmActive")
-                            if (alarmActive) AlarmController.playAlarm(applicationContext)
-                            else AlarmController.stopAlarm()
-                        },
-                        onLockCommand = {
-                            Log.d(TAG, "Remote lock command")
-                            helper.lockNow()
-                        },
-                        onWipeCommand = {
-                            Log.d(TAG, "Remote wipe command")
-                            helper.wipeDevice(includeExternal = false)
-                        },
-                        onRebootCommand = {
-                            Log.d(TAG, "Remote reboot command")
-                            helper.reboot()
-                        },
-                        onFullLockdownCommand = {
-                            Log.d(TAG, "Full lockdown command")
-                            serviceScope.launch(Dispatchers.Main) { applyFullLockdown(helper) }
-                        },
-                        onPoliciesChange = { policies ->
-                            // The snapshot listener also fires for this service's own
-                            // lastSeen writes every 60s — only re-apply (and only tell the
-                            // UI to re-read) when the policy set actually changed.
-                            if (policies != lastAppliedPolicies) {
-                                lastAppliedPolicies = policies
-                                serviceScope.launch(Dispatchers.Main) {
-                                    applyRemotePolicies(helper, policies)
-                                    PolicyEvents.notifyRemoteChange()
+                // Enroll first so deviceUid is written to the doc before we open
+                // the watchCommands listener — the read rule requires deviceUid == auth.uid.
+                EnrollmentManager.enroll(applicationContext) {
+                    DeviceRegistry.updateLastSeen(applicationContext) // immediate; don't wait for first 60s tick
+                    if (commandListener == null) {
+                        commandListener = DeviceRegistry.watchCommands(
+                            context = applicationContext,
+                            onAlarmChange = { alarmActive ->
+                                if (alarmActive == lastAlarmActive) return@watchCommands
+                                lastAlarmActive = alarmActive
+                                Log.d(TAG, "Alarm state: $alarmActive")
+                                if (alarmActive) AlarmController.playAlarm(applicationContext)
+                                else AlarmController.stopAlarm()
+                            },
+                            onLockCommand = {
+                                Log.d(TAG, "Remote lock command")
+                                helper.lockNow()
+                            },
+                            onWipeCommand = {
+                                Log.d(TAG, "Remote wipe command")
+                                helper.wipeDevice(includeExternal = false)
+                            },
+                            onRebootCommand = {
+                                Log.d(TAG, "Remote reboot command")
+                                helper.reboot()
+                            },
+                            onFullLockdownCommand = {
+                                Log.d(TAG, "Full lockdown command")
+                                serviceScope.launch(Dispatchers.Main) { applyFullLockdown(helper) }
+                            },
+                            onPoliciesChange = { policies ->
+                                // The snapshot listener also fires for this service's own
+                                // lastSeen writes every 60s — only re-apply (and only tell the
+                                // UI to re-read) when the policy set actually changed.
+                                if (policies != lastAppliedPolicies) {
+                                    lastAppliedPolicies = policies
+                                    serviceScope.launch(Dispatchers.Main) {
+                                        applyRemotePolicies(helper, policies)
+                                        PolicyEvents.notifyRemoteChange()
+                                    }
                                 }
-                            }
-                        },
-                    )
+                            },
+                        )
+                    }
                 }
             } else {
                 commandListener?.remove()
@@ -110,6 +113,7 @@ class MdmCommandService : Service() {
     override fun onDestroy() {
         authStateListener?.let { Firebase.auth.removeAuthStateListener(it) }
         commandListener?.remove()
+        commandListener = null
         serviceScope.cancel()
         AlarmController.stopAlarm()
         super.onDestroy()

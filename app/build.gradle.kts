@@ -13,8 +13,8 @@ android {
         applicationId = "com.core.mdm"
         minSdk = 24
         targetSdk = 34
-        versionCode = 35
-        versionName = "35.0"
+        versionCode = 36
+        versionName = "36.0"
     }
 
     signingConfigs {
@@ -78,5 +78,8 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.messaging)
     implementation(libs.firebase.auth)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services)
+    implementation(libs.google.identity.googleid)
     debugImplementation(libs.androidx.ui.tooling)
 }

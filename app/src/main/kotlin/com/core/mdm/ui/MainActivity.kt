@@ -15,6 +15,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.core.mdm.firebase.AuthRepository
+import com.core.mdm.firebase.EnrollmentManager
 import com.core.mdm.security.AppLockState
 import com.core.mdm.security.PinManager
 import com.core.mdm.service.MdmCommandService
@@ -27,6 +28,9 @@ import com.core.mdm.ui.login.LoginScreen
 import com.core.mdm.ui.pin.PinLockScreen
 import com.core.mdm.ui.pin.PinLockViewModel
 import com.core.mdm.ui.pin.PinScreenMode
+import com.core.mdm.ui.provisioning.ProvisioningState
+import com.core.mdm.ui.provisioning.ProvisioningTokenDialog
+import com.core.mdm.ui.provisioning.ProvisioningViewModel
 import com.core.mdm.ui.remote.RemoteControlScreen
 import com.core.mdm.ui.telemetry.TelemetryScreen
 import com.core.mdm.ui.theme.CoreMdmTheme
@@ -75,7 +79,17 @@ private fun AppRoot() {
         } else {
             // Start service once authenticated
             LaunchedEffect(Unit) { MdmCommandService.start(context) }
+            val provVm: ProvisioningViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+            val provState by provVm.state.collectAsState()
             MdmRoot()
+            if (provState.showDialog) {
+                ProvisioningTokenDialog(
+                    state         = provState,
+                    onTokenChange = provVm::onTokenChange,
+                    onVerify      = provVm::verify,
+                    onSkip        = provVm::skip,
+                )
+            }
         }
     }
 }
@@ -87,11 +101,14 @@ private fun MdmRoot() {
     val context    = LocalContext.current
     val pinManager = remember { PinManager.getInstance(context) }
     val isLocked   by AppLockState.isLocked.collectAsState()
+    val lockEpoch  by AppLockState.lockEpoch.collectAsState()
 
     DisposableEffect(Unit) {
         val observer = object : DefaultLifecycleObserver {
+            // Always lock when the app goes to background — no conditional.
+            // The PIN screen picks VERIFY or SETUP depending on whether a PIN exists.
             override fun onStop(owner: LifecycleOwner) {
-                if (pinManager.isPinSet) AppLockState.lock()
+                AppLockState.lock()
             }
         }
         ProcessLifecycleOwner.get().lifecycle.addObserver(observer)
@@ -111,12 +128,19 @@ private fun MdmRoot() {
         label = "lock_gate"
     ) { locked ->
         if (locked) {
+            // If no PIN is set yet, go straight to SETUP so the user creates one before
+            // entering the app. If a PIN is already set, go to VERIFY as normal.
+            // lockEpoch is used as the ViewModel key: each lock() call increments it,
+            // forcing a brand-new ViewModel per lock cycle so stale isAuthenticated=true
+            // from a previous unlock never causes an instant auto-unlock.
+            val lockMode = if (pinManager.isPinSet) PinScreenMode.VERIFY else PinScreenMode.SETUP
             PinLockScreen(
-                preventBack      = true,
-                onAuthenticated  = { AppLockState.unlock() },
-                viewModel        = androidx.lifecycle.viewmodel.compose.viewModel(
-                    key     = "lock_overlay",
-                    factory = PinLockViewModel.factory(PinScreenMode.VERIFY)
+                preventBack     = true,
+                onAuthenticated = { AppLockState.unlock() },
+                onComplete      = { AppLockState.unlock() },
+                viewModel       = androidx.lifecycle.viewmodel.compose.viewModel(
+                    key     = "lock_$lockEpoch",
+                    factory = PinLockViewModel.factory(lockMode)
                 )
             )
         } else {
@@ -149,6 +173,8 @@ private fun MdmNavGraph(pinManager: PinManager) {
                 onNavigateToTelemetry = { navController.navigate(ROUTE_TELEMETRY) },
                 onNavigateToRemote    = { navController.navigate(ROUTE_REMOTE) },
                 onSignOut = {
+                    // setOffline while still authenticated — auth token is cleared by signOut().
+                    EnrollmentManager.setOffline(context)
                     MdmCommandService.stop(context)
                     AuthRepository.signOut()
                 }

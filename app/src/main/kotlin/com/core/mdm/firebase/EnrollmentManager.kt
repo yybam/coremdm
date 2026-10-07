@@ -111,8 +111,13 @@ object EnrollmentManager {
                 onSuccess?.invoke()
             }
             .addOnFailureListener { err ->
-                if ((err as? FirebaseFirestoreException)?.code ==
-                        FirebaseFirestoreException.Code.NOT_FOUND) {
+                // A missing doc can surface as PERMISSION_DENIED rather than NOT_FOUND:
+                // the update rule reads resource.data, which doesn't exist yet. The
+                // create rule still requires ownerId == auth.uid, and set-merge on
+                // someone else's existing doc is rejected by the update rule.
+                val code = (err as? FirebaseFirestoreException)?.code
+                if (code == FirebaseFirestoreException.Code.NOT_FOUND ||
+                        code == FirebaseFirestoreException.Code.PERMISSION_DENIED) {
                     // New device — create the doc and set ownerId to the current user.
                     val createData = HashMap(metadata)
                     createData["ownerId"] = uid

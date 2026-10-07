@@ -44,12 +44,14 @@ object DeviceRegistry {
         onRebootCommand: (() -> Unit)? = null,
         onFullLockdownCommand: (() -> Unit)? = null,
         onPoliciesChange: ((Map<String, Any>) -> Unit)? = null,
+        onError: (() -> Unit)? = null,
     ): ListenerRegistration? {
         uid() ?: return null
         return devices().document(EnrollmentManager.getHardwareId(context))
             .addSnapshotListener { snap, error ->
                 if (error != null) {
                     Log.e(TAG, "watchCommands listener error: ${error.message}")
+                    onError?.invoke()
                     return@addSnapshotListener
                 }
                 if (snap == null || !snap.exists()) return@addSnapshotListener

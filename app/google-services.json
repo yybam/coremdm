@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "457812602789-sef95ie5jeb1u19d74o7e2mv3um3ubuf.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.core.mdm",
+            "certificate_hash": "8295cde824e26558498ecec3dcec117015202440"
+          }
+        },
+        {
           "client_id": "457812602789-4ha9mpjq8rirbge9j5l55qsitgfkt8en.apps.googleusercontent.com",
           "client_type": 3
         }

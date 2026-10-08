@@ -72,3 +72,21 @@ jobs:
           name: CoreMDM ${{ steps.tag.outputs.tag }}
           generate_release_notes: true
           files: app/build/outputs/apk/release/app-release.apk
+
+      # Refresh the installer's bundled APK + version.json on Firebase Hosting with the exact
+      # build just released. (A release published by this workflow's token does not trigger the
+      # deploy-hosting workflow's `release` event, so we deploy here instead.) Only on tag builds.
+      - name: Refresh installer on Hosting
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          set -e
+          cp app/build/outputs/apk/release/app-release.apk public/coremdm.apk.bin
+          ver="${{ steps.tag.outputs.tag }}"; ver="${ver#v}"
+          printf '{"version":"%s"}\n' "$ver" > public/version.json
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
+          pid=$(grep -oE '"project_id"[[:space:]]*:[[:space:]]*"[^"]+"' "$RUNNER_TEMP/sa.json" \
+            | head -1 | sed -E 's/.*"([^"]+)"$/\1/')
+          npx -y firebase-tools@13 deploy --only hosting --project "$pid" --non-interactive

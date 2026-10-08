@@ -4,6 +4,19 @@ All notable changes to CORE MDM. This project uses `vX.Y.Z` release tags; the An
 its own `versionCode`/`versionName`. See the [Releases page](https://github.com/yybam/coremdm/releases)
 for downloadable APKs.
 
+## [v0.4.2](https://github.com/yybam/coremdm/releases/tag/v0.4.2) — app 40.0
+### Added
+- **Per-app Allow / Block / Hide** in the console's Installed Apps tab, with status badges,
+  search and counts. "Blocked" suspends an app (visible but won't open, via a new
+  `suspendedApps` policy); "Hidden" removes it from the launcher (`blockedApps`).
+- **Full front-end site** at coremdm.web.app — landing, Features, Demo, FAQ, About and legal
+  pages (Terms, Privacy, Consent). The device console moved to `/console.html` (reached via
+  **Manage**); the installer is at `/install.html`.
+### Fixed
+- Nav logo is now a centered SVG; demo brand text normalized to "CORE MDM".
+- Installer's bundled APK + `version.json` now refresh automatically on each release
+  (from build-apk.yml).
+
 ## [v0.4.1](https://github.com/yybam/coremdm/releases/tag/v0.4.1) — app 39.0
 ### Fixed
 - **Content filter VPN** now works from the web console on **Device Owner** devices. The app

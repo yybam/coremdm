@@ -8,9 +8,8 @@ on:
       - "firebase.json"
       - ".firebaserc"
       - ".github/workflows/deploy-hosting.yml"
-  # Re-deploy on each release so the installer's bundled APK + version.json stay current.
-  release:
-    types: [published]
+  # The installer's bundled APK + version.json are refreshed by build-apk.yml after each
+  # release (a release published by a workflow token can't trigger a `release` event here).
   workflow_dispatch: {}
 
 concurrency:

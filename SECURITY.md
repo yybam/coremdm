@@ -6,7 +6,7 @@ CORE MDM is in beta. Only the latest release receives fixes.
 
 | Version | Supported |
 | ------- | --------- |
-| Latest release ([v0.4.1](https://github.com/yybam/coremdm/releases/latest)) | :white_check_mark: |
+| Latest release ([v0.4.2](https://github.com/yybam/coremdm/releases/latest)) | :white_check_mark: |
 | Older releases | :x: |
 
 ## Reporting a Vulnerability

@@ -5,7 +5,7 @@ An Android Mobile Device Management (MDM) app with a Firebase-powered cloud remo
 > **Status: Beta.** Still under active development — expect rough edges and breaking changes between releases.
 
 **Live Web Console:** [https://coremdm.web.app](https://coremdm.web.app)
-**Latest release:** [v0.4.1](https://github.com/yybam/coremdm/releases/latest) (app version 39.0)
+**Latest release:** [v0.4.2](https://github.com/yybam/coremdm/releases/latest) (app version 40.0)
 
 ---
 
@@ -39,7 +39,7 @@ An Android Mobile Device Management (MDM) app with a Firebase-powered cloud remo
 |-----|----------------------|
 | **Commands** | Sound alarm, Lock screen, Reboot, Full lockdown — queued commands show as **Pending** with a **Cancel** button until the device runs them |
 | **App Policies** | Block installs/uninstalls/sideloading, hide Play Store & browsers, **block social media**, disable camera & screen capture |
-| **Installed Apps** | See every app the device reports (name, package, version) and hide any of them |
+| **Installed Apps** | Every app the device reports (name, package, version), each set to **Allowed / Blocked** (suspended — visible but won't open) **/ Hidden** (removed from the launcher), with search and status counts |
 | **System** | Prevent safe boot / factory reset / debugging, block add-user & user-switch, lock status bar, **set minimum lock-screen PIN length** |
 | **Hardware** | Lock Wi-Fi/Bluetooth/cellular/VPN settings, block USB transfer, disable Bluetooth radio, block outgoing calls, block SD card, protect MDM from uninstall |
 | **Network** | Enforce Private DNS hostname, toggle content filter VPN, manage kiosk allowed packages |
@@ -242,7 +242,9 @@ match /devices/{deviceId}/commands/{cmdId} {
     addUserBlocked, userSwitchBlocked, statusBarDisabled, wifiConfigBlocked,
     mobileNetworksBlocked, bluetoothConfigBlocked, vpnBlocked, networkResetBlocked,
     usbTransferBlocked, bluetoothDisabled, outgoingCallsBlocked, physicalMediaBlocked,
-    mdmUninstallProtected, pinMinLength: number, blockedApps: string[],
+    mdmUninstallProtected, pinMinLength: number,
+    blockedApps: string[],      // hidden from the launcher
+    suspendedApps: string[],    // blocked — visible but can't open
     privateDnsHost: string, filterRunning: boolean, kioskPackages: string[]
   }
 
@@ -264,7 +266,8 @@ remain there for history.
 
 | Version | Notes |
 |---------|-------|
-| [v0.4.1](https://github.com/yybam/coremdm/releases/tag/v0.4.1) | **Current.** Content filter auto-authorizes its VPN on Device Owner devices (toggle works from the console with no on-device tap) |
+| [v0.4.2](https://github.com/yybam/coremdm/releases/tag/v0.4.2) | **Current.** Per-app Allow / Block (suspend) / Hide in the Installed Apps tab; full front-end site at coremdm.web.app with the console at /console.html; centered logo |
+| [v0.4.1](https://github.com/yybam/coremdm/releases/tag/v0.4.1) | Content filter auto-authorizes its VPN on Device Owner devices (toggle works from the console with no on-device tap) |
 | [v0.4.0](https://github.com/yybam/coremdm/releases/tag/v0.4.0) | Cancellable command queue, device rename, installed-apps tab, social-media block, per-app hide, configurable minimum PIN length |
 | [v0.3.2](https://github.com/yybam/coremdm/releases/tag/v0.3.2) | Fixed enrollment of brand-new devices (PERMISSION_DENIED now falls through to create) |
 | [v0.3.1](https://github.com/yybam/coremdm/releases/tag/v0.3.1) | First build signed with the permanent release key; Google Sign-In working |

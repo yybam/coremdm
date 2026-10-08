@@ -39,6 +39,7 @@ class MdmCommandService : Service() {
     private var lastAppliedPolicies: Map<String, Any>? = null
     // Previous per-app enforcement, so a package removed from the web list gets un-blocked.
     private var lastBlockedApps: Set<String> = emptySet()
+    private var lastSuspendedApps: Set<String> = emptySet()
     private var lastSocialBlocked: Boolean? = null
 
     private val appPolicy by lazy {
@@ -293,13 +294,25 @@ class MdmCommandService : Service() {
                 }
             }
         }
-        // Per-app block list from the Installed Apps tab: hide the listed packages, and
-        // un-hide any that were dropped from the list since last time.
+        // Per-app HIDE list from the Installed Apps tab (removed from the launcher): hide the
+        // listed packages, and un-hide any dropped from the list since last time.
         (policies["blockedApps"] as? List<*>)?.let { list ->
             val desired = list.filterIsInstance<String>().toSet()
             (lastBlockedApps - desired).forEach { appPolicy.unhidePackage(it) }
             desired.forEach { if (isInstalled(it)) appPolicy.hidePackage(it) }
             lastBlockedApps = desired
+        }
+        // Per-app BLOCK list (suspended — visible but can't open): suspend the listed packages,
+        // and un-suspend any dropped from the list.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            (policies["suspendedApps"] as? List<*>)?.let { list ->
+                val desired = list.filterIsInstance<String>().toSet()
+                val toUnsuspend = (lastSuspendedApps - desired).filter { isInstalled(it) }
+                if (toUnsuspend.isNotEmpty()) appPolicy.unsuspendPackages(toUnsuspend.toTypedArray())
+                val toSuspend = desired.filter { isInstalled(it) }
+                if (toSuspend.isNotEmpty()) appPolicy.suspendPackages(toSuspend.toTypedArray())
+                lastSuspendedApps = desired
+            }
         }
         Log.d(TAG, "Remote policies applied (${policies.size} keys)")
     }

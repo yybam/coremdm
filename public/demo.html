@@ -196,7 +196,7 @@
 </div>
 
 <nav class="nav">
-  <a class="brand" href="/"><span class="cmark nav">C</span> CORE MDM</a>
+  <a class="brand" href="/"><svg class="cmark nav" viewBox="0 0 24 24" aria-hidden="true"><text x="12" y="12.5" text-anchor="middle" dominant-baseline="central" font-weight="800" font-size="15" fill="#fff">C</text></svg> CORE MDM</a>
   <div class="links">
     <a href="features.html">Features</a>
     <a href="demo.html" aria-current="page">Demo</a>
@@ -393,8 +393,8 @@
   ] });
   add({ key: 'installers', title: 'Who can install apps', icon: 'shieldq', color: '--c-orange', collapsible: true,
     summary: () => S.allowlist ? 'Only chosen apps' : 'Any app', rows: [
-    { t: 'toggle', id: 'allowlist', icon: 'shieldq', title: 'Only chosen apps can install apps', sub: 'Apps installed by any other app (stores, file managers, browsers) are removed straight away. CoreMDM is always allowed.' },
-    { t: 'nav', icon: 'checklist', title: 'Apps allowed to install', sub: 'None chosen — only CoreMDM can install', go: 'soon' },
+    { t: 'toggle', id: 'allowlist', icon: 'shieldq', title: 'Only chosen apps can install apps', sub: 'Apps installed by any other app (stores, file managers, browsers) are removed straight away. CORE MDM is always allowed.' },
+    { t: 'nav', icon: 'checklist', title: 'Apps allowed to install', sub: 'None chosen — only CORE MDM can install', go: 'soon' },
   ] });
   add({ key: 'installing', title: 'Installing apps', icon: 'apps', color: '--c-cyan', collapsible: true, rows: [
     { t: 'toggle', id: 'installs', icon: 'block', title: 'Block App Installation', sub: 'Nothing new can be installed from the Play Store' },
@@ -426,7 +426,7 @@
     { t: 'toggle', id: 'btOff', icon: 'btoff', title: 'Disable Bluetooth', sub: 'Turns Bluetooth off completely' },
     { t: 'toggle', id: 'outCalls', icon: 'phoneoff', title: 'Block Outgoing Calls', sub: 'No calls can be made from this phone' },
     { t: 'toggle', id: 'media', icon: 'sd', title: 'Block Physical Media', sub: "SD cards and USB sticks won't work" },
-    { t: 'toggle', id: 'protect', icon: 'shield', title: 'Protect MDM from Uninstall', sub: "CoreMDM itself can't be uninstalled" },
+    { t: 'toggle', id: 'protect', icon: 'shield', title: 'Protect MDM from Uninstall', sub: "CORE MDM itself can't be uninstalled" },
   ] });
   add({ key: 'filtercard', title: 'Content Filter', icon: 'shield', color: '--c-green', body: () =>
     `<div class="prow"><div class="tx"><b style="color:var(${S.filter ? '--c-green' : '--c-muted'})">${S.filter ? 'DNS Filter Active' : 'DNS Filter Inactive'}</b>
@@ -445,12 +445,12 @@
     `<div class="prow">${ic('palette', 'ri on')}<div class="tx"><b>App Theme</b><small>Light, Dark, or follow system</small></div>
       <div class="seg" role="group" aria-label="App theme">${['auto', 'light', 'dark'].map(m =>
         `<button type="button" data-theme-btn="${m}" aria-pressed="${theme === m}">${m[0].toUpperCase() + m.slice(1)}</button>`).join('')}</div></div>
-     <div class="prow">${ic('info', 'ri')}<div class="tx"><b>App Version</b><small>CoreMDM${appVer ? " v" + appVer : ""}</small></div>
+     <div class="prow">${ic('info', 'ri')}<div class="tx"><b>App Version</b><small>CORE MDM${appVer ? " v" + appVer : ""}</small></div>
       <button class="abtn cyan" type="button" data-act="update">Check for updates</button></div>` });
   add({ key: 'pincard', title: 'App PIN Lock', icon: 'lock', color: '--c-yellow', rows: [
     { t: 'btn', icon: 'lock', color: '--c-green', title: 'PIN Lock Enabled', sub: 'Required — the app locks the moment you leave it', label: 'Change PIN', kind: '', act: 'soon' },
   ] });
-  add({ key: 'danger', title: 'Danger zone', icon: 'warn', color: '--c-red', collapsible: true, summary: 'Lock, restart, wipe, or remove CoreMDM', body: () =>
+  add({ key: 'danger', title: 'Danger zone', icon: 'warn', color: '--c-red', collapsible: true, summary: 'Lock, restart, wipe, or remove CORE MDM', body: () =>
     `<div class="btn-pair"><button class="abtn" type="button" data-act="lock">${ic('lock')} Lock Now</button>
        <button class="abtn yellow" type="button" data-act="reboot">${ic('restart')} Reboot</button></div>` +
     row({ t: 'btn', icon: 'trash', color: '--c-red', red: true, title: 'Factory Reset Device', sub: 'Wipes ALL data — irreversible', label: 'Wipe', kind: 'red', act: 'wipe' }) +
@@ -483,18 +483,18 @@
     const keep = scrollEl && scrollEl.dataset.screen === screen ? scrollEl.scrollTop : 0;
     if (screen === 'pin') {
       $view.className = 'view pin';
-      $view.innerHTML = `<div class="pin-head"><span class="cmark" style="width:22px;height:22px;font-size:12px;border-radius:6px;display:inline-flex">C</span><h3>CoreMDM</h3><p>Managed Device</p>
+      $view.innerHTML = `<div class="pin-head"><span class="cmark" style="width:22px;height:22px;font-size:12px;border-radius:6px;display:inline-flex">C</span><h3>CORE MDM</h3><p>Managed Device</p>
         <div class="pin-dots" aria-label="${pin.length} digits entered">${Array.from({ length: Math.max(6, pin.length) }, (_, i) => `<i class="${i < pin.length ? 'f' : ''}"></i>`).join('')}</div>
         <div class="pin-hint" id="pin-hint">Enter your PIN to continue · demo: any 6 digits</div></div>
         <div class="keys">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => `<button type="button" data-k="${n}">${n}</button>`).join('')}
           <button type="button" class="plain" data-k="del" aria-label="Delete">${ic('del')}</button><button type="button" data-k="0">0</button>
           <button type="button" class="ok" data-k="ok" aria-label="Confirm PIN">${ic('check')}</button></div>
-        <div class="pin-foot"><span class="cmark" style="width:22px;height:22px;font-size:12px;border-radius:6px;display:inline-flex">C</span>Protected by CoreMDM</div>`;
+        <div class="pin-foot"><span class="cmark" style="width:22px;height:22px;font-size:12px;border-radius:6px;display:inline-flex">C</span>Protected by CORE MDM</div>`;
       return;
     }
     $view.className = 'view';
     const top = screen === 'dash'
-      ? `<div class="topbar"><div class="title"><span class="cmark" style="width:22px;height:22px;font-size:12px;border-radius:6px;display:inline-flex">C</span>CoreMDM</div>
+      ? `<div class="topbar"><div class="title"><span class="cmark" style="width:22px;height:22px;font-size:12px;border-radius:6px;display:inline-flex">C</span>CORE MDM</div>
           <button class="ib" type="button" data-act="search" aria-label="Search settings">${ic('search')}</button>
           <button class="ib cyan" type="button" data-act="refresh" aria-label="Refresh">${ic('refresh')}</button></div>`
       : `<div class="topbar" style="padding-left:6px"><button class="ib cyan" type="button" data-go="back" aria-label="Back">${ic('back')}</button>
@@ -539,7 +539,7 @@
       text: 'ALL data will be permanently erased. This action cannot be undone.', onOk: () => snack('Demo: the phone was not wiped') }),
     removeMdm: () => dialog({ icon: 'block', color: '--c-red', titleColor: '--c-red', title: 'Remove MDM?', ok: 'REMOVE MDM',
       text: 'This will:\n\n• Clear Device Owner status\n• Remove Device Admin privileges\n• Uninstall this app\n\nAll enforced policies will be lifted. This cannot be undone without reinstalling.',
-      onOk: () => snack('Demo: CoreMDM was not removed') }),
+      onOk: () => snack('Demo: CORE MDM was not removed') }),
     remove: () => dialog({ icon: 'personrm', color: '--c-red', titleColor: '--c-red', title: 'Remove this device?', ok: 'Remove',
       text: 'This phone will be deleted from your account and signed out.', onOk: () => snack('Demo: nothing was removed') }),
     lock: () => { screen = 'pin'; pin = ''; render(); },
@@ -606,10 +606,10 @@
   function back() {
     if ($host.innerHTML) { $host.innerHTML = ''; return; }
     if (screen === 'filter') { screen = 'dash'; render(); }
-    else if (screen === 'dash') { screen = 'pin'; render(); snack('CoreMDM locks the moment you leave it'); }
+    else if (screen === 'dash') { screen = 'pin'; render(); snack('CORE MDM locks the moment you leave it'); }
   }
   document.getElementById('nav-back').onclick = back;
-  document.getElementById('nav-home').onclick = () => { $host.innerHTML = ''; screen = 'pin'; pin = ''; render(); snack('CoreMDM locks the moment you leave it'); };
+  document.getElementById('nav-home').onclick = () => { $host.innerHTML = ''; screen = 'pin'; pin = ''; render(); snack('CORE MDM locks the moment you leave it'); };
   document.getElementById('nav-recent').onclick = () => snack('Recent apps is not part of the demo');
   document.getElementById('reset').onclick = () => { $host.innerHTML = ''; reset(); };
   document.addEventListener('keydown', e => {

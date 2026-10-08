@@ -327,10 +327,12 @@ main.wide { max-width: 1120px; padding-top: 40px; }
 .qr svg { display: block; width: 100%; height: 100%; }
 .tech-note code { word-break: break-all; }
 
-/* Original CORE MDM "C" gradient mark (replaces the emblem image) */
-.cmark{display:inline-grid;place-items:center;background:linear-gradient(135deg,#1f7fd6,#1fb58f);color:#fff;font-weight:800;line-height:1;text-align:center;box-shadow:0 8px 24px -10px rgba(31,160,190,.7);flex-shrink:0;overflow:hidden}
-.cmark.nav{width:30px;height:30px;font-size:15px;border-radius:8px}
+/* Original CORE MDM "C" gradient mark. The nav mark is an SVG so the "C" is
+   mathematically centered; the larger hero / tiny foot marks stay as text. */
+.cmark{display:inline-flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1f7fd6,#1fb58f);color:#fff;font-weight:800;line-height:1;box-shadow:0 8px 24px -10px rgba(31,160,190,.7);flex-shrink:0;vertical-align:middle}
+.cmark text{ font-family:'Inter',system-ui,sans-serif; }
+.cmark.nav{width:30px;height:30px;border-radius:8px}
 .cmark.hero{width:104px;height:104px;font-size:52px;border-radius:26px;margin:0 auto 4px}
 .cmark.foot{width:18px;height:18px;font-size:10px;border-radius:5px}
 /* clear space between the mark and the wordmark */
-.brand .cmark{margin-right:2px}
+.brand .cmark{margin-right:4px}

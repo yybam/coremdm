@@ -182,6 +182,13 @@ header { background: rgba(10,13,24,.55); border-bottom: 1px solid var(--border);
 /* PIN length selector (System tab) */
 .pin-select { background: rgba(0,0,0,.25); border: 1px solid var(--border); color: var(--text); border-radius: 10px; padding: 9px 11px; font-size: 13px; flex-shrink: 0; cursor: pointer; }
 .pin-select:focus { border-color: var(--cyan); outline: none; }
+/* Installed Apps tab */
+.app-counts { font-size: 12px; color: var(--textSec); font-weight: 600; }
+.app-badge { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .3px; padding: 2px 8px; border-radius: 99px; margin-left: 6px; vertical-align: middle; }
+.app-badge-allow { background: rgba(74,222,155,.14); color: var(--green); }
+.app-badge-block { background: rgba(255,193,94,.15); color: var(--yellow); }
+.app-badge-hide  { background: rgba(255,107,125,.15); color: var(--red); }
+.app-state { min-width: 104px; }
 
 /* Policy toggles */
 .policy-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--border); gap: 12px; }
@@ -469,6 +476,7 @@ let selectedId   = null;
 let activeTab    = 'commands';
 let wipeTargetId = null;
 let searchQuery  = '';
+let appSearch    = '';
 let unsubCommands  = null;   // live listener for the selected device's command queue
 let pendingCommands = [];    // pending commands for the open device
 
@@ -813,40 +821,73 @@ function renderPinPolicy(id, p) {
 }
 
 function renderInstalledAppsTab(d, p) {
-  const apps    = Array.isArray(d.installedApps) ? d.installedApps : [];
-  const blocked = new Set(Array.isArray(p.blockedApps) ? p.blockedApps : []);
+  const apps      = Array.isArray(d.installedApps) ? d.installedApps : [];
+  const hidden    = new Set(Array.isArray(p.blockedApps)   ? p.blockedApps   : []); // removed from launcher
+  const suspended = new Set(Array.isArray(p.suspendedApps) ? p.suspendedApps : []); // visible but can't open
   if (!apps.length) {
     return `<div class="net-section"><h3>Installed Apps</h3>
       <p class="policy-sub">No app list reported yet. The device uploads its installed apps the next time it checks in — reopen this tab in a moment.</p></div>`;
   }
+  const stateOf = pkg => suspended.has(pkg) ? 'block' : (hidden.has(pkg) ? 'hide' : 'allow');
+  const rank = { block:0, hide:1, allow:2 };
+  const sorted = apps.slice().sort((a,b) => {
+    const r = rank[stateOf(a.pkg)] - rank[stateOf(b.pkg)];
+    return r || (a.label||a.pkg||'').toLowerCase().localeCompare((b.label||b.pkg||'').toLowerCase());
+  });
+  const nBlock = apps.filter(a=>stateOf(a.pkg)==='block').length;
+  const nHide  = apps.filter(a=>stateOf(a.pkg)==='hide').length;
+  const nAllow = apps.length - nBlock - nHide;
+  const stBadge = st => st==='block'
+      ? '<span class="app-badge app-badge-block">Blocked</span>'
+      : st==='hide' ? '<span class="app-badge app-badge-hide">Hidden</span>'
+      : '<span class="app-badge app-badge-allow">Allowed</span>';
   return `
   <div class="net-section">
     <h3>Installed Apps (${apps.length})</h3>
-    <p class="policy-sub" style="margin-bottom:12px">Toggle an app to hide it from the device. Hiding requires Device Owner.</p>
-    ${apps.map(a => {
-      const pkg = a.pkg || ''; const label = a.label || pkg; const isB = blocked.has(pkg);
-      return `<div class="policy-row">
+    <p class="policy-sub" style="margin-bottom:10px">For each app choose <b>Allowed</b>, <b>Blocked</b> (stays visible but won't open) or <b>Hidden</b> (removed from the launcher). Blocking and hiding require Device Owner.</p>
+    <div class="app-counts">${nAllow} allowed · ${nBlock} blocked · ${nHide} hidden</div>
+    <input class="dns-input" id="app-search" style="margin:10px 0 14px" placeholder="Search apps…" value="${esc(appSearch)}" oninput="window._mdm.appSearchInput(this.value)">
+    <div id="app-list">
+    ${sorted.map(a => {
+      const pkg = a.pkg || ''; const label = a.label || pkg; const st = stateOf(pkg);
+      const search = (label+' '+pkg).toLowerCase();
+      return `<div class="policy-row" data-search="${esc(search)}">
         <div class="policy-info">
-          <div class="policy-label">${esc(label)}</div>
+          <div class="policy-label">${esc(label)} ${stBadge(st)}</div>
           <div class="policy-sub" style="font-family:monospace">${esc(pkg)}${a.version?(' · v'+esc(a.version)):''}</div>
         </div>
-        <label class="toggle">
-          <input type="checkbox" ${isB?'checked':''} onchange="window._mdm.toggleBlockApp('${jsStr(d.id)}','${jsStr(pkg)}',this.checked)">
-          <span class="toggle-track"></span><span class="toggle-thumb"></span>
-        </label>
+        <select class="pin-select app-state" onchange="window._mdm.setAppState('${jsStr(d.id)}','${jsStr(pkg)}',this.value)">
+          <option value="allow" ${st==='allow'?'selected':''}>Allowed</option>
+          <option value="block" ${st==='block'?'selected':''}>Blocked</option>
+          <option value="hide"  ${st==='hide'?'selected':''}>Hidden</option>
+        </select>
       </div>`;
     }).join('')}
+    </div>
   </div>`;
+}
+function appSearchInput(v) {
+  appSearch = v || '';
+  const q = appSearch.toLowerCase();
+  document.querySelectorAll('#app-list .policy-row').forEach(row => {
+    const s = row.getAttribute('data-search') || '';
+    row.style.display = (!q || s.includes(q)) ? '' : 'none';
+  });
 }
 
 function setPinLen(id, val) {
   setPolicyField(id, 'pinMinLength', Number(val));
   logAudit('POLICY', id, `pinMinLength=${val} on ${dispName(devicesMap[id]) || id}`);
 }
-async function toggleBlockApp(id, pkg, block) {
+async function setAppState(id, pkg, state) {
+  // blockedApps = hidden (removed from launcher); suspendedApps = blocked (can't open)
+  const u = {};
+  if (state === 'hide')       { u['policies.blockedApps']   = arrayUnion(pkg);  u['policies.suspendedApps'] = arrayRemove(pkg); }
+  else if (state === 'block') { u['policies.suspendedApps'] = arrayUnion(pkg);  u['policies.blockedApps']   = arrayRemove(pkg); }
+  else                        { u['policies.blockedApps']   = arrayRemove(pkg); u['policies.suspendedApps'] = arrayRemove(pkg); }
   try {
-    await updateDoc(deviceRef(id), { 'policies.blockedApps': block ? arrayUnion(pkg) : arrayRemove(pkg) });
-    logAudit('POLICY', id, `${block?'block':'unblock'} app ${pkg} on ${dispName(devicesMap[id]) || id}`);
+    await updateDoc(deviceRef(id), u);
+    logAudit('POLICY', id, `app ${pkg} → ${state} on ${dispName(devicesMap[id]) || id}`);
   } catch(e) { alert('Failed to update app: ' + e.message); }
 }
 
@@ -1490,7 +1531,7 @@ async function deleteInvRecord(docId) {
 window._mdm = {
   openModal, switchTab, toggleAlarm, sendLock, sendReboot,
   sendFullLockdown, setPolicy, lockDns, clearDns, addPkg, removePkg, confirmWipe,
-  renameDevice, cancelCommand, setPinLen, toggleBlockApp,
+  renameDevice, cancelCommand, setPinLen, setAppState, appSearchInput,
   switchToAdmin, switchToDashboard, switchAdminTab, adminManage,
   preRegisterDevice, copyLastToken, copyInvToken,
   renewInvToken, markEnrolled, markDisenrolled,

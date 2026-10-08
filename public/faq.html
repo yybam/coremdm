@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FAQ — CORE MDM</title>
+<meta name="description" content="Common questions about installing and using CORE MDM: supported phones, device owner, removing it, offline behaviour and more.">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="bg" aria-hidden="true"><span class="orb o1"></span><span class="orb o2"></span><span class="orb o3"></span></div>
+
+<nav class="nav">
+  <a class="brand" href="/"><span class="cmark nav">C</span> CORE MDM</a>
+  <div class="links">
+    <a href="features.html">Features</a>
+    <a href="demo.html">Demo</a>
+    <a href="faq.html">FAQ</a>
+    <a href="about.html">About</a>
+    <a href="https://github.com/yybam/coremdm" target="_blank" rel="noopener">GitHub</a>
+    <a class="pill ghost-pill" href="console.html">Manage</a>
+    <a class="pill" href="install.html">Install</a>
+  </div>
+</nav>
+
+<main class="narrow">
+  <header class="hero page-hero">
+    <div class="cmark hero">C</div>
+    <p class="eyebrow">FAQ</p>
+    <h1>Good to <span class="grad">know</span></h1>
+    <p class="sub">The questions people ask most. Can't find yours? The full docs are on the <a href="https://github.com/yybam/coremdm/wiki" target="_blank" rel="noopener">wiki</a>.</p>
+  </header>
+
+  <details class="glass qa"><summary>Which phones does it work on?</summary><p>Any Android phone running Android 8.0 or newer, from any brand — including Samsung, Google Pixel, Motorola and Xiaomi.</p></details>
+  <details class="glass qa"><summary>What's "device owner", and why does it matter?</summary><p>Device owner is the highest level of control Android gives an app. It lets CORE MDM enforce real restrictions that the phone's user can't just switch back. Without it, CORE MDM still runs as a device admin (lock, wipe, alarm, the command queue and the app inventory work), but app hiding, kiosk, the enforced PIN and most system restrictions need device owner.</p></details>
+  <details class="glass qa"><summary>Why does the phone need to be reset first?</summary><p>Android only lets an app become device owner on a phone with no accounts signed in — a safety rule so no one can quietly take over a phone that's already in use. A fresh or factory-reset phone, with Google sign-in skipped during setup, works every time.</p></details>
+  <details class="glass qa"><summary>What do I need to install it?</summary><p>Either a computer with Chrome or Edge and a USB cable, or no cable at all: factory reset the phone, tap the welcome screen 6 times and scan our <a href="install.html#qr">setup QR code</a>. Our <a href="install.html">web installer</a> walks you through both. There's nothing to download to your computer.</p></details>
+  <details class="glass qa"><summary>Does the online installer set device owner automatically?</summary><p>Yes. The USB installer installs CORE MDM and runs device-owner setup for you; the QR flow provisions the phone as device owner during first-time setup. Both end with the phone ready to sign in.</p></details>
+  <details class="glass qa"><summary>Can the user just remove it?</summary><p>No. As device owner, CORE MDM can block uninstalling, factory reset, safe mode and USB debugging, so the rules you set stay on. You remove it from inside the app, or by factory resetting the phone.</p></details>
+  <details class="glass qa"><summary>Do I need internet on the phone?</summary><p>The phone gets new commands and rule changes over the internet as soon as they're made. Rules you've already applied keep working even when it's offline, and a command sent to an offline phone is delivered when it reconnects.</p></details>
+  <details class="glass qa"><summary>Who can see my devices?</summary><p>Only you. Phones are tied to the account that signed in on them, so only that account sees and manages them.</p></details>
+  <details class="glass qa"><summary>Does CORE MDM read my messages or track location?</summary><p>No. CORE MDM manages what a phone <i>can do</i> — it doesn't read messages, track location or record browsing. See the <a href="privacy.html">Privacy Policy</a> for exactly what's collected.</p></details>
+  <details class="glass qa"><summary>Will updates install over my current version?</summary><p>Yes — releases install over each other, so updating is a normal in-place install. Grab the latest from <a href="https://github.com/yybam/coremdm/releases/latest" target="_blank" rel="noopener">Releases</a>.</p></details>
+
+  <section class="glass manage" style="margin-top:36px">
+    <div class="ico big-ico"><svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M10 18h4"/><path d="M12 6v6M9.5 9.5 12 12l2.5-2.5"/></svg></div>
+    <div class="manage-text"><h3>Still have a question?</h3><p>Open an issue on GitHub or read the full documentation on the wiki.</p></div>
+    <a class="btn primary" href="https://github.com/yybam/coremdm/issues/new" target="_blank" rel="noopener">Ask on GitHub →</a>
+  </section>
+
+  <footer class="muted foot">
+    <span><span class="cmark foot">C</span> CORE MDM <small>Beta</small></span>
+    <span class="foot-links">
+      <a href="features.html">Features</a><a href="demo.html">Demo</a><a href="faq.html">FAQ</a>
+      <a href="about.html">About</a><a href="install.html">Install</a><a href="console.html">Manage</a>
+      <a href="https://github.com/yybam/coremdm" target="_blank" rel="noopener">GitHub</a>
+      <a href="terms.html">Terms</a><a href="privacy.html">Privacy</a><a href="consent.html">Consent</a>
+    </span>
+  </footer>
+</main>
+</body>
+</html>

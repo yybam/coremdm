@@ -163,6 +163,10 @@ header { background: rgba(10,13,24,.55); border-bottom: 1px solid var(--border);
 .ld-icon { font-size: 24px; font-weight: 900; flex-shrink: 0; width: 38px; height: 38px; border-radius: 50%; background: rgba(255,107,125,.15); display: flex; align-items: center; justify-content: center; }
 .ld-text {}
 .ld-sub { display: block; font-size: 11px; font-weight: 400; color: rgba(255,107,125,0.72); margin-top: 2px; }
+.cmd-wipe { display: flex; align-items: center; gap: 16px; padding: 18px 20px; border-radius: 14px; background: linear-gradient(135deg,#ff6b7d,#e23b55); color: #fff; border: none; font-size: 14px; font-weight: 700; width: 100%; text-align: left; margin-top: 12px; transition: opacity 0.2s; }
+.cmd-wipe:hover { opacity: 0.92; }
+.cmd-wipe .ld-icon { background: rgba(255,255,255,.18); color: #fff; }
+.cmd-wipe .ld-sub  { color: rgba(255,255,255,.82); }
 
 /* Rename button in modal header */
 .rename-btn { background: none; border: none; color: var(--textSec); font-size: 14px; cursor: pointer; padding: 2px 4px; line-height: 1; }
@@ -784,6 +788,10 @@ function renderCommandsTab(d) {
   <button class="cmd-lockdown transition-transform duration-150 hover:scale-[1.01] active:scale-95" onclick="window._mdm.sendFullLockdown('${id}')">
     <div class="ld-icon">!</div>
     <div class="ld-text">Apply Full Lockdown<span class="ld-sub">Enables all restrictions, disables camera, status bar, screen capture</span></div>
+  </button>
+  <button class="cmd-wipe transition-transform duration-150 hover:scale-[1.01] active:scale-95" onclick="window._mdm.confirmWipe('${id}')">
+    <div class="ld-icon">&#9003;</div>
+    <div class="ld-text">Wipe Device<span class="ld-sub">Factory reset — erases all data on the phone. Cannot be undone.</span></div>
   </button>
   ${renderPendingCommands(id)}`;
 }

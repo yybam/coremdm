@@ -480,7 +480,7 @@ function wireModeSelect() {
 // public/install/apks/coremdm.apk.bin with it, recompute the checksum, update both constants
 // below, commit, push (auto-deploys).
 const QR_APK_URL = "https://coremdm.web.app/install/apks/coremdm.apk.bin";
-const QR_APK_CHECKSUM = "3pNRbRPvr3Rk0aqJ7Pou6_yCETu64kHv3KkCamcyKmA";
+const QR_APK_CHECKSUM = "9IGanCL8QWmM-KqVjXzYpLax9ArcEqoXepw6a1A8KPQ";
 
 // Builds the standard Android "QR code provisioning" JSON payload (the same one the
 // Settings-app QR scanner reads at the SetupWizard "tap 6x" screen) and renders it as a QR.

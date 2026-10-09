@@ -4,6 +4,15 @@ All notable changes to CORE MDM. This project uses `vX.Y.Z` release tags; the An
 its own `versionCode`/`versionName`. See the [Releases page](https://github.com/yybam/coremdm/releases)
 for downloadable APKs.
 
+## [v0.4.3](https://github.com/yybam/coremdm/releases/tag/v0.4.3) — app 41.0
+### Fixed
+- **Endless reboot loop.** The field-based `rebootCommand` cleared the flag *after*
+  `dpm.reboot()`, so the write never reached Firestore and the device re-triggered the
+  reboot on every boot. The flag is now cleared and **server-confirmed before** rebooting;
+  if the clear can't be written (e.g. offline) the device does not reboot. (The newer
+  command-queue path was already safe — it marks the command `executed` on the server
+  before executing.)
+
 ## [v0.4.2](https://github.com/yybam/coremdm/releases/tag/v0.4.2) — app 40.0
 ### Added
 - **Per-app Allow / Block / Hide** in the console's Installed Apps tab, with status badges,

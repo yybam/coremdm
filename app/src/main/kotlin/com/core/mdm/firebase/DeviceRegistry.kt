@@ -161,8 +161,16 @@ object DeviceRegistry {
                     onWipeCommand?.invoke()
                 }
                 if (snap.getBoolean("rebootCommand") == true) {
-                    onRebootCommand?.invoke()
+                    // Clear the flag and wait for Firestore to CONFIRM the write before
+                    // rebooting. dpm.reboot() restarts the device instantly, so if we
+                    // cleared afterwards the write would never reach the server and the
+                    // device would re-read rebootCommand==true on every boot — an endless
+                    // reboot loop. Only reboot once the server has acked the clear.
                     snap.reference.update("rebootCommand", false)
+                        .addOnSuccessListener { onRebootCommand?.invoke() }
+                        .addOnFailureListener {
+                            Log.e(TAG, "clear rebootCommand failed, not rebooting: ${it.message}")
+                        }
                 }
                 if (snap.getBoolean("fullLockdownCommand") == true) {
                     onFullLockdownCommand?.invoke()

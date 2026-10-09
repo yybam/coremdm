@@ -1,5 +1,9 @@
 package com.core.mdm.ui
 
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -8,9 +12,6 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.DefaultLifecycleObserver
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -45,6 +46,14 @@ private const val ROUTE_TELEMETRY = "telemetry"
 private const val ROUTE_REMOTE    = "remote"
 
 class MainActivity : ComponentActivity() {
+
+    // Locks the app the instant the screen turns off, regardless of OEM lifecycle quirks.
+    private val screenOffReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (intent.action == Intent.ACTION_SCREEN_OFF) AppLockState.lock()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         ThemePrefs.init(this)
@@ -55,6 +64,18 @@ class MainActivity : ComponentActivity() {
                 AppRoot()
             }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        registerReceiver(screenOffReceiver, IntentFilter(Intent.ACTION_SCREEN_OFF))
+    }
+
+    override fun onStop() {
+        super.onStop()
+        unregisterReceiver(screenOffReceiver)
+        // Also lock on app-backgrounding (home button, task switch, another app).
+        AppLockState.lock()
     }
 }
 
@@ -102,18 +123,6 @@ private fun MdmRoot() {
     val pinManager = remember { PinManager.getInstance(context) }
     val isLocked   by AppLockState.isLocked.collectAsState()
     val lockEpoch  by AppLockState.lockEpoch.collectAsState()
-
-    DisposableEffect(Unit) {
-        val observer = object : DefaultLifecycleObserver {
-            // Always lock when the app goes to background — no conditional.
-            // The PIN screen picks VERIFY or SETUP depending on whether a PIN exists.
-            override fun onStop(owner: LifecycleOwner) {
-                AppLockState.lock()
-            }
-        }
-        ProcessLifecycleOwner.get().lifecycle.addObserver(observer)
-        onDispose { ProcessLifecycleOwner.get().lifecycle.removeObserver(observer) }
-    }
 
     AnimatedContent(
         targetState  = isLocked,

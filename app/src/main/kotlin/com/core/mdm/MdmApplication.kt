@@ -22,10 +22,9 @@ class MdmApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        // Fast path — plain SharedPreferences read, no Keystore.
-        // Must stay synchronous so AppLockState is set before the first Activity starts.
-        val pinManager = PinManager.getInstance(this)
-        if (!pinManager.isPinSet) AppLockState.unlock()
+        // AppLockState defaults to locked. Always stay locked on process start — the
+        // PIN screen (VERIFY or SETUP) is the first thing the user sees every time.
+        PinManager.getInstance(this)
 
         val helper = DevicePolicyHelper.getInstance(this)
         if (helper.isAdminActive) {

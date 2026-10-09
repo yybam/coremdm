@@ -35,6 +35,7 @@ data class PinLockUiState(
     val mode: PinScreenMode           = PinScreenMode.VERIFY,
     val digits: String                = "",
     val firstEntry: String            = "",   // holds first entry during 2-step setup/change
+    val targetLength: Int             = 4,    // digits expected before auto-submit
     val isPinSet: Boolean             = false,
     val isAuthenticated: Boolean      = false,
     val isSetupComplete: Boolean      = false,
@@ -74,11 +75,25 @@ class PinLockViewModel(
         PinLockUiState(
             mode     = startMode,
             isPinSet = pinManager.isPinSet,
+            targetLength            = defaultTargetFor(startMode),
             isLockedOut             = pinManager.lockoutRemainingMs() > 0,
             lockoutSecondsRemaining = (pinManager.lockoutRemainingMs() / 1000).toInt(),
         )
     )
     val uiState: StateFlow<PinLockUiState> = _uiState.asStateFlow()
+
+    /**
+     * How many digits a given mode expects. Entry modes use the admin-configured minimum
+     * ([PinManager.requiredPinLength]); modes that re-enter an existing PIN use its stored
+     * length so the screen auto-submits at the right point.
+     */
+    private fun defaultTargetFor(mode: PinScreenMode): Int = when (mode) {
+        PinScreenMode.SETUP, PinScreenMode.CHANGE_NEW ->
+            pinManager.requiredPinLength.coerceIn(4, 8)
+        PinScreenMode.VERIFY, PinScreenMode.CHANGE_VERIFY, PinScreenMode.REMOVE_VERIFY ->
+            pinManager.storedPinLength.coerceIn(4, 8)
+        else -> pinManager.requiredPinLength.coerceIn(4, 8)
+    }
 
     private var countdownJob: Job? = null
 
@@ -91,13 +106,14 @@ class PinLockViewModel(
 
     fun onDigit(d: String) {
         val s = _uiState.value
-        if (s.isLockedOut || s.digits.length >= 6) return
+        val target = s.targetLength.coerceIn(4, 8)
+        if (s.isLockedOut || s.digits.length >= target) return
         val next = s.digits + d
         _uiState.update { it.copy(digits = next, errorMessage = null) }
-        // Auto-submit at 4 digits (minimum PIN length)
-        if (next.length == 4) {
+        // Auto-submit once the expected number of digits has been entered.
+        if (next.length == target) {
             viewModelScope.launch {
-                delay(80)   // tiny delay so the 4th dot renders before the transition
+                delay(80)   // tiny delay so the last dot renders before the transition
                 submit()
             }
         }
@@ -162,14 +178,16 @@ class PinLockViewModel(
     // ── Private: SETUP flow ───────────────────────────────────────────────────────
 
     private fun beginSetup(pin: String) {
-        if (pin.length < 4) {
-            _uiState.update { it.copy(errorMessage = "PIN must be at least 4 digits") }
+        val min = pinManager.requiredPinLength
+        if (pin.length < min) {
+            _uiState.update { it.copy(errorMessage = "PIN must be at least $min digits") }
             return
         }
         _uiState.update { it.copy(
             mode       = PinScreenMode.SETUP_CONFIRM,
             firstEntry = pin,
             digits     = "",
+            targetLength = pin.length.coerceIn(4, 8),   // confirm must match the chosen length
             errorMessage = null,
         )}
     }
@@ -180,6 +198,7 @@ class PinLockViewModel(
                 mode       = PinScreenMode.SETUP,
                 digits     = "",
                 firstEntry = "",
+                targetLength = pinManager.requiredPinLength.coerceIn(4, 8),
                 errorMessage = "PINs do not match — try again",
             )}
             return
@@ -203,6 +222,7 @@ class PinLockViewModel(
             VerifyResult.Success -> _uiState.update { it.copy(
                 mode  = PinScreenMode.CHANGE_NEW,
                 digits = "",
+                targetLength = pinManager.requiredPinLength.coerceIn(4, 8),
                 errorMessage = null,
             )}
             is VerifyResult.Wrong -> _uiState.update { it.copy(
@@ -239,14 +259,16 @@ class PinLockViewModel(
     }
 
     private fun beginChange(pin: String) {
-        if (pin.length < 4) {
-            _uiState.update { it.copy(errorMessage = "PIN must be at least 4 digits") }
+        val min = pinManager.requiredPinLength
+        if (pin.length < min) {
+            _uiState.update { it.copy(errorMessage = "PIN must be at least $min digits") }
             return
         }
         _uiState.update { it.copy(
             mode       = PinScreenMode.CHANGE_CONFIRM,
             firstEntry = pin,
             digits     = "",
+            targetLength = pin.length.coerceIn(4, 8),
             errorMessage = null,
         )}
     }
@@ -257,6 +279,7 @@ class PinLockViewModel(
                 mode       = PinScreenMode.CHANGE_NEW,
                 digits     = "",
                 firstEntry = "",
+                targetLength = pinManager.requiredPinLength.coerceIn(4, 8),
                 errorMessage = "PINs do not match",
             )}
             return

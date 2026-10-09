@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CORE MDM Installer</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="bg" aria-hidden="true">
+  <span class="orb o1"></span><span class="orb o2"></span><span class="orb o3"></span>
+</div>
+
+<nav class="nav">
+  <a class="brand" href="/"><svg class="cmark nav" viewBox="0 0 24 24" aria-hidden="true"><text x="12" y="12.5" text-anchor="middle" dominant-baseline="central" font-weight="800" font-size="15" fill="#fff">C</text></svg> CORE MDM</a>
+  <div class="links">
+    <a href="https://github.com/yybam/coremdm/wiki" target="_blank" rel="noopener">Docs</a>
+    <a class="pill ghost-pill" href="console.html">Console</a>
+    <a class="pill active" href="install.html">Install</a>
+  </div>
+</nav>
+
+<main>
+  <header class="hero">
+    <div class="cmark hero" role="img" aria-label="CORE MDM logo">C</div>
+    <div class="badge"><span class="pulse"></span> USB or QR code · runs in your browser</div>
+    <h1>CORE MDM <span class="grad">Installer</span></h1>
+    <p class="sub">Install <a href="/">CORE MDM</a> on an Android phone and set it as device owner, over a USB cable or by scanning a QR code. Nothing to download to this computer.</p>
+  </header>
+
+  <section class="glass">
+    <div class="head"><div><h2>How do you want to install?</h2><p class="muted">Both ways give the same result.</p></div></div>
+    <div class="choices">
+      <label class="choice"><input type="radio" name="method" value="usb" checked><span><b>USB cable</b><small>From a computer with Chrome or Edge. Works on a phone that's already set up, once its accounts are removed.</small></span></label>
+      <label class="choice"><input type="radio" name="method" value="qr"><span><b>QR code</b><small>No computer or cable. The phone must be brand new or freshly factory reset.</small></span></label>
+    </div>
+  </section>
+
+  <div id="usbMethod">
+  <div id="unsupported" class="alert bad" hidden>
+    This browser can't connect to USB devices. Use <b>Chrome</b> or <b>Edge</b> on a computer, and open this page over <b>https://</b> or <b>localhost</b>.
+  </div>
+
+  <section class="glass">
+    <div class="head"><span class="num">1</span><div><h2>Get the phone ready</h2><p class="muted">Do this once, before connecting.</p></div></div>
+    <ol class="prep">
+      <li><b>Factory reset the phone</b>, or remove every account under <i>Settings › Accounts</i>. Android won't set a device owner while any account is on the phone.</li>
+      <li>Skip Google sign-in during setup.</li>
+      <li>Turn on developer options: <i>Settings › About phone</i>, then tap <b>Build number</b> 7 times.</li>
+      <li>Turn on <b>USB debugging</b> in <i>Settings › System › Developer options</i>.</li>
+      <li>Connect the phone with a USB cable. If you have ADB on this computer, close it first by running <code>adb kill-server</code>.</li>
+    </ol>
+    <p class="note"><b>Samsung phone not showing up?</b> On Windows, install the <a href="https://developer.samsung.com/android-usb-driver" target="_blank" rel="noopener">Samsung USB driver</a>, unplug and replug the phone, then try again.</p>
+  </section>
+
+  <section class="glass">
+    <div class="head"><span class="num">2</span><div><h2>Connect</h2><p class="muted">Choose the phone in the browser popup, then tap <b>Allow</b> on the phone's "Allow USB debugging?" prompt.</p></div></div>
+    <div class="row">
+      <button id="btnConnect" class="primary">Connect phone</button>
+      <button id="btnDisconnect" class="ghost" hidden>Disconnect</button>
+      <span id="deviceInfo" class="status">Not connected</span>
+    </div>
+  </section>
+
+  <section class="glass">
+    <div class="head"><span class="num">3</span><div><h2>Install and set device owner</h2><p class="muted">Installs CORE MDM <span data-app-version>(latest version)</span> and makes it the device owner.</p></div></div>
+    <div class="row">
+      <button id="btnAll" class="primary" disabled>Install and set device owner</button>
+    </div>
+    <p class="muted agree">By installing, you confirm you own or are allowed to manage this phone.</p>
+    <div class="progress" hidden id="progWrap"><div id="progBar"></div></div>
+    <ul class="steps" id="steps">
+      <li data-step="accounts">Check for accounts</li>
+      <li data-step="install">Install the APK</li>
+      <li data-step="owner">Set device owner</li>
+    </ul>
+    <div id="result" class="alert" hidden></div>
+    <div class="row" id="doneRow" hidden>
+      <a class="btn primary" href="/">Open the console →</a>
+    </div>
+  </section>
+
+  <details class="glass log">
+    <summary>Log</summary>
+    <pre id="log"></pre>
+  </details>
+
+  <p class="muted tech-note">Runs <code>dpm set-device-owner com.core.mdm/.MdmDeviceAdmin</code> · Chrome or Edge required</p>
+  </div>
+
+  <div id="qrMethod" hidden>
+  <div id="qrWarn" class="alert warn" hidden>The phone downloads CORE MDM from GitHub, so the QR code only works when this page is opened over its public <b>https://</b> address, not from a local copy or localhost.</div>
+
+  <section class="glass">
+    <div class="head"><span class="num">1</span><div><h2>Get the phone ready</h2><p class="muted">QR setup only works on the very first setup screen.</p></div></div>
+    <ol class="prep">
+      <li><b>Factory reset the phone</b>, or start with a brand-new one. Don't go past the first <i>Welcome</i> / <i>Start</i> screen.</li>
+      <li><b>Tap the same blank spot on the welcome screen 6 times.</b> A QR scanner opens. On Android 7 and 8 it first connects to Wi-Fi to download the scanner.</li>
+      <li>If the scanner doesn't open, this phone doesn't support QR setup. Use the USB cable method instead.</li>
+    </ol>
+  </section>
+
+  <section class="glass">
+    <div class="head"><span class="num">2</span><div><h2>Wi-Fi <span class="muted">(optional)</span></h2><p class="muted">Put the Wi-Fi details in the code so the phone connects by itself. Leave empty to pick a network on the phone. Nothing you type here leaves this page.</p></div></div>
+    <div class="fields">
+      <label>Network name<input id="wifiSsid" type="text" autocomplete="off" spellcheck="false" placeholder="e.g. Home-WiFi"></label>
+      <label>Security<select id="wifiSecurity"><option value="WPA">WPA / WPA2 / WPA3</option><option value="WEP">WEP</option><option value="NONE">None (open)</option></select></label>
+      <label>Password<input id="wifiPassword" type="password" autocomplete="off"></label>
+      <label class="check"><input id="wifiHidden" type="checkbox"> Hidden network</label>
+    </div>
+  </section>
+
+  <section class="glass">
+    <div class="head"><span class="num">3</span><div><h2>Scan the code</h2><p class="muted">Point the phone's scanner at this code, then follow the prompts on the phone.</p></div></div>
+    <div class="qr-wrap"><div id="qrCode" class="qr" role="img" aria-label="CORE MDM setup QR code"></div></div>
+    <ol class="prep">
+      <li>The phone connects to Wi-Fi, downloads CORE MDM and sets it as device owner. This takes a minute or two.</li>
+      <li>Accept the prompts saying the phone will be managed. Finish setup, open CORE MDM and sign in.</li>
+    </ol>
+    <p class="muted agree">By installing, you confirm you own or are allowed to manage this phone.</p>
+    <div class="row"><a class="btn primary" href="/">Open the console →</a></div>
+  </section>
+
+  <p class="muted tech-note">Downloads <code id="qrApkUrl"></code> · Android 7 or newer</p>
+  </div>
+
+  <footer class="muted foot">
+    <span><span class="cmark foot">C</span> CORE MDM <small>Beta</small></span>
+    <span class="foot-links"><a href="console.html">Console</a><a href="install.html">Install</a><a href="https://github.com/yybam/coremdm" target="_blank" rel="noopener">GitHub</a><a href="https://github.com/yybam/coremdm/wiki" target="_blank" rel="noopener">Docs</a></span>
+  </footer>
+</main>
+<script src="version.js"></script>
+<script type="module" src="app.js"></script>
+<script type="module" src="qr.js"></script>
+</body>
+</html>

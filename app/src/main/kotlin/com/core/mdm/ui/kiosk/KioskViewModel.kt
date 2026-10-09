@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.core.mdm.policy.KioskModeManager
+import com.core.mdm.policy.PolicyEvents
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,7 +26,11 @@ class KioskViewModel(application: Application) : AndroidViewModel(application) {
     private val _state = MutableStateFlow(KioskUiState())
     val state: StateFlow<KioskUiState> = _state.asStateFlow()
 
-    init { reload() }
+    init {
+        reload()
+        // The allowed-package list can be pushed from the web console; re-read when it lands.
+        viewModelScope.launch { PolicyEvents.remoteChanges.collect { reload() } }
+    }
 
     private fun reload() {
         val pkgs = manager.getAllowedPackages()

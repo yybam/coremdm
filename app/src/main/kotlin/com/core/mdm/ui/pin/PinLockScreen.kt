@@ -151,6 +151,7 @@ fun PinLockScreen(
 
                 // ── Dots ──────────────────────────────────────────────────────
                 PinDotsRow(
+                    total  = state.targetLength,
                     filled = state.digits.length,
                     modifier = Modifier.offset(x = shakeOffset.value.dp)
                 )
@@ -196,10 +197,10 @@ fun PinLockScreen(
                 Text(
                     text = when (state.mode) {
                         PinScreenMode.VERIFY         -> "Enter your PIN to continue"
-                        PinScreenMode.SETUP          -> "Choose a PIN (4–6 digits)"
+                        PinScreenMode.SETUP          -> "Choose a PIN (${state.targetLength} digits)"
                         PinScreenMode.SETUP_CONFIRM  -> "Re-enter PIN to confirm"
                         PinScreenMode.CHANGE_VERIFY  -> "Enter your current PIN"
-                        PinScreenMode.CHANGE_NEW     -> "Enter new PIN (4–6 digits)"
+                        PinScreenMode.CHANGE_NEW     -> "Enter new PIN (${state.targetLength} digits)"
                         PinScreenMode.CHANGE_CONFIRM -> "Re-enter new PIN to confirm"
                         PinScreenMode.REMOVE_VERIFY  -> "Enter current PIN to confirm removal"
                     },
@@ -248,13 +249,13 @@ private fun PinHeader(state: PinLockUiState) {
 // ── PIN dots ──────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun PinDotsRow(filled: Int, modifier: Modifier = Modifier) {
+private fun PinDotsRow(total: Int, filled: Int, modifier: Modifier = Modifier) {
     Row(
         modifier              = modifier,
         horizontalArrangement = Arrangement.spacedBy(18.dp),
         verticalAlignment     = Alignment.CenterVertically
     ) {
-        repeat(4) { index ->
+        repeat(total.coerceIn(4, 8)) { index ->
             val isFilled = index < filled
             val scale by animateFloatAsState(
                 targetValue  = if (isFilled) 1f else 0.85f,

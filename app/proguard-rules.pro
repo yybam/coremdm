@@ -1,8 +1,8 @@
 # ── App components referenced by name in the manifest / XML ──────────────────
--keep class com.techeaz.mdm.MdmDeviceAdmin { *; }
--keep class com.techeaz.mdm.MdmApplication { *; }
--keep class com.techeaz.mdm.receiver.BootReceiver { *; }
--keep class com.techeaz.mdm.worker.PolicyEnforcementWorker { *; }
+-keep class com.core.mdm.MdmDeviceAdmin { *; }
+-keep class com.core.mdm.MdmApplication { *; }
+-keep class com.core.mdm.receiver.BootReceiver { *; }
+-keep class com.core.mdm.worker.PolicyEnforcementWorker { *; }
 
 # ── WorkManager workers (require specific constructor) ────────────────────────
 -keep class * extends androidx.work.Worker {

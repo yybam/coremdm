@@ -8,6 +8,7 @@ import android.telephony.TelephonyManager
 import android.util.Log
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
@@ -52,12 +53,24 @@ object EnrollmentManager {
     fun getAndroidId(context: Context): String =
         Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID) ?: "unknown"
 
+    private const val PREFS_NAME = "mdm_enrollment"
+    private const val KEY_HW_ID  = "hardware_id"
+
     /**
-     * Returns the best available hardware identifier in priority order:
-     * IMEI → Serial → Android ID
+     * Returns a stable hardware identifier, cached in SharedPreferences so it
+     * never changes even if permission levels change between reboots.
+     * Priority on first derivation: IMEI → Serial → Android ID.
      */
-    fun getHardwareId(context: Context): String =
-        getImei(context) ?: getSerial(context) ?: getAndroidId(context)
+    fun getHardwareId(context: Context): String {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val cached = prefs.getString(KEY_HW_ID, null)
+        if (!cached.isNullOrBlank()) return cached
+
+        val derived = getImei(context) ?: getSerial(context) ?: getAndroidId(context)
+        prefs.edit().putString(KEY_HW_ID, derived).apply()
+        Log.i(TAG, "Hardware ID derived and cached: $derived")
+        return derived
+    }
 
     // ── Firestore enrollment ──────────────────────────────────────────────────
 
@@ -65,31 +78,59 @@ object EnrollmentManager {
      * Registers this device under /devices/{hardwareId} with the current user as ownerId.
      * Called by MdmCommandService on every start so status and lastSeen stay fresh.
      */
-    fun enroll(context: Context, fcmToken: String? = null) {
+    fun enroll(context: Context, fcmToken: String? = null, onSuccess: (() -> Unit)? = null) {
         val uid = Firebase.auth.currentUser?.uid ?: run {
             Log.w(TAG, "enroll() called without authenticated user — skipping")
             return
         }
         val hardwareId = getHardwareId(context)
+        val docRef = Firebase.firestore.collection("devices").document(hardwareId)
 
-        val data = hashMapOf<String, Any>(
+        // Fields the device always writes — never includes ownerId so we don't
+        // clobber an existing ownerId set by the admin in the web console.
+        val metadata = hashMapOf<String, Any>(
             "hardwareId"   to hardwareId,
             "androidId"    to getAndroidId(context),
             "model"        to "${Build.MANUFACTURER} ${Build.MODEL}",
             "manufacturer" to Build.MANUFACTURER,
             "osVersion"    to "Android ${Build.VERSION.RELEASE}",
             "status"       to "online",
-            "ownerId"      to uid,
+            "deviceUid"    to uid,
             "lastSeen"     to FieldValue.serverTimestamp(),
         )
-        getImei(context)?.let    { data["imei"]   = it }
-        getSerial(context)?.let  { data["serial"] = it }
-        fcmToken?.let            { data["fcmToken"] = it }
+        getImei(context)?.let    { metadata["imei"]     = it }
+        getSerial(context)?.let  { metadata["serial"]   = it }
+        fcmToken?.let            { metadata["fcmToken"] = it }
 
-        Firebase.firestore.collection("devices").document(hardwareId)
-            .set(data, SetOptions.merge())
-            .addOnSuccessListener { Log.d(TAG, "Enrolled $hardwareId (ownerId=$uid)") }
-            .addOnFailureListener { Log.e(TAG, "Enrollment failed: ${it.message}") }
+        Log.i(TAG, "Enrolling device: hardwareId=$hardwareId deviceUid=$uid")
+
+        // Try update first — preserves admin-assigned ownerId on existing docs.
+        docRef.update(metadata)
+            .addOnSuccessListener {
+                Log.i(TAG, "Enroll (update) OK: $hardwareId")
+                onSuccess?.invoke()
+            }
+            .addOnFailureListener { err ->
+                // A missing doc can surface as PERMISSION_DENIED rather than NOT_FOUND:
+                // the update rule reads resource.data, which doesn't exist yet. The
+                // create rule still requires ownerId == auth.uid, and set-merge on
+                // someone else's existing doc is rejected by the update rule.
+                val code = (err as? FirebaseFirestoreException)?.code
+                if (code == FirebaseFirestoreException.Code.NOT_FOUND ||
+                        code == FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                    // New device — create the doc and set ownerId to the current user.
+                    val createData = HashMap(metadata)
+                    createData["ownerId"] = uid
+                    docRef.set(createData, SetOptions.merge())
+                        .addOnSuccessListener {
+                            Log.i(TAG, "Enroll (create) OK: $hardwareId")
+                            onSuccess?.invoke()
+                        }
+                        .addOnFailureListener { Log.e(TAG, "Enroll create FAILED: ${it.message}") }
+                } else {
+                    Log.e(TAG, "Enroll update FAILED: ${err.message}")
+                }
+            }
     }
 
     fun setOffline(context: Context) {

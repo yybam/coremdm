@@ -3,10 +3,11 @@
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
-import android.graphics.drawable.Drawable
+import android.graphics.Bitmap
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
+import androidx.core.graphics.drawable.toBitmap
 
 /**
  * Carries the real-time MDM enforcement status for a single installed package.
@@ -14,7 +15,11 @@ import androidx.annotation.RequiresApi
 data class AppStatus(
     val packageName: String,
     val label: String,
-    val icon: Drawable?,
+    /**
+     * Pre-rendered on the loading (IO) thread, so the app list never rasterizes a Drawable on
+     * the main thread as rows scroll into view — that stalled every row on low-end devices.
+     */
+    val icon: Bitmap?,
     val isSystem: Boolean,
     val isHidden: Boolean,
     val isSuspended: Boolean
@@ -33,6 +38,7 @@ class AppPolicyManager(
 ) {
     companion object {
         private const val TAG = "AppPolicyManager"
+        private const val ICON_PX = 96
     }
 
     // ── Suspension ────────────────────────────────────────────────────────────
@@ -145,10 +151,13 @@ class AppPolicyManager(
      *
      * @param includeSystem  When false (default), core system apps are excluded.
      * @param sortBlocked    When true, blocked/hidden apps appear at the top.
+     * @param loadIcons      When false, [AppStatus.icon] is null — skips rendering every icon
+     *                       for callers that only need package state.
      */
     fun getInstalledApps(
         includeSystem: Boolean = false,
-        sortBlocked: Boolean = true
+        sortBlocked: Boolean = true,
+        loadIcons: Boolean = true
     ): List<AppStatus> {
         val pm = context.packageManager
         return pm.getInstalledApplications(PackageManager.GET_META_DATA)
@@ -165,7 +174,7 @@ class AppPolicyManager(
                     packageName = ai.packageName,
                     label       = runCatching { pm.getApplicationLabel(ai).toString() }
                                     .getOrDefault(ai.packageName),
-                    icon        = runCatching { pm.getApplicationIcon(ai) }.getOrNull(),
+                    icon        = if (loadIcons) loadIcon(pm, ai) else null,
                     isSystem    = (ai.flags and ApplicationInfo.FLAG_SYSTEM) != 0,
                     isHidden    = hidden,
                     isSuspended = suspended
@@ -181,7 +190,7 @@ class AppPolicyManager(
 
     /** Returns all packages with an active enforcement action (hidden OR suspended). */
     fun getEnforcedPackages(): List<AppStatus> =
-        getInstalledApps(includeSystem = true).filter { it.isHidden || it.isSuspended }
+        getInstalledApps(includeSystem = true, loadIcons = false).filter { it.isHidden || it.isSuspended }
 
     /** Returns the [AppStatus] for a single package, or null if not found. */
     fun getAppStatus(packageName: String): AppStatus? {
@@ -195,11 +204,14 @@ class AppPolicyManager(
             AppStatus(
                 packageName = packageName,
                 label       = pm.getApplicationLabel(ai).toString(),
-                icon        = runCatching { pm.getApplicationIcon(ai) }.getOrNull(),
+                icon        = loadIcon(pm, ai),
                 isSystem    = (ai.flags and ApplicationInfo.FLAG_SYSTEM) != 0,
                 isHidden    = hidden,
                 isSuspended = suspended
             )
         }.getOrNull()
     }
+
+    private fun loadIcon(pm: PackageManager, ai: ApplicationInfo): Bitmap? =
+        runCatching { pm.getApplicationIcon(ai).toBitmap(ICON_PX, ICON_PX) }.getOrNull()
 }

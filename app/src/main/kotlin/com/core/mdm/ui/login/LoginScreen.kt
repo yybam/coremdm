@@ -2,10 +2,13 @@ package com.core.mdm.ui.login
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.outlined.*
@@ -15,20 +18,31 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialException
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.core.mdm.ui.theme.LocalAppColors
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import kotlinx.coroutines.launch
+
+private const val GOOGLE_WEB_CLIENT_ID = "457812602789-4ha9mpjq8rirbge9j5l55qsitgfkt8en.apps.googleusercontent.com"
 
 @Composable
 fun LoginScreen(vm: LoginViewModel = viewModel()) {
     val state by vm.uiState.collectAsStateWithLifecycle()
     val c = LocalAppColors.current
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -40,13 +54,17 @@ fun LoginScreen(vm: LoginViewModel = viewModel()) {
         modifier = Modifier
             .fillMaxSize()
             .background(c.navy)
-            .systemBarsPadding(),
+            // System bars + keyboard: edge-to-edge stops the window from shrinking for the keyboard.
+            .safeDrawingPadding(),
         contentAlignment = Alignment.Center
     ) {
+        // Scrollable so the fields and Sign In button can be reached above the keyboard on
+        // small screens; still centered when everything fits.
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 32.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 32.dp, vertical = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
@@ -120,6 +138,44 @@ fun LoginScreen(vm: LoginViewModel = viewModel()) {
                         color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 15.sp
                     )
                 }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                HorizontalDivider(modifier = Modifier.weight(1f), color = c.cardBorder)
+                Text("  or  ", color = c.textSecondary, fontSize = 12.sp)
+                HorizontalDivider(modifier = Modifier.weight(1f), color = c.cardBorder)
+            }
+
+            OutlinedButton(
+                onClick = {
+                    scope.launch {
+                        val credentialManager = CredentialManager.create(context)
+                        val googleIdOption = GetGoogleIdOption.Builder()
+                            .setFilterByAuthorizedAccounts(false)
+                            .setServerClientId(GOOGLE_WEB_CLIENT_ID)
+                            .build()
+                        val request = GetCredentialRequest.Builder()
+                            .addCredentialOption(googleIdOption)
+                            .build()
+                        try {
+                            val result = credentialManager.getCredential(context, request)
+                            val googleCredential = GoogleIdTokenCredential.createFrom(result.credential.data)
+                            vm.signInWithGoogleToken(googleCredential.idToken)
+                        } catch (e: GetCredentialException) {
+                            vm.setError(e.message ?: "Google Sign-In failed")
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                shape = RoundedCornerShape(12.dp),
+                enabled = !state.isLoading,
+                border = androidx.compose.foundation.BorderStroke(1.dp, c.cardBorder),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = c.textPrimary)
+            ) {
+                Text("Continue with Google", fontWeight = FontWeight.Medium, fontSize = 15.sp)
             }
 
             TextButton(onClick = { isSignUp = !isSignUp; vm.clearError() }) {

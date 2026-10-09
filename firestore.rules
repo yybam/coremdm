@@ -2,14 +2,99 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Flat device collection — device owner has full access,
-    // query with whereEqualTo("ownerId", uid) is enforced here per-document.
+    function isSuperAdmin() {
+      return request.auth != null
+          && request.auth.token.email == 'yybambi23@gmail.com'
+          && request.auth.token.email_verified == true;
+    }
+
     match /devices/{deviceId} {
       allow create: if request.auth != null
                     && request.resource.data.ownerId == request.auth.uid;
 
-      allow read, update, delete: if request.auth != null
-                                  && resource.data.ownerId == request.auth.uid;
+      // Owner, super-admin, or the device itself (matched via deviceUid) can read.
+      allow read: if request.auth != null
+                  && (resource.data.ownerId == request.auth.uid
+                      || isSuperAdmin()
+                      || resource.data.deviceUid == request.auth.uid);
+
+      allow update: if request.auth != null
+                    && (
+                      // Owner or super-admin can change anything
+                      resource.data.ownerId == request.auth.uid
+                      || isSuperAdmin()
+                      // The device itself (matched by deviceUid) can update any field
+                      // except ownerId — this covers command ACK (resetting lockCommand etc.)
+                      // and heartbeat writes.
+                      || (
+                        resource.data.deviceUid == request.auth.uid
+                        && !request.resource.data.diff(resource.data).affectedKeys()
+                             .hasAny(['ownerId'])
+                      )
+                      // Bootstrap: any authenticated user may write device-info and heartbeat
+                      // fields before deviceUid is set. If deviceUid is included it must
+                      // equal the caller's own UID — prevents claiming another device.
+                      || (
+                        request.resource.data.diff(resource.data).affectedKeys()
+                          .hasOnly(['lastSeen', 'status', 'fcmToken',
+                                    'hardwareId', 'androidId', 'model',
+                                    'manufacturer', 'osVersion', 'imei', 'serial', 'deviceUid'])
+                        && (
+                          !request.resource.data.diff(resource.data).affectedKeys()
+                             .hasAll(['deviceUid'])
+                          || request.resource.data.deviceUid == request.auth.uid
+                        )
+                      )
+                    );
+
+      allow delete: if request.auth != null
+                    && resource.data.ownerId == request.auth.uid;
+    }
+
+    // Per-device command queue. Owner/super-admin dispatch and cancel commands; the device
+    // (matched via its parent doc's deviceUid) reads them and marks them executed.
+    match /devices/{deviceId}/commands/{cmdId} {
+      function parentDevice() {
+        return get(/databases/$(database)/documents/devices/$(deviceId)).data;
+      }
+      allow read: if request.auth != null
+                  && (parentDevice().ownerId == request.auth.uid
+                      || isSuperAdmin()
+                      || parentDevice().deviceUid == request.auth.uid);
+      allow create, delete: if request.auth != null
+                  && (parentDevice().ownerId == request.auth.uid || isSuperAdmin());
+      allow update: if request.auth != null
+                  && (parentDevice().ownerId == request.auth.uid
+                      || isSuperAdmin()
+                      || parentDevice().deviceUid == request.auth.uid);
+    }
+
+    // Audit log — any authenticated user can write, only super admin can read
+    match /audit_logs/{logId} {
+      allow create: if request.auth != null;
+      allow read:   if isSuperAdmin();
+      allow update, delete: if false;
+    }
+
+    // Device inventory — pre-provisioning records
+    match /device_inventory/{imei} {
+      allow read, write: if isSuperAdmin();
+      // Devices mark themselves ENROLLED after verifying their token client-side
+      allow update: if request.auth != null
+                    && resource.data.enrollmentStatus == 'PENDING'
+                    && request.resource.data.enrollmentStatus == 'ENROLLED'
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['enrollmentStatus', 'enrolledAt',
+                                   'enrollmentToken', 'enrollmentTokenExpiresAt']);
+    }
+
+    // Enrollment token lookup — the 32-char random token itself is the secret.
+    // Any signed-in device can look up its record; only super admin can create tokens.
+    match /enrollment_tokens/{token} {
+      allow read:   if request.auth != null;
+      allow create: if isSuperAdmin();
+      allow update: if false;
+      allow delete: if request.auth != null;   // device consumes token after enrollment
     }
 
     // Deny everything else

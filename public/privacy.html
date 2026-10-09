@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy Policy — CORE MDM</title>
+<meta name="description" content="What CORE MDM collects, why, and what it does not collect. CORE MDM manages what a device can do — it does not read messages, track location or record browsing.">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="bg" aria-hidden="true"><span class="orb o1"></span><span class="orb o2"></span><span class="orb o3"></span></div>
+
+<nav class="nav">
+  <a class="brand" href="/"><svg class="cmark nav" viewBox="0 0 24 24" aria-hidden="true"><text x="12" y="12.5" text-anchor="middle" dominant-baseline="central" font-weight="800" font-size="15" fill="#fff">C</text></svg> CORE MDM</a>
+  <div class="links">
+    <a href="features.html">Features</a>
+    <a href="demo.html">Demo</a>
+    <a href="faq.html">FAQ</a>
+    <a href="about.html">About</a>
+    <a href="https://github.com/yybam/coremdm" target="_blank" rel="noopener">GitHub</a>
+    <a class="pill ghost-pill" href="console.html">Manage</a>
+    <a class="pill" href="install.html">Install</a>
+  </div>
+</nav>
+
+<main class="narrow">
+  <header class="hero page-hero">
+    <p class="eyebrow">Legal</p>
+    <h1>Privacy <span class="grad">Policy</span></h1>
+    <p class="updated">Last updated: 7 October 2026</p>
+  </header>
+
+  <section class="glass prose">
+    <h2>The short version</h2>
+    <p>CORE MDM manages <b>what a device can do</b>. It does <b>not</b> read your messages, track your location, record your browsing history, or access your photos, contacts or files. It collects the minimum needed to show a phone in your console and apply the rules you set.</p>
+  </section>
+
+  <section class="glass prose">
+    <h2>What we collect</h2>
+    <p><b>From a managed device:</b></p>
+    <ul>
+      <li>Device info: model, manufacturer, Android version, and a stable hardware identifier (IMEI/serial/Android ID, where available).</li>
+      <li>Status: online/offline and a "last seen" time (a heartbeat).</li>
+      <li>The policies and commands you apply to the device.</li>
+      <li>A list of installed apps (package name, label, version) so you can see and manage them. No app content is collected.</li>
+    </ul>
+    <p><b>From an administrator (you):</b> your sign-in identity (email and account ID) from Firebase Authentication, and an audit log of admin actions you take (such as lock, wipe, rename and policy changes) with a timestamp.</p>
+    <p><b>What we do not collect:</b> message contents, call contents, location, browsing history, keystrokes, photos, contacts or files.</p>
+  </section>
+
+  <section class="glass prose">
+    <h2>How we use it</h2>
+    <p>Only to provide the Service: to show your devices in the console, deliver the commands and rules you set, keep status current, and maintain an audit trail of administrative actions. We don't sell your data or use it for advertising.</p>
+  </section>
+
+  <section class="glass prose">
+    <h2>Where it's stored</h2>
+    <p>Data is stored in Google Firebase (Firestore and Authentication). Devices are scoped to the account that signed in on them, enforced by security rules, so only that account can read them. Google processes this data as our infrastructure provider under its own terms and security.</p>
+  </section>
+
+  <section class="glass prose">
+    <h2>Retention and deletion</h2>
+    <p>Device records persist while a device is enrolled under your account. You can delete a device from the console, and wiping or un-enrolling a phone removes its management state. Audit logs are kept to provide an administrative history.</p>
+  </section>
+
+  <section class="glass prose">
+    <h2>Your responsibilities and the people who use the device</h2>
+    <p>If you manage a device used by someone else, you're responsible for informing them that it's managed, as required by law and by our <a href="consent.html">Consent Policy</a>. CORE MDM is not for covert monitoring.</p>
+  </section>
+
+  <section class="glass prose">
+    <h2>Security</h2>
+    <p>Access is authenticated, device data is scoped per account by security rules, and the in-app PIN is stored only as a salted hash. No system is perfectly secure; report issues via a <a href="https://github.com/yybam/coremdm/security/advisories/new" target="_blank" rel="noopener">security advisory</a>.</p>
+  </section>
+
+  <section class="glass prose">
+    <h2>Children</h2>
+    <p>CORE MDM is operated by the adult who manages the devices. If you use it on a child's phone, you're responsible for doing so lawfully and openly.</p>
+
+    <h2>Changes &amp; contact</h2>
+    <p>We may update this policy; the "last updated" date will change. Questions? Open an issue on <a href="https://github.com/yybam/coremdm/issues/new" target="_blank" rel="noopener">GitHub</a>.</p>
+
+    <p class="fine">Provided for a beta, open-source project; not legal advice. Review your own obligations before deploying in an organization.</p>
+  </section>
+
+  <footer class="muted foot">
+    <span><span class="cmark foot">C</span> CORE MDM <small>Beta</small></span>
+    <span class="foot-links">
+      <a href="features.html">Features</a><a href="demo.html">Demo</a><a href="faq.html">FAQ</a>
+      <a href="about.html">About</a><a href="install.html">Install</a><a href="console.html">Manage</a>
+      <a href="https://github.com/yybam/coremdm" target="_blank" rel="noopener">GitHub</a>
+      <a href="terms.html">Terms</a><a href="privacy.html">Privacy</a><a href="consent.html">Consent</a>
+    </span>
+  </footer>
+</main>
+</body>
+</html>

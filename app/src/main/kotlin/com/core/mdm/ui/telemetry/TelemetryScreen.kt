@@ -1,8 +1,9 @@
 ﻿package com.core.mdm.ui.telemetry
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -57,46 +58,45 @@ fun TelemetryScreen(
         },
         containerColor = c.navy
     ) { padding ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(16.dp),
+        // A plain scrollable Column, not a LazyColumn — same reason as DashboardScreen: a fixed
+        // handful of cards that LazyColumn re-composed every time one scrolled back into view.
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             if (state.isLoading) {
-                item {
-                    Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = c.cyan)
-                    }
+                Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = c.cyan)
                 }
             }
 
             state.error?.let { err ->
-                item {
-                    Card(
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = c.red.copy(alpha = 0.1f))
-                    ) {
-                        Text(err, color = c.red, modifier = Modifier.padding(16.dp))
-                    }
+                Card(
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = c.red.copy(alpha = 0.1f))
+                ) {
+                    Text(err, color = c.red, modifier = Modifier.padding(16.dp))
                 }
             }
 
             state.metrics?.let { m ->
-                item { BatteryCard(m) }
-                item { StorageCard(m) }
-                item { NetworkCard(m) }
-                item { SystemCard(m) }
-                item {
-                    val fmt = SimpleDateFormat("MMM d, h:mm:ss a", Locale.getDefault())
-                    Text(
-                        "Last updated: ${fmt.format(Date(m.collectedAt))}",
-                        color = c.textSecondary, fontSize = 11.sp,
-                        modifier = Modifier.padding(horizontal = 4.dp)
-                    )
-                }
+                BatteryCard(m)
+                StorageCard(m)
+                NetworkCard(m)
+                SystemCard(m)
+                val fmt = SimpleDateFormat("MMM d, h:mm:ss a", Locale.getDefault())
+                Text(
+                    "Last updated: ${fmt.format(Date(m.collectedAt))}",
+                    color = c.textSecondary, fontSize = 11.sp,
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                )
             }
 
-            item { Spacer(Modifier.height(16.dp)) }
+            Spacer(Modifier.height(16.dp))
         }
     }
 }

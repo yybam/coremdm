@@ -1,4 +1,4 @@
-﻿plugins {
+plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
@@ -13,23 +13,35 @@ android {
         applicationId = "com.core.mdm"
         minSdk = 24
         targetSdk = 34
-        versionCode = 34
-        versionName = "34.0"
+        versionCode = 41
+        versionName = "41.0"
     }
 
     signingConfigs {
         create("release") {
-            storeFile     = file("${System.getProperty("user.home")}/.android/debug.keystore")
-            storePassword = "android"
-            keyAlias      = "androiddebugkey"
-            keyPassword   = "android"
+            // CI provides the permanent release key via env vars (see build-apk.yml) so
+            // every release has the same signature and installs as an update. Local
+            // builds without them fall back to the Android debug keystore.
+            val releaseStore = System.getenv("RELEASE_KEYSTORE_FILE")
+            if (releaseStore != null) {
+                storeFile     = file(releaseStore)
+                storePassword = System.getenv("RELEASE_KEYSTORE_PASSWORD")
+                keyAlias      = System.getenv("RELEASE_KEY_ALIAS") ?: "coremdm"
+                keyPassword   = System.getenv("RELEASE_KEYSTORE_PASSWORD")
+                storeType     = "pkcs12"
+            } else {
+                storeFile     = file("${System.getProperty("user.home")}/.android/debug.keystore")
+                storePassword = "android"
+                keyAlias      = "androiddebugkey"
+                keyPassword   = "android"
+            }
         }
     }
 
     buildTypes {
         release {
-            isMinifyEnabled  = true
-            isShrinkResources = true
+            isMinifyEnabled  = false
+            isShrinkResources = false
             signingConfig    = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -78,5 +90,8 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.messaging)
     implementation(libs.firebase.auth)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services)
+    implementation(libs.google.identity.googleid)
     debugImplementation(libs.androidx.ui.tooling)
 }

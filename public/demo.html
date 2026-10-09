@@ -1,0 +1,637 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Try the app · CORE MDM</title>
+<meta name="description" content="Try the CORE MDM Android app in your browser. A clickable demo: flip switches, open settings and see how it works. Nothing on any phone changes.">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+  /* ---------- page layout ---------- */
+  .demo-wrap { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 48px; align-items: start; margin-top: 8px; }
+  .demo-side h2 { margin: 0 0 8px; font-size: 1.35rem; letter-spacing: -.02em; }
+  .demo-side p { color: var(--muted); margin: 0 0 14px; }
+  .try { list-style: none; margin: 0 0 18px; padding: 0; display: grid; gap: 10px; }
+  .try li { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: 16px;
+    background: var(--glass); border: 1px solid var(--line); }
+  .try b { display: block; font-weight: 600; }
+  .try span { color: var(--muted); font-size: .9rem; }
+  .try i { flex: none; width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; font-style: normal;
+    font-weight: 700; font-size: .8rem; color: #fff; background: linear-gradient(135deg, #1f7fd6, #1fb58f); }
+  .demo-note { padding: 14px 16px; border-radius: 16px; border: 1px solid rgba(255, 193, 94, .35); background: rgba(255, 193, 94, .08);
+    color: var(--text); font-size: .9rem; }
+  .demo-note b { color: var(--warn); }
+  .demo-side button.btn { font: inherit; font-weight: 600; cursor: pointer; }
+  @media (max-width: 900px) { .demo-wrap { grid-template-columns: 1fr; justify-items: center; gap: 32px; } .demo-side { max-width: 560px; } }
+
+  /* ---------- phone frame ---------- */
+  .phone { --c-cyan: #7fd0f5; --c-cyandim: rgba(46, 154, 230, .3); --c-navy: #070a14; --c-bar: rgba(10, 16, 30, .7);
+    --c-card: rgba(255, 255, 255, .07); --c-border: rgba(255, 255, 255, .12); --c-panel: #131b2e; --c-green: #4ade9b;
+    --c-red: #ff6b7d; --c-yellow: #ffc15e; --c-purple: #7fe0d0; --c-orange: #ffa36b; --c-text: #eef1f8;
+    --c-muted: rgba(226, 232, 245, .62); --c-accent2: #2fd39a; --c-track: rgba(255, 255, 255, .15); --c-glow: 1;
+    position: relative; width: min(360px, calc(100vw - 32px)); aspect-ratio: 9 / 19; padding: 10px; border-radius: 46px;
+    background: linear-gradient(145deg, #2a3142, #11151f); box-shadow: 0 0 0 1px rgba(255, 255, 255, .12) inset,
+    0 40px 80px -30px rgba(0, 0, 0, .9), 0 0 60px -10px rgba(31, 160, 190, .35); }
+  .phone.light { --c-cyan: #1f7fd6; --c-cyandim: rgba(31, 127, 214, .2); --c-navy: #f1f5fa; --c-bar: rgba(255, 255, 255, .8);
+    --c-card: rgba(255, 255, 255, .7); --c-border: rgba(13, 27, 42, .1); --c-panel: #fff; --c-green: #16a36a; --c-red: #e5485c;
+    --c-yellow: #c98a12; --c-purple: #14a38b; --c-orange: #e0692e; --c-text: #0d1b2a; --c-muted: #5a6a80; --c-accent2: #1fb58f;
+    --c-track: rgba(13, 27, 42, .15); --c-glow: .35; }
+  .screen { position: relative; height: 100%; border-radius: 37px; overflow: hidden; color: var(--c-text); background: var(--c-navy);
+    font-size: 14px; line-height: 1.35; display: flex; flex-direction: column; isolation: isolate; }
+  .screen::before { content: ""; position: absolute; inset: 0; z-index: -1; opacity: var(--c-glow); pointer-events: none;
+    background: radial-gradient(90% 40% at 50% -8%, #0c2a44, transparent 75%),
+      radial-gradient(70% 35% at 5% 2%, rgba(31, 111, 209, .34), transparent 70%),
+      radial-gradient(70% 40% at 105% 45%, rgba(20, 184, 166, .26), transparent 70%),
+      radial-gradient(70% 35% at 35% 102%, rgba(52, 199, 123, .18), transparent 70%); }
+  .camera { position: absolute; top: 18px; left: 50%; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%;
+    background: #05070c; box-shadow: 0 0 0 2px #1a1f2b; z-index: 5; }
+  .sbar { flex: none; height: 38px; padding: 12px 24px 0; display: flex; justify-content: space-between; align-items: center;
+    font-size: 12px; font-weight: 600; }
+  .sbar span { display: inline-flex; gap: 5px; align-items: center; }
+  .sbar svg { width: 14px; height: 14px; }
+  .navbar { flex: none; height: 40px; display: flex; justify-content: space-around; align-items: center; padding: 0 40px; }
+  .navbar button { width: 40px; height: 32px; border: 0; background: none; color: var(--c-muted); cursor: pointer; border-radius: 10px;
+    display: grid; place-items: center; }
+  .navbar button:hover { background: var(--c-card); }
+  .navbar svg { width: 18px; height: 18px; }
+
+  .view { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .topbar { flex: none; display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 16px; background: var(--c-bar);
+    border-bottom: 1px solid var(--c-border); }
+  .topbar .title { flex: 1; display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; }
+  .topbar .title img { width: 24px; height: auto; }
+  .ib { width: 38px; height: 38px; border: 0; border-radius: 50%; background: none; color: var(--c-text); cursor: pointer;
+    display: grid; place-items: center; flex: none; }
+  .ib:hover { background: var(--c-card); }
+  .ib svg { width: 21px; height: 21px; }
+  .ib.cyan { color: var(--c-cyan); }
+  .ib.spin svg { animation: spin .7s linear; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 14px 12px 20px;
+    display: flex; flex-direction: column; gap: 10px; scrollbar-width: thin; scrollbar-color: var(--c-border) transparent; }
+
+  /* ---------- app components (mirror the Compose UI) ---------- */
+  .card { background: var(--c-card); border: 1px solid var(--c-border); border-radius: 18px; flex: none; }
+  .card-h { display: flex; align-items: center; gap: 11px; padding: 13px 12px 12px 14px; width: 100%; border: 0; background: none;
+    color: inherit; font: inherit; text-align: left; }
+  button.card-h { cursor: pointer; }
+  .card-ico { width: 34px; height: 34px; flex: none; border-radius: 10px; display: grid; place-items: center;
+    background: color-mix(in srgb, var(--k) 14%, transparent); border: 1px solid color-mix(in srgb, var(--k) 30%, transparent); color: var(--k); }
+  .card-ico svg { width: 19px; height: 19px; }
+  .card-h .tx { flex: 1; min-width: 0; }
+  .card-h b { display: block; font-size: 15px; }
+  .card-h small { display: block; color: var(--c-muted); font-size: 12px; }
+  .chev { width: 22px; height: 22px; color: var(--c-muted); transition: transform .2s; flex: none; }
+  .card.open .chev { transform: rotate(180deg); }
+  .card-b { border-top: 1px solid var(--c-border); }
+  .card.collapsible:not(.open) .card-b { display: none; }
+
+  .prow { display: flex; align-items: center; gap: 11px; padding: 10px 12px 10px 14px; margin: 0; }
+  .prow + .prow { border-top: 1px solid var(--c-border); margin-left: 44px; padding-left: 0; }
+  .prow + .prow > .ri { margin-left: -30px; }
+  .ri { width: 19px; height: 19px; flex: none; color: var(--c-muted); }
+  .ri.on { color: var(--c-cyan); }
+  .prow .tx { flex: 1; min-width: 0; }
+  .prow .tx b { display: block; font-size: 13.5px; font-weight: 600; }
+  .prow .tx small { display: block; color: var(--c-muted); font-size: 10.5px; line-height: 1.3; }
+  .prow.go { cursor: pointer; }
+  .prow.go:hover { background: color-mix(in srgb, var(--c-card) 60%, transparent); }
+  .prow .chr { width: 19px; height: 19px; color: var(--c-muted); flex: none; }
+  .red-t b { color: var(--c-red); }
+
+  .sw { flex: none; position: relative; width: 42px; height: 24px; border-radius: 99px; border: 0; padding: 0; cursor: pointer;
+    background: var(--c-track); transition: background .2s; }
+  .sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff;
+    transition: transform .2s; box-shadow: 0 1px 3px rgba(0, 0, 0, .3); }
+  .sw[aria-checked="true"] { background: linear-gradient(135deg, #1f7fd6, #1fb58f); }
+  .sw[aria-checked="true"]::after { transform: translateX(18px); }
+
+  .abtn { flex: none; border: 1px solid var(--c-border); background: var(--c-card); color: var(--c-text); font: inherit; font-size: 12.5px;
+    font-weight: 600; padding: 8px 14px; border-radius: 10px; cursor: pointer; }
+  .abtn.cyan { color: var(--c-cyan); border-color: transparent; background: none; }
+  .abtn.red { color: var(--c-red); background: color-mix(in srgb, var(--c-red) 12%, transparent); border-color: transparent; font-weight: 700; }
+  .abtn.green { color: var(--c-green); background: color-mix(in srgb, var(--c-green) 15%, transparent); border-color: color-mix(in srgb, var(--c-green) 40%, transparent); }
+  .abtn.yellow { color: var(--c-yellow); background: color-mix(in srgb, var(--c-yellow) 15%, transparent); border-color: color-mix(in srgb, var(--c-yellow) 40%, transparent); }
+  .abtn.grad { color: #fff; border: 0; background: linear-gradient(135deg, #1f7fd6, #1fb58f); }
+  .abtn:hover { filter: brightness(1.12); }
+
+  .stat-card { padding: 14px; }
+  .stat-card .top { display: flex; align-items: center; gap: 10px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c-green); flex: none; }
+  .stat-card .top .tx { flex: 1; }
+  .stat-card .top b { color: var(--c-green); font-size: 14.5px; display: block; }
+  .stat-card small, .stat-card p { color: var(--c-muted); font-size: 11px; margin: 0; }
+  .stat-card p { margin-top: 9px; }
+  .tag { font-size: 9.5px; font-weight: 700; letter-spacing: 1px; padding: 5px 9px; border-radius: 8px; color: var(--c-green);
+    background: color-mix(in srgb, var(--c-green) 12%, transparent); }
+  .wide-btn { flex: none; display: flex; align-items: center; justify-content: center; gap: 8px; height: 46px; border-radius: 12px;
+    font: inherit; font-weight: 600; cursor: pointer; color: var(--c-yellow); background: color-mix(in srgb, var(--c-yellow) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--c-yellow) 50%, transparent); }
+  .wide-btn svg { width: 17px; height: 17px; }
+  .seg { display: flex; flex: none; border: 1px solid var(--c-border); border-radius: 99px; overflow: hidden; }
+  .seg button { border: 0; background: var(--c-card); color: var(--c-muted); font: inherit; font-size: 10.5px; font-weight: 600;
+    padding: 6px 9px; cursor: pointer; }
+  .seg button + button { border-left: 1px solid var(--c-border); }
+  .seg button[aria-pressed="true"] { color: var(--c-cyan); background: color-mix(in srgb, var(--c-cyan) 15%, transparent); }
+  .btn-pair { display: flex; gap: 10px; padding: 12px 14px; }
+  .btn-pair .abtn { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+  .btn-pair svg { width: 15px; height: 15px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 14px 12px; }
+  .chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px 4px 10px; border-radius: 99px; font-size: 11.5px;
+    background: var(--c-card); border: 1px solid var(--c-border); }
+  .chip button { border: 0; background: none; color: var(--c-muted); cursor: pointer; padding: 0 2px; font-size: 14px; line-height: 1; }
+  .add { display: flex; gap: 8px; padding: 0 14px 14px; }
+  .add input { flex: 1; min-width: 0; font: inherit; font-size: 12.5px; color: var(--c-text); background: transparent;
+    border: 1px solid var(--c-border); border-radius: 10px; padding: 8px 10px; }
+  .add input:focus { outline: none; border-color: var(--c-cyan); }
+  .bigstat { display: flex; align-items: center; gap: 12px; padding: 16px 14px; }
+  .bigstat .card-ico { width: 46px; height: 46px; border-radius: 14px; }
+  .bigstat .card-ico svg { width: 24px; height: 24px; }
+  .bigstat .tx { flex: 1; }
+  .bigstat b { display: block; font-size: 16px; }
+  .bigstat small { color: var(--c-muted); font-size: 11.5px; }
+
+  /* ---------- PIN screen ---------- */
+  .pin { align-items: center; justify-content: space-between; padding: 26px 22px 12px; text-align: center; }
+  .pin-head img { width: 64px; height: auto; filter: drop-shadow(0 8px 22px rgba(31, 170, 200, .45)); }
+  .pin-head h3 { margin: 10px 0 2px; font-size: 22px; }
+  .pin-head p { margin: 0; color: var(--c-muted); font-size: 12.5px; }
+  .pin-dots { display: flex; gap: 12px; justify-content: center; margin: 18px 0 6px; min-height: 14px; }
+  .pin-dots i { width: 13px; height: 13px; border-radius: 50%; border: 2px solid var(--c-muted); }
+  .pin-dots i.f { background: var(--c-cyan); border-color: var(--c-cyan); }
+  .pin-hint { font-size: 11.5px; color: var(--c-cyan); min-height: 16px; }
+  .pin-hint.bad { color: var(--c-red); }
+  .keys { display: grid; grid-template-columns: repeat(3, 64px); gap: 12px 22px; justify-content: center; }
+  .keys button { width: 64px; height: 64px; border-radius: 50%; border: 1px solid var(--c-border); background: var(--c-card);
+    color: var(--c-text); font: inherit; font-size: 24px; font-weight: 500; cursor: pointer; display: grid; place-items: center; }
+  .keys button:active { background: color-mix(in srgb, var(--c-cyan) 20%, transparent); }
+  .keys button.ok { border: 0; background: linear-gradient(135deg, #1f7fd6, #1fb58f); color: #fff; }
+  .keys button.plain { border: 0; background: none; }
+  .keys svg { width: 24px; height: 24px; }
+  .pin-foot { color: var(--c-muted); font-size: 11px; display: flex; align-items: center; gap: 6px; }
+  .pin-foot img { width: 14px; }
+
+  /* ---------- snackbar + dialog ---------- */
+  .snack { position: absolute; left: 12px; right: 12px; bottom: 52px; z-index: 20; padding: 12px 14px; border-radius: 10px;
+    background: var(--c-panel); color: var(--c-text); font-size: 12.5px; box-shadow: 0 10px 30px -8px rgba(0, 0, 0, .6);
+    border: 1px solid var(--c-border); transform: translateY(12px); opacity: 0; transition: .2s; pointer-events: none; }
+  .snack.show { transform: none; opacity: 1; }
+  .scrim { position: absolute; inset: 0; z-index: 30; display: grid; place-items: center; padding: 22px; background: rgba(0, 0, 0, .55); }
+  .dialog { width: 100%; padding: 22px 20px 12px; border-radius: 26px; background: var(--c-panel); text-align: center; }
+  .dialog .di { width: 24px; height: 24px; color: var(--k); }
+  .dialog h4 { margin: 10px 0 10px; font-size: 18px; font-weight: 600; color: var(--k2, var(--c-text)); }
+  .dialog p { margin: 0; color: var(--c-muted); font-size: 13px; text-align: left; white-space: pre-line; }
+  .dialog .acts { display: flex; justify-content: flex-end; gap: 6px; margin-top: 16px; }
+  .dialog .acts .abtn.solid { color: #111; background: var(--k); border: 0; }
+  .demo-flag { display: block; margin-top: 10px; font-size: 11.5px; color: var(--c-cyan); text-align: left; }
+</style>
+</head>
+<body>
+<div class="bg" aria-hidden="true">
+  <span class="orb o1"></span><span class="orb o2"></span><span class="orb o3"></span>
+</div>
+
+<nav class="nav">
+  <a class="brand" href="/"><svg class="cmark nav" viewBox="0 0 24 24" aria-hidden="true"><text x="12" y="12.5" text-anchor="middle" dominant-baseline="central" font-weight="800" font-size="15" fill="#fff">C</text></svg> CORE MDM</a>
+  <div class="links">
+    <a href="features.html">Features</a>
+    <a href="demo.html" aria-current="page">Demo</a>
+    <a href="faq.html">FAQ</a>
+    <a href="about.html">About</a>
+    <a href="https://github.com/yybam/coremdm" target="_blank" rel="noopener">GitHub</a>
+    <a class="pill ghost-pill" href="console.html">Manage</a>
+    <a class="pill" href="install.html">Install</a>
+  </div>
+</nav>
+
+<main class="wide">
+  <header class="hero page-hero">
+    <p class="eyebrow">Live demo</p>
+    <h1>Try the app, <span class="grad">right here.</span></h1>
+    <p class="sub">This is the CORE MDM phone app running in your browser. Tap around: open sections, flip switches, lock the app. It's only a demo, so nothing is saved and no phone changes.</p>
+  </header>
+
+  <div class="demo-wrap">
+    <div class="phone" id="phone">
+      <div class="screen" id="screen">
+        <span class="camera" aria-hidden="true"></span>
+        <div class="sbar" aria-hidden="true"><span id="clock">9:41</span><span><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 20 1.5 8.5a15 15 0 0 1 21 0z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 21h20V3z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="3" width="10" height="19" rx="2"/><rect x="10" y="1" width="4" height="3" rx="1"/></svg></span></div>
+        <div class="view" id="view"></div>
+        <div class="navbar">
+          <button type="button" id="nav-back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M17 4 6 12l11 8z"/></svg></button>
+          <button type="button" id="nav-home" aria-label="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="7"/></svg></button>
+          <button type="button" id="nav-recent" aria-label="Recent apps"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="5" width="14" height="14" rx="2"/></svg></button>
+        </div>
+        <div class="snack" id="snack" role="status" aria-live="polite"></div>
+        <div id="dialog-host"></div>
+      </div>
+    </div>
+
+    <aside class="demo-side">
+      <h2>Things to try</h2>
+      <p>The phone on the left works like the real app. Your taps stay in this page.</p>
+      <ol class="try">
+        <li><i>1</i><div><b>Unlock it</b><span>The app is protected by a PIN. In the demo, any 6 digits work. Tap ✓ to go in.</span></div></li>
+        <li><i>2</i><div><b>Open a section</b><span>Tap a card like <em>Stop the rules being bypassed</em> to see its switches.</span></div></li>
+        <li><i>3</i><div><b>Flip some switches</b><span>The count under each card's title updates as you go, just like on a real phone.</span></div></li>
+        <li><i>4</i><div><b>Open the content filter</b><span>Scroll to <em>Content Filter</em> and tap <em>Manage</em>. Add a site to the block list.</span></div></li>
+        <li><i>5</i><div><b>Switch to light mode</b><span>Open <em>App settings</em> and pick Light or Dark.</span></div></li>
+      </ol>
+      <p class="demo-note"><b>Demo only.</b> On a real phone every one of these settings can also be changed from the <a href="console.html">web console</a>, and changes reach the phone straight away.</p>
+      <div class="row">
+        <a class="btn primary" href="install.html">Install on a phone →</a>
+        <button class="btn ghost" type="button" id="reset">Start the demo again</button>
+      </div>
+    </aside>
+  </div>
+
+  <footer class="muted foot">
+    <span><span class="cmark foot">C</span> CORE MDM <small>Beta</small></span>
+    <span class="foot-links"><a href="features.html">Features</a><a href="demo.html">Demo</a><a href="faq.html">FAQ</a><a href="about.html">About</a><a href="install.html">Install</a><a href="console.html">Manage</a><a href="https://github.com/yybam/coremdm" target="_blank" rel="noopener">GitHub</a><a href="terms.html">Terms</a><a href="privacy.html">Privacy</a><a href="consent.html">Consent</a></span>
+  </footer>
+</main>
+
+<script src="version.js"></script>
+<script>
+(() => {
+  // Icons: simple 24×24 outline paths, close to the Material icons the app uses.
+  const P = {
+    block: '<circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/>',
+    tune: '<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>',
+    shield: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>',
+    shieldok: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>',
+    shieldq: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M12 8v4M12 15.5v.5"/>',
+    robot: '<rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 4v4M9.5 13v1M14.5 13v1"/>',
+    chat: '<path d="M4 5h12v9H8l-4 3z"/><path d="M20 9v10l-3-2h-7"/>',
+    groups: '<circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 19c0-3 3-5 6-5s6 2 6 5M15 14c3 0 6 1.5 6 4"/>',
+    weboff: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18M5 5l14 14"/>',
+    cloud: '<path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9.5 4.3 4.3 0 0 0 7 18z"/>',
+    apps: '<rect x="4" y="4" width="6" height="6" rx="1.5"/><rect x="14" y="4" width="6" height="6" rx="1.5"/><rect x="4" y="14" width="6" height="6" rx="1.5"/><rect x="14" y="14" width="6" height="6" rx="1.5"/>',
+    lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+    phonelock: '<rect x="6" y="2" width="12" height="20" rx="2"/><rect x="9.5" y="11" width="5" height="4" rx="1"/><path d="M10.5 11v-1a1.5 1.5 0 0 1 3 0v1"/>',
+    phoneoff: '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2zM3 3l18 18"/>',
+    sms: '<path d="M4 4h16v12H8l-4 4zM3 3l18 18"/>',
+    hotspot: '<circle cx="12" cy="12" r="1.5"/><path d="M8.5 15.5a5 5 0 0 1 0-7M15.5 8.5a5 5 0 0 1 0 7M5.6 18.4a9 9 0 0 1 0-12.8M18.4 5.6a9 9 0 0 1 0 12.8"/>',
+    timer: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/>',
+    checklist: '<path d="M4 6l1.5 1.5L8 5M4 12l1.5 1.5L8 11M4 18l1.5 1.5L8 17M11 6h9M11 12h9M11 18h9"/>',
+    trash: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
+    restart: '<path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v5h5"/>',
+    code: '<path d="M8 8l-4 4 4 4M16 8l4 4-4 4"/>',
+    personoff: '<circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6M3 3l18 18"/>',
+    switchacct: '<rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="12" cy="10" r="3"/><path d="M7 18c1-2.5 3-3.5 5-3.5s4 1 5 3.5"/>',
+    screenshot: '<rect x="6" y="2" width="12" height="20" rx="2"/><path d="M9 9V6h3M15 15v3h-3"/>',
+    camera: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+    wifi: '<path d="M2 9a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19" r="1"/>',
+    signal: '<path d="M5 20v-4M10 20v-8M15 20V8M20 20V4"/>',
+    bt: '<path d="M7 7l10 10-5 4V3l5 4L7 17"/>',
+    btoff: '<path d="M7 7l10 10-5 4V3l5 4L7 17M3 3l18 18"/>',
+    vpn: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><rect x="9" y="11" width="6" height="5" rx="1"/><path d="M10 11V9.5a2 2 0 0 1 4 0V11"/>',
+    belloff: '<path d="M6 16v-5a6 6 0 0 1 9-5.2M18 11v5l2 2H6M10 21h4M3 3l18 18"/>',
+    usb: '<path d="M12 3v15M9 6l3-3 3 3M7 10v2l5 3 5-3v-2"/><circle cx="12" cy="20" r="1.5"/>',
+    sd: '<path d="M8 3h8l3 3v15H5V6z"/><path d="M9 7v3M12 7v3M15 7v3"/>',
+    dns: '<rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/>',
+    more: '<circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/>',
+    building: '<path d="M4 21V5l8-2v18M12 9h8v12M7 8h2M7 12h2M7 16h2M15 13h2M15 17h2M2 21h20"/>',
+    chart: '<path d="M5 20V11M11 20V5M17 20v-6M3 20h18"/>',
+    gear: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>',
+    palette: '<path d="M12 3a9 9 0 1 0 0 18c1.5 0 2-1 2-2s-1-1.5-1-2.5 1-1.5 2-1.5h2a4 4 0 0 0 4-4c0-4.5-4-8-9-8z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/>',
+    info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>',
+    warn: '<path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17v.5"/>',
+    badge: '<rect x="3" y="6" width="18" height="13" rx="2"/><circle cx="9" cy="12" r="2"/><path d="M14 11h4M14 14h3"/>',
+    personrm: '<circle cx="10" cy="8" r="4"/><path d="M2 20c0-4 4-6 8-6s8 2 8 6M16 11h6"/>',
+    store: '<path d="M4 9l1-5h14l1 5M4 9v11h16V9M4 9h16"/>',
+    globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
+    person: '<circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/>',
+    phone: '<rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/>',
+    chevR: '<path d="M9 6l6 6-6 6"/>',
+    chevD: '<path d="M6 9l6 6 6-6"/>',
+    search: '<circle cx="11" cy="11" r="7"/><path d="M16 16l5 5"/>',
+    refresh: '<path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4v5h-5"/>',
+    back: '<path d="M20 12H4M10 6l-6 6 6 6"/>',
+    check: '<path d="M5 12l5 5 9-10"/>',
+    del: '<path d="M8 5h12v14H8l-6-7z"/><path d="M11 9l6 6M17 9l-6 6"/>',
+    x: '<path d="M6 6l12 12M18 6 6 18"/>',
+  };
+  const ic = (n, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n]}</svg>`;
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  // ---------- demo state (never leaves this page) ----------
+  const DEFAULTS = {
+    ai: false, whatsapp: false, social: true, webview: false, remoteOnly: false,
+    lockSettings: true, calls: false, sms: false, hotspot: true,
+    allowlist: false,
+    installs: true, uninstalls: true, sideload: true, playHidden: false, browsers: false,
+    safeBoot: true, factoryReset: true, debugging: true, addUser: true, userSwitch: false, capture: false, camera: false,
+    wifi: false, mobile: false, btConfig: false, vpn: true, statusBar: false, netReset: true,
+    usb: true, btOff: false, outCalls: false, media: false, protect: true,
+    filter: true, subdomains: true,
+    g_analytics: true, g_social: true, g_video: false, g_gifs: false, g_spotify: false, g_gam: false, g_help: false, g_cloud: false, g_other: true,
+  };
+  let S, open, screen, pin, theme, blocked, appVer = null;
+  window.appVersion.then(v => { appVer = v; if (screen && screen !== 'pin') render(); });
+  function reset() {
+    S = { ...DEFAULTS };
+    open = new Set();
+    screen = 'pin';
+    pin = '';
+    theme = 'dark';
+    blocked = ['example-games.com', 'casino-ads.net'];
+    applyTheme();
+    render();
+  }
+
+  const row = (r) => {
+    if (r.t === 'toggle') {
+      const on = S[r.id];
+      return `<div class="prow">${ic(r.icon, 'ri' + (on ? ' on' : ''))}<div class="tx"><b>${r.title}</b><small>${r.sub}</small></div>
+        <button class="sw" type="button" role="switch" aria-checked="${on}" aria-label="${esc(r.title)}" data-sw="${r.id}"></button></div>`;
+    }
+    if (r.t === 'nav') {
+      return `<div class="prow go" role="button" tabindex="0" data-go="${r.go}">${ic(r.icon, 'ri on" style="color:var(' + (r.color || '--c-cyan') + ')')}<div class="tx"><b>${r.title}</b><small>${r.sub}</small></div>${ic('chevR', 'chr')}</div>`;
+    }
+    // t === 'btn'
+    return `<div class="prow ${r.red ? 'red-t' : ''}">${ic(r.icon, 'ri" style="color:var(' + (r.color || '--c-cyan') + ')')}<div class="tx"><b>${r.title}</b><small>${r.sub}</small></div>
+      <button class="abtn ${r.kind || 'cyan'}" type="button" data-act="${r.act}">${r.label}</button></div>`;
+  };
+  const summary = (ids) => {
+    const n = ids.filter(id => S[id]).length;
+    return n === 0 ? 'All off' : n === ids.length ? `All ${n} on` : `${n} of ${ids.length} on`;
+  };
+  const card = (c) => {
+    const isOpen = !c.collapsible || open.has(c.key);
+    const sum = typeof c.summary === 'function' ? c.summary() : c.summary;
+    const head = `<div class="card-ico" style="--k:var(${c.color})">${ic(c.icon)}</div><div class="tx"><b>${c.title}</b>${sum ? `<small>${sum}</small>` : ''}</div>`;
+    return `<section class="card${c.collapsible ? ' collapsible' : ''}${isOpen ? ' open' : ''}">
+      ${c.collapsible ? `<button class="card-h" type="button" aria-expanded="${isOpen}" data-card="${c.key}">${head}${ic('chevD', 'chev')}</button>` : `<div class="card-h">${head}</div>`}
+      <div class="card-b">${c.body ? c.body() : c.rows.map(row).join('')}</div></section>`;
+  };
+  const togglesSummary = rows => () => summary(rows.filter(r => r.t === 'toggle').map(r => r.id));
+
+  // ---------- dashboard cards (same order and wording as the app) ----------
+  const C = [];
+  const add = (c) => { if (c.collapsible && c.rows && !c.summary) c.summary = togglesSummary(c.rows); C.push(c); };
+  add({ key: 'blocking', title: 'Blocking & Access', icon: 'block', color: '--c-red', rows: [
+    { t: 'nav', icon: 'tune', color: '--c-purple', title: 'Block parts of apps', sub: 'Hide Reels, Stories, Status and other sections inside apps', go: 'soon' },
+    { t: 'btn', icon: 'shieldok', color: '--c-green', title: 'Screen guard', sub: 'On — app-section blocks are working', label: 'On', kind: 'green', act: 'guard' },
+    { t: 'toggle', id: 'ai', icon: 'robot', title: 'Block AI Chats', sub: 'ChatGPT, Claude, Gemini, Copilot, Perplexity, Grok and more — apps paused, sites blocked' },
+    { t: 'toggle', id: 'whatsapp', icon: 'chat', title: 'Block WhatsApp', sub: 'Pauses WhatsApp & WhatsApp Business and blocks whatsapp.com' },
+    { t: 'toggle', id: 'social', icon: 'groups', title: 'Block Social Media', sub: 'Instagram, Facebook, TikTok, Snapchat, X, YouTube, Telegram… apps paused, sites blocked' },
+    { t: 'toggle', id: 'webview', icon: 'weboff', title: 'Block WebView', sub: "Stops web pages inside every app — can't be limited to some apps" },
+    { t: 'toggle', id: 'remoteOnly', icon: 'cloud', title: 'Remote-Only Mode', sub: 'Lock this app — settings can only be changed from the website' },
+    { t: 'btn', icon: 'apps', title: 'Managed Apps', sub: '2 apps blocked — see all apps', label: 'Open', act: 'apps' },
+  ] });
+  add({ key: 'phonecomm', title: 'Phone & communication', icon: 'phonelock', color: '--c-cyan', collapsible: true, rows: [
+    { t: 'toggle', id: 'lockSettings', icon: 'lock', title: 'Lock App Settings', sub: "Stops uninstalling, force-stopping or clearing an app's data from Settings" },
+    { t: 'toggle', id: 'calls', icon: 'phoneoff', title: 'Block All Calls', sub: 'No calls can be made and the dialler is hidden. Emergency calls always still work.' },
+    { t: 'toggle', id: 'sms', icon: 'sms', title: 'Block SMS & MMS', sub: 'No texts can be sent and messaging apps are paused. Incoming texts still arrive.' },
+    { t: 'toggle', id: 'hotspot', icon: 'hotspot', title: 'Block Hotspot', sub: "Stops sharing this phone's internet with other devices" },
+    { t: 'nav', icon: 'timer', color: '--c-accent2', title: 'Time Limits', sub: '1 app limited', go: 'soon' },
+  ] });
+  add({ key: 'installers', title: 'Who can install apps', icon: 'shieldq', color: '--c-orange', collapsible: true,
+    summary: () => S.allowlist ? 'Only chosen apps' : 'Any app', rows: [
+    { t: 'toggle', id: 'allowlist', icon: 'shieldq', title: 'Only chosen apps can install apps', sub: 'Apps installed by any other app (stores, file managers, browsers) are removed straight away. CORE MDM is always allowed.' },
+    { t: 'nav', icon: 'checklist', title: 'Apps allowed to install', sub: 'None chosen — only CORE MDM can install', go: 'soon' },
+  ] });
+  add({ key: 'installing', title: 'Installing apps', icon: 'apps', color: '--c-cyan', collapsible: true, rows: [
+    { t: 'toggle', id: 'installs', icon: 'block', title: 'Block App Installation', sub: 'Nothing new can be installed from the Play Store' },
+    { t: 'toggle', id: 'uninstalls', icon: 'trash', title: 'Block App Uninstallation', sub: "Apps already on the phone can't be removed" },
+    { t: 'toggle', id: 'sideload', icon: 'phonelock', title: 'Block Sideloading', sub: 'Blocks installing apps from files or websites' },
+    { t: 'toggle', id: 'playHidden', icon: 'store', title: 'Hide Play Store', sub: 'Takes the Play Store off the home screen' },
+    { t: 'toggle', id: 'browsers', icon: 'globe', title: 'Hide Browsers', sub: 'Takes Chrome, Firefox and other browsers off the home screen' },
+    { t: 'nav', icon: 'person', title: 'Manage Individual Apps', sub: 'See every app and block any of them', go: 'soon' },
+  ] });
+  add({ key: 'bypass', title: 'Stop the rules being bypassed', icon: 'shield', color: '--c-red', collapsible: true, rows: [
+    { t: 'toggle', id: 'safeBoot', icon: 'shieldok', title: 'Prevent Safe Boot', sub: 'Stops restarting into safe mode to get around the rules' },
+    { t: 'toggle', id: 'factoryReset', icon: 'restart', title: 'Prevent Factory Reset', sub: 'Stops a reset from Settings wiping the phone' },
+    { t: 'toggle', id: 'debugging', icon: 'code', title: 'Disable Developer Options & ADB', sub: 'Stops the phone being controlled over a USB cable' },
+    { t: 'toggle', id: 'addUser', icon: 'personoff', title: 'Prevent Multi-User Profiles', sub: 'Only one user account on this phone' },
+    { t: 'toggle', id: 'userSwitch', icon: 'switchacct', title: 'Block User Switching', sub: 'Stops switching to another user account' },
+    { t: 'toggle', id: 'capture', icon: 'screenshot', title: 'Disable Screen Capture', sub: 'No screenshots and no screen recording' },
+    { t: 'toggle', id: 'camera', icon: 'camera', title: 'Disable Camera', sub: 'Turns the camera off for every app' },
+  ] });
+  add({ key: 'settings', title: 'Phone settings', icon: 'tune', color: '--c-purple', collapsible: true, rows: [
+    { t: 'toggle', id: 'wifi', icon: 'wifi', title: 'Lock Wi-Fi Configuration', sub: "Wi-Fi networks can't be added or changed" },
+    { t: 'toggle', id: 'mobile', icon: 'signal', title: 'Lock Cellular Data Settings', sub: "Mobile data settings can't be changed" },
+    { t: 'toggle', id: 'btConfig', icon: 'bt', title: 'Lock Bluetooth Settings', sub: 'No new Bluetooth devices can be paired' },
+    { t: 'toggle', id: 'vpn', icon: 'vpn', title: 'Block VPN Configuration', sub: 'No VPN can be set up on the phone' },
+    { t: 'toggle', id: 'statusBar', icon: 'belloff', title: 'Lock Status Bar', sub: 'The bar you pull down from the top stops working' },
+    { t: 'toggle', id: 'netReset', icon: 'restart', title: 'Block Network Reset', sub: 'Stops resetting all network settings at once' },
+  ] });
+  add({ key: 'hardware', title: 'Hardware', icon: 'usb', color: '--c-orange', collapsible: true, rows: [
+    { t: 'toggle', id: 'usb', icon: 'usb', title: 'Block USB File Transfer', sub: 'No files can be copied over a USB cable' },
+    { t: 'toggle', id: 'btOff', icon: 'btoff', title: 'Disable Bluetooth', sub: 'Turns Bluetooth off completely' },
+    { t: 'toggle', id: 'outCalls', icon: 'phoneoff', title: 'Block Outgoing Calls', sub: 'No calls can be made from this phone' },
+    { t: 'toggle', id: 'media', icon: 'sd', title: 'Block Physical Media', sub: "SD cards and USB sticks won't work" },
+    { t: 'toggle', id: 'protect', icon: 'shield', title: 'Protect MDM from Uninstall', sub: "CORE MDM itself can't be uninstalled" },
+  ] });
+  add({ key: 'filtercard', title: 'Content Filter', icon: 'shield', color: '--c-green', body: () =>
+    `<div class="prow"><div class="tx"><b style="color:var(${S.filter ? '--c-green' : '--c-muted'})">${S.filter ? 'DNS Filter Active' : 'DNS Filter Inactive'}</b>
+      <small>${S.filter ? 'Blocking sites at network level' : 'Enable to block sites across all apps'}</small></div>
+      <button class="abtn ${S.filter ? 'green' : ''}" type="button" data-go="filter">Manage</button></div>` });
+  add({ key: 'more', title: 'More', icon: 'more', color: '--c-cyan', collapsible: true, summary: 'Organization, single-app mode, phone details', rows: [
+    { t: 'nav', icon: 'building', color: '--c-purple', title: 'Organization', sub: 'Join with a code, or see who manages this phone', go: 'soon' },
+    { t: 'nav', icon: 'lock', color: '--c-orange', title: 'Single-app mode', sub: 'Lock the phone to one or a few apps', go: 'soon' },
+    { t: 'nav', icon: 'chart', title: 'Phone details', sub: 'Battery, storage and network', go: 'soon' },
+  ] });
+  add({ key: 'device', title: 'This Device', icon: 'phone', color: '--c-cyan', rows: [
+    { t: 'btn', icon: 'badge', title: "Sam's phone", sub: 'Galaxy A15', label: 'Rename', act: 'soon' },
+    { t: 'btn', icon: 'personrm', color: '--c-red', red: true, title: 'Remove from Account', sub: 'Deletes this phone from your devices and signs out', label: 'Remove', kind: 'red', act: 'remove' },
+  ] });
+  add({ key: 'app', title: 'App settings', icon: 'gear', color: '--c-cyan', collapsible: true, summary: 'Theme and version', body: () =>
+    `<div class="prow">${ic('palette', 'ri on')}<div class="tx"><b>App Theme</b><small>Light, Dark, or follow system</small></div>
+      <div class="seg" role="group" aria-label="App theme">${['auto', 'light', 'dark'].map(m =>
+        `<button type="button" data-theme-btn="${m}" aria-pressed="${theme === m}">${m[0].toUpperCase() + m.slice(1)}</button>`).join('')}</div></div>
+     <div class="prow">${ic('info', 'ri')}<div class="tx"><b>App Version</b><small>CORE MDM${appVer ? " v" + appVer : ""}</small></div>
+      <button class="abtn cyan" type="button" data-act="update">Check for updates</button></div>` });
+  add({ key: 'pincard', title: 'App PIN Lock', icon: 'lock', color: '--c-yellow', rows: [
+    { t: 'btn', icon: 'lock', color: '--c-green', title: 'PIN Lock Enabled', sub: 'Required — the app locks the moment you leave it', label: 'Change PIN', kind: '', act: 'soon' },
+  ] });
+  add({ key: 'danger', title: 'Danger zone', icon: 'warn', color: '--c-red', collapsible: true, summary: 'Lock, restart, wipe, or remove CORE MDM', body: () =>
+    `<div class="btn-pair"><button class="abtn" type="button" data-act="lock">${ic('lock')} Lock Now</button>
+       <button class="abtn yellow" type="button" data-act="reboot">${ic('restart')} Reboot</button></div>` +
+    row({ t: 'btn', icon: 'trash', color: '--c-red', red: true, title: 'Factory Reset Device', sub: 'Wipes ALL data — irreversible', label: 'Wipe', kind: 'red', act: 'wipe' }) +
+    row({ t: 'btn', icon: 'block', color: '--c-red', red: true, title: 'Remove MDM', sub: 'Clears admin privileges and uninstalls this app', label: 'Remove', kind: 'red', act: 'removeMdm' }) });
+
+  // ---------- filter screen ----------
+  const GROUPS = [['g_analytics', 'Analytics & tracking'], ['g_social', 'Social media'], ['g_video', 'Video (YouTube)'], ['g_gifs', 'GIFs & images'],
+    ['g_spotify', 'Spotify & music images'], ['g_gam', 'Google, Apple & Microsoft pages'], ['g_help', 'Help & about pages inside apps'],
+    ['g_cloud', 'Cloud & CDN hosts'], ['g_other', 'Other sites']];
+  const filterCards = () => [
+    `<section class="card"><div class="bigstat"><div class="card-ico" style="--k:var(${S.filter ? '--c-green' : '--c-muted'})">${ic(S.filter ? 'shieldok' : 'shield')}</div>
+      <div class="tx"><b style="color:var(${S.filter ? '--c-green' : '--c-text'})">${S.filter ? 'Filter Active' : 'Filter Off'}</b>
+      <small>${S.filter ? 'DNS content filter is running' : 'Tap to enable DNS-level content filtering'}</small></div>
+      <button class="sw" type="button" role="switch" aria-checked="${S.filter}" aria-label="Content filter" data-sw="filter"></button></div></section>`,
+    card({ key: 'groups', title: 'Blocklist Groups', icon: 'checklist', color: '--c-cyan', rows: [
+      { t: 'toggle', id: 'subdomains', icon: 'globe', title: 'Block subdomains too', sub: S.subdomains ? 'Blocking a site also blocks everything under it' : 'Exact names only, like a hosts file' },
+      ...GROUPS.map(([id, title]) => ({ t: 'toggle', id, icon: 'block', title, sub: 'Built-in list' })) ] }),
+    card({ key: 'custom', title: 'Custom Blocked Sites', icon: 'block', color: '--c-red', body: () =>
+      `<div class="prow"><div class="tx"><small>Block specific domains</small></div></div>
+       <div class="chips">${blocked.length ? blocked.map((d, i) => `<span class="chip">${esc(d)}<button type="button" aria-label="Remove ${esc(d)}" data-unblock="${i}">×</button></span>`).join('') : '<small style="color:var(--c-muted)">Nothing added yet</small>'}</div>
+       <form class="add" id="add-site"><input name="d" placeholder="example.com" autocomplete="off" aria-label="Site to block"><button class="abtn grad" type="submit">Add</button></form>` }),
+    card({ key: 'allow', title: 'Always Allowed', icon: 'shieldok', color: '--c-green', body: () =>
+      `<div class="prow"><div class="tx"><small>These domains bypass all blocking</small></div></div><div class="chips"><span class="chip">school-portal.org</span></div>` }),
+  ];
+
+  // ---------- render ----------
+  const $view = document.getElementById('view');
+  function render() {
+    const scrollEl = $view.querySelector('.scroll');
+    const keep = scrollEl && scrollEl.dataset.screen === screen ? scrollEl.scrollTop : 0;
+    if (screen === 'pin') {
+      $view.className = 'view pin';
+      $view.innerHTML = `<div class="pin-head"><span class="cmark" style="width:22px;height:22px;font-size:12px;border-radius:6px;display:inline-flex">C</span><h3>CORE MDM</h3><p>Managed Device</p>
+        <div class="pin-dots" aria-label="${pin.length} digits entered">${Array.from({ length: Math.max(6, pin.length) }, (_, i) => `<i class="${i < pin.length ? 'f' : ''}"></i>`).join('')}</div>
+        <div class="pin-hint" id="pin-hint">Enter your PIN to continue · demo: any 6 digits</div></div>
+        <div class="keys">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => `<button type="button" data-k="${n}">${n}</button>`).join('')}
+          <button type="button" class="plain" data-k="del" aria-label="Delete">${ic('del')}</button><button type="button" data-k="0">0</button>
+          <button type="button" class="ok" data-k="ok" aria-label="Confirm PIN">${ic('check')}</button></div>
+        <div class="pin-foot"><span class="cmark" style="width:22px;height:22px;font-size:12px;border-radius:6px;display:inline-flex">C</span>Protected by CORE MDM</div>`;
+      return;
+    }
+    $view.className = 'view';
+    const top = screen === 'dash'
+      ? `<div class="topbar"><div class="title"><span class="cmark" style="width:22px;height:22px;font-size:12px;border-radius:6px;display:inline-flex">C</span>CORE MDM</div>
+          <button class="ib" type="button" data-act="search" aria-label="Search settings">${ic('search')}</button>
+          <button class="ib cyan" type="button" data-act="refresh" aria-label="Refresh">${ic('refresh')}</button></div>`
+      : `<div class="topbar" style="padding-left:6px"><button class="ib cyan" type="button" data-go="back" aria-label="Back">${ic('back')}</button>
+          <div class="title">Content Filter</div></div>`;
+    const body = screen === 'dash'
+      ? `<section class="card stat-card"><div class="top"><span class="dot"></span><div class="tx"><b>Device Owner — Protected</b><small>Samsung Galaxy A15</small></div>
+          <span class="tag">FULL CONTROL</span></div><p>Android 14 (API 34)</p></section>
+         <button class="wide-btn" type="button" data-act="lockdown">${ic('lock')} Turn on every restriction</button>` + C.map(card).join('')
+      : filterCards().join('');
+    $view.innerHTML = top + `<div class="scroll" data-screen="${screen}">${body}</div>`;
+    $view.querySelector('.scroll').scrollTop = keep;
+  }
+
+  // ---------- snackbar + dialogs ----------
+  const $snack = document.getElementById('snack');
+  let snackT;
+  function snack(msg) {
+    $snack.textContent = msg;
+    $snack.classList.add('show');
+    clearTimeout(snackT);
+    snackT = setTimeout(() => $snack.classList.remove('show'), 2600);
+  }
+  const $host = document.getElementById('dialog-host');
+  function dialog({ icon, color, title, titleColor, text, ok, onOk }) {
+    $host.innerHTML = `<div class="scrim" data-close><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-t" style="--k:var(${color})${titleColor ? ';--k2:var(' + titleColor + ')' : ''}">
+      ${ic(icon, 'di')}<h4 id="dlg-t">${title}</h4><p>${text}</p><span class="demo-flag">Demo: nothing on any phone will change.</span>
+      <div class="acts"><button class="abtn cyan" type="button" data-close>Cancel</button><button class="abtn solid" type="button" data-ok>${ok}</button></div></div></div>`;
+    $host.querySelector('[data-ok]').onclick = () => { $host.innerHTML = ''; onOk && onOk(); };
+    $host.querySelector('[data-ok]').focus();
+  }
+  $host.addEventListener('click', e => { if (e.target.hasAttribute('data-close')) $host.innerHTML = ''; });
+
+  const ACTS = {
+    lockdown: () => dialog({ icon: 'lock', color: '--c-yellow', title: 'Apply Full Lockdown?', ok: 'Apply',
+      text: 'This will enforce all anti-bypass restrictions, block installs/uninstalls, lock Wi-Fi/BT/mobile settings, disable screen capture, and disable the status bar.',
+      onOk: () => {
+        ['safeBoot', 'factoryReset', 'debugging', 'addUser', 'userSwitch', 'capture', 'installs', 'uninstalls', 'sideload',
+          'wifi', 'mobile', 'btConfig', 'vpn', 'statusBar', 'netReset', 'protect'].forEach(k => S[k] = true);
+        render(); snack('Full lockdown applied');
+      } }),
+    wipe: () => dialog({ icon: 'warn', color: '--c-red', titleColor: '--c-red', title: 'Factory Reset Device?', ok: 'WIPE DEVICE',
+      text: 'ALL data will be permanently erased. This action cannot be undone.', onOk: () => snack('Demo: the phone was not wiped') }),
+    removeMdm: () => dialog({ icon: 'block', color: '--c-red', titleColor: '--c-red', title: 'Remove MDM?', ok: 'REMOVE MDM',
+      text: 'This will:\n\n• Clear Device Owner status\n• Remove Device Admin privileges\n• Uninstall this app\n\nAll enforced policies will be lifted. This cannot be undone without reinstalling.',
+      onOk: () => snack('Demo: CORE MDM was not removed') }),
+    remove: () => dialog({ icon: 'personrm', color: '--c-red', titleColor: '--c-red', title: 'Remove this device?', ok: 'Remove',
+      text: 'This phone will be deleted from your account and signed out.', onOk: () => snack('Demo: nothing was removed') }),
+    lock: () => { screen = 'pin'; pin = ''; render(); },
+    reboot: () => snack('Demo: a real phone would restart now'),
+    update: () => snack('Up to date'),
+    guard: () => snack('Screen guard is on'),
+    apps: () => snack('The app list is not part of the demo'),
+    search: () => snack('Search is not part of the demo'),
+    soon: () => snack('This screen is not part of the demo'),
+    refresh: (btn) => { btn.classList.remove('spin'); void btn.offsetWidth; btn.classList.add('spin'); },
+  };
+  const CONFIRM_ON = {
+    remoteOnly: { icon: 'cloud', title: 'Turn on remote-only mode?', ok: 'Turn on',
+      text: 'The app will lock itself. Settings can then only be changed from the website.' },
+    webview: { icon: 'weboff', title: 'Block WebView for every app?', ok: 'Block WebView',
+      text: 'Web pages shown inside apps will stop loading in every app, including sign-in pages and help screens. It cannot be limited to some apps.' },
+    allowlist: { icon: 'shieldq', title: 'Only chosen apps can install?', ok: 'Turn on',
+      text: 'From now on, any app installed by an app that is not on your list is removed straight away.' },
+  };
+
+  // ---------- events ----------
+  $view.addEventListener('click', e => {
+    const t = e.target.closest('button, [data-go]');
+    if (!t) return;
+    if (t.dataset.k) return pinKey(t.dataset.k);
+    if (t.dataset.sw) {
+      const id = t.dataset.sw, conf = CONFIRM_ON[id];
+      if (conf && !S[id]) return dialog({ ...conf, color: '--c-cyan', onOk: () => { S[id] = true; render(); } });
+      S[id] = !S[id];
+      return render();
+    }
+    if (t.dataset.card) { open.has(t.dataset.card) ? open.delete(t.dataset.card) : open.add(t.dataset.card); return render(); }
+    if (t.dataset.themeBtn) { theme = t.dataset.themeBtn; applyTheme(); return render(); }
+    if (t.dataset.unblock) { blocked.splice(+t.dataset.unblock, 1); return render(); }
+    if (t.dataset.act) return ACTS[t.dataset.act](t);
+    if (t.dataset.go === 'filter') { screen = 'filter'; return render(); }
+    if (t.dataset.go === 'back') return back();
+    if (t.dataset.go) return ACTS.soon();
+  });
+  $view.addEventListener('keydown', e => {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('.prow.go')) { e.preventDefault(); e.target.click(); }
+  });
+  $view.addEventListener('submit', e => {
+    e.preventDefault();
+    const d = e.target.d.value.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+    if (!/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(d)) return snack('Type a site like example.com');
+    if (!blocked.includes(d)) blocked.push(d);
+    render();
+    snack(`${d} is blocked`);
+  });
+
+  function pinKey(k) {
+    if (k === 'del') pin = pin.slice(0, -1);
+    else if (k === 'ok') {
+      if (pin.length < 6) {
+        const h = document.getElementById('pin-hint');
+        h.textContent = 'PIN must be 6–8 digits'; h.classList.add('bad');
+        return;
+      }
+      screen = 'dash'; pin = '';
+    } else if (pin.length < 8) pin += k;
+    render();
+  }
+  function back() {
+    if ($host.innerHTML) { $host.innerHTML = ''; return; }
+    if (screen === 'filter') { screen = 'dash'; render(); }
+    else if (screen === 'dash') { screen = 'pin'; render(); snack('CORE MDM locks the moment you leave it'); }
+  }
+  document.getElementById('nav-back').onclick = back;
+  document.getElementById('nav-home').onclick = () => { $host.innerHTML = ''; screen = 'pin'; pin = ''; render(); snack('CORE MDM locks the moment you leave it'); };
+  document.getElementById('nav-recent').onclick = () => snack('Recent apps is not part of the demo');
+  document.getElementById('reset').onclick = () => { $host.innerHTML = ''; reset(); };
+  document.addEventListener('keydown', e => {
+    if (screen !== 'pin' || $host.innerHTML || e.target.matches('input')) return;
+    if (/^[0-9]$/.test(e.key)) pinKey(e.key);
+    else if (e.key === 'Backspace') pinKey('del');
+    else if (e.key === 'Enter' && document.activeElement === document.body) pinKey('ok');
+  });
+
+  const mq = matchMedia('(prefers-color-scheme: light)');
+  function applyTheme() {
+    const light = theme === 'light' || (theme === 'auto' && mq.matches);
+    document.getElementById('phone').classList.toggle('light', light);
+  }
+  mq.addEventListener('change', applyTheme);
+
+  const clock = document.getElementById('clock');
+  const tick = () => { clock.textContent = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }).replace(/\s?[AP]M$/i, ''); };
+  tick(); setInterval(tick, 20000);
+
+  reset();
+})();
+</script>
+</body>
+</html>

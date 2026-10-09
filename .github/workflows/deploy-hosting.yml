@@ -1,0 +1,70 @@
+name: Deploy Firebase Hosting
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "public/**"
+      - "firebase.json"
+      - ".firebaserc"
+      - ".github/workflows/deploy-hosting.yml"
+  # The installer's bundled APK + version.json are refreshed by build-apk.yml after each
+  # release (a release published by a workflow token can't trigger a `release` event here).
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-hosting
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # The USB installer (public/app.js) fetches coremdm.apk same-origin, and version.js reads
+      # version.json. Both are generated here from the latest GitHub release (not committed), so
+      # the installer always hands out the current signed APK. The QR installer points directly
+      # at the GitHub release URL and needs nothing here.
+      - name: Bundle latest release APK + version for the installer
+        run: |
+          set -e
+          ver=$(curl -fsSL https://api.github.com/repos/${{ github.repository }}/releases/latest \
+                 | grep -m1 '"tag_name"' | sed -E 's/.*"v?([^"]+)".*/\1/')
+          echo "latest version: ${ver:-unknown}"
+          printf '{"version":"%s"}\n' "${ver:-0.0.0}" > public/version.json
+          # Served as .bin: Firebase Hosting's Spark plan rejects .apk (executable) files.
+          curl -fL -o public/coremdm.apk.bin \
+            "https://github.com/${{ github.repository }}/releases/latest/download/app-release.apk"
+          ls -la public/coremdm.apk.bin public/version.json
+
+      # Project comes from .firebaserc already in this repo; the FIREBASE_SERVICE_ACCOUNT
+      # secret (a Firebase Admin SDK service account key, added via repo Settings > Secrets)
+      # determines which project it authenticates as. Switched here from a keyless
+      # Workload Identity Federation setup -- that approach is more secure (no long-lived
+      # key at all) but its one-time gcloud setup needs a working Google OAuth token
+      # exchange, which a transparent network proxy on the machine doing that setup was
+      # actively breaking (serving the wrong certificate for oauth2.googleapis.com,
+      # unfixable client-side). This key-based approach only needs the Firebase Console
+      # (a normal browser page), so it sidesteps that entirely.
+      # Resolve the Firebase project id from the service-account secret at runtime, so the
+      # literal project id isn't stored in the repo (.firebaserc no longer hardcodes it).
+      - name: Resolve Firebase project id
+        id: fb
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          pid=$(printf '%s' "$FIREBASE_SERVICE_ACCOUNT" | tr -d '\n' \
+            | grep -oE '"project_id"[[:space:]]*:[[:space:]]*"[^"]+"' | head -1 \
+            | sed -E 's/.*"([^"]+)"$/\1/')
+          test -n "$pid" || { echo "Could not resolve project_id from FIREBASE_SERVICE_ACCOUNT"; exit 1; }
+          echo "pid=$pid" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: "${{ secrets.GITHUB_TOKEN }}"
+          firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}"
+          projectId: "${{ steps.fb.outputs.pid }}"
+          channelId: live

@@ -13,7 +13,8 @@ local.properties
 .idea/
 *.iml
 
-# Node.js backend
+# Node.js
+node_modules/
 backend/node_modules/
 backend/.env
 backend/serviceAccountKey.json
@@ -26,3 +27,7 @@ backend/server.err
 # OS
 .DS_Store
 Thumbs.db
+
+# Installer APK + version, fetched at hosting-deploy time (see deploy-hosting.yml)
+public/coremdm.apk.bin
+public/version.json

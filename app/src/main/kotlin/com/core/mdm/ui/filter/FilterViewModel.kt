@@ -17,6 +17,7 @@ data class FilterUiState(
     val isFilterRunning: Boolean     = false,
     val useDefaultBlocklist: Boolean = true,
     val customBlocked: List<String>  = emptyList(),
+    val importedCount: Int           = 0,
     val whitelist: List<String>      = emptyList(),
     val blocklistUrl: String         = "",
     val upstreamDns: String          = "1.1.1.1",
@@ -47,6 +48,7 @@ class FilterViewModel(application: Application) : AndroidViewModel(application) 
             it.copy(
                 useDefaultBlocklist = repo.useDefaultBlocklist,
                 customBlocked       = repo.getCustomBlocked().sorted(),
+                importedCount       = repo.importedCount,
                 whitelist           = repo.getWhitelist().sorted(),
                 blocklistUrl        = repo.blocklistUrl,
                 upstreamDns         = repo.upstreamDns,
@@ -139,13 +141,8 @@ class FilterViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             repo.fetchFromUrl(url).fold(
                 onSuccess = { count ->
-                    _state.update {
-                        it.copy(
-                            isFetching    = false,
-                            customBlocked = repo.getCustomBlocked().sorted()
-                        )
-                    }
-                    toast("Imported $count domains")
+                    _state.update { it.copy(isFetching = false, importedCount = count) }
+                    toast("Imported %,d domains".format(count))
                 },
                 onFailure = {
                     _state.update { s -> s.copy(isFetching = false) }
@@ -153,6 +150,12 @@ class FilterViewModel(application: Application) : AndroidViewModel(application) 
                 }
             )
         }
+    }
+
+    fun clearImported() {
+        repo.clearImported()
+        _state.update { it.copy(importedCount = 0) }
+        toast("Imported domains cleared")
     }
 
     fun clearSnackbar() = _state.update { it.copy(snackbar = null) }

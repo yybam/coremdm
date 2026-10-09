@@ -1,0 +1,55 @@
+name: Deploy Firestore Rules
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "firestore.rules"
+      - ".github/workflows/deploy-firestore.yml"
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-firestore
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # Reuses the FIREBASE_SERVICE_ACCOUNT secret the hosting deploy uses. Deploying rules
+      # needs the service account to have the "Firebase Rules Admin" role (roles/firebaserules.admin)
+      # in Google Cloud IAM — the Hosting role alone is not enough. Until that role is granted this
+      # step is expected to fail with PERMISSION_DENIED; it is marked continue-on-error so it does
+      # not block the run, and the rules can always be published manually in the Firebase console
+      # (Firestore Database → Rules) or with `firebase deploy --only firestore:rules`.
+      - name: Deploy Firestore rules
+        id: deploy
+        continue-on-error: true
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
+          # Project id comes from the service account, not a hardcoded literal.
+          pid=$(grep -oE '"project_id"[[:space:]]*:[[:space:]]*"[^"]+"' "$RUNNER_TEMP/sa.json" \
+            | head -1 | sed -E 's/.*"([^"]+)"$/\1/')
+          test -n "$pid" || { echo "Could not resolve project_id from service account"; exit 1; }
+          npx -y firebase-tools@13 deploy --only firestore:rules --project "$pid" --non-interactive
+
+      - name: Report result
+        run: |
+          if [ "${{ steps.deploy.outcome }}" = "success" ]; then
+            echo "Firestore rules deployed."
+          else
+            echo "::warning:: Could not deploy Firestore rules from CI."
+            echo "Grant the CI service account the 'Firebase Rules Admin' role in Google Cloud IAM,"
+            echo "or publish firestore.rules manually in the Firebase console (Firestore → Rules)."
+          fi

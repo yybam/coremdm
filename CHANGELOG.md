@@ -4,8 +4,10 @@ All notable changes to CORE MDM. This project uses `vX.Y.Z` release tags; the An
 its own `versionCode`/`versionName`. See the [Releases page](https://github.com/yybam/coremdm/releases)
 for downloadable APKs.
 
-## [v0.4.5](https://github.com/yybam/coremdm/releases/tag/v0.4.5) — app 0.4.5 (versionCode 42)
-Unifies the two parallel work streams into one branch (`main`).
+## [v0.4.6](https://github.com/yybam/coremdm/releases/tag/v0.4.6) — app 0.4.6 (versionCode 44)
+Unifies the two parallel work streams into one branch (`main`) and supersedes a
+parallel `v0.4.5` tag (versionCode 43) that was cut from the other branch and was
+missing the FCM and delete-device features.
 ### Added
 - **In-app update notifications over FCM.** An `update_available` push shows a
   high-priority notification with a **Download** action that opens the installer

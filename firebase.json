@@ -3,7 +3,33 @@
     "site": "coremdm",
     "public": "public",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "headers": [
+      {
+        "source": "**",
+        "headers": [
+          {
+            "key": "Permissions-Policy",
+            "value": "usb=*"
+          }
+        ]
+      }
+    ],
+    "redirects": [
+      {
+        "source": "/install.html",
+        "destination": "/install/",
+        "type": 301
+      }
+    ],
     "rewrites": [
+      {
+        "source": "/install",
+        "destination": "/install/index.html"
+      },
+      {
+        "source": "/install/**",
+        "destination": "/install/index.html"
+      },
       {
         "source": "**",
         "destination": "/index.html"

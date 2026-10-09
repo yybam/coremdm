@@ -27,10 +27,12 @@ import androidx.compose.ui.unit.sp
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialException
+import androidx.credentials.exceptions.NoCredentialException
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.core.mdm.ui.theme.LocalAppColors
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.launch
 
@@ -153,20 +155,48 @@ fun LoginScreen(vm: LoginViewModel = viewModel()) {
                 onClick = {
                     scope.launch {
                         val credentialManager = CredentialManager.create(context)
-                        val googleIdOption = GetGoogleIdOption.Builder()
-                            .setFilterByAuthorizedAccounts(false)
-                            .setServerClientId(GOOGLE_WEB_CLIENT_ID)
-                            .build()
-                        val request = GetCredentialRequest.Builder()
-                            .addCredentialOption(googleIdOption)
-                            .build()
+
+                        // GetGoogleIdOption shows a lightweight bottom-sheet picker.
+                        // It fails with NoCredentialException on devices where there is
+                        // no previously-authorized session cached by Play Services (common
+                        // on fresh installs and some OEM builds). Fall back to
+                        // GetSignInWithGoogleOption which always shows the full account picker.
+                        var idToken: String? = null
+                        var lastError: String? = null
+
                         try {
-                            val result = credentialManager.getCredential(context, request)
-                            val googleCredential = GoogleIdTokenCredential.createFrom(result.credential.data)
-                            vm.signInWithGoogleToken(googleCredential.idToken)
+                            val option = GetGoogleIdOption.Builder()
+                                .setFilterByAuthorizedAccounts(false)
+                                .setServerClientId(GOOGLE_WEB_CLIENT_ID)
+                                .setAutoSelectEnabled(false)
+                                .build()
+                            val result = credentialManager.getCredential(
+                                context,
+                                GetCredentialRequest.Builder().addCredentialOption(option).build()
+                            )
+                            idToken = GoogleIdTokenCredential.createFrom(result.credential.data).idToken
+                        } catch (e: NoCredentialException) {
+                            lastError = e.message
                         } catch (e: GetCredentialException) {
-                            vm.setError(e.message ?: "Google Sign-In failed")
+                            lastError = e.message
                         }
+
+                        if (idToken == null) {
+                            try {
+                                val option = GetSignInWithGoogleOption
+                                    .Builder(GOOGLE_WEB_CLIENT_ID)
+                                    .build()
+                                val result = credentialManager.getCredential(
+                                    context,
+                                    GetCredentialRequest.Builder().addCredentialOption(option).build()
+                                )
+                                idToken = GoogleIdTokenCredential.createFrom(result.credential.data).idToken
+                            } catch (e: GetCredentialException) {
+                                vm.setError(e.message ?: "Google Sign-In failed")
+                            }
+                        }
+
+                        idToken?.let { vm.signInWithGoogleToken(it) }
                     }
                 },
                 modifier = Modifier.fillMaxWidth().height(52.dp),

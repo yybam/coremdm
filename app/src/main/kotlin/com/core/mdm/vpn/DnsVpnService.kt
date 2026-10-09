@@ -180,17 +180,11 @@ class DnsVpnService : VpnService() {
             Intent(this, MainActivity::class.java),
             PendingIntent.FLAG_IMMUTABLE
         )
-        val stopIntent = PendingIntent.getService(
-            this, 1,
-            Intent(this, DnsVpnService::class.java).setAction(ACTION_STOP),
-            PendingIntent.FLAG_IMMUTABLE
-        )
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle("CORE MDM — Filter Active")
-            .setContentText("DNS content filter is running")
+            .setContentText("Open CORE MDM to manage content filtering")
             .setContentIntent(openIntent)
-            .addAction(0, "Stop", stopIntent)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()

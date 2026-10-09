@@ -10,7 +10,10 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -71,11 +74,17 @@ class MainActivity : ComponentActivity() {
         registerReceiver(screenOffReceiver, IntentFilter(Intent.ACTION_SCREEN_OFF))
     }
 
+    // Lock the moment the activity loses foreground — covers home button, task switch,
+    // notification shade, multi-window focus loss, and screen-off (belt-and-suspenders
+    // alongside the broadcast receiver which handles screen-off before onPause fires).
+    override fun onPause() {
+        super.onPause()
+        AppLockState.lock()
+    }
+
     override fun onStop() {
         super.onStop()
         unregisterReceiver(screenOffReceiver)
-        // Also lock on app-backgrounding (home button, task switch, another app).
-        AppLockState.lock()
     }
 }
 
@@ -115,45 +124,37 @@ private fun AppRoot() {
     }
 }
 
-// ── Root: lock gate + process-lifecycle auto-lock ─────────────────────────────
+// ── Root: lock gate ───────────────────────────────────────────────────────────
 
 @Composable
 private fun MdmRoot() {
     val context    = LocalContext.current
     val pinManager = remember { PinManager.getInstance(context) }
-    val isLocked   by AppLockState.isLocked.collectAsState()
-    val lockEpoch  by AppLockState.lockEpoch.collectAsState()
+    // Single atomic snapshot: isLocked + epoch update together in one emit so Compose
+    // never sees isLocked=true with a stale epoch (which would reuse the old ViewModel
+    // whose isAuthenticated=true would instantly call unlock() before the user touches
+    // anything).
+    val lockSnap by AppLockState.snapshot.collectAsState()
 
-    AnimatedContent(
-        targetState  = isLocked,
-        transitionSpec = {
-            if (targetState) {
-                fadeIn(tween(200)) togetherWith fadeOut(tween(100))
-            } else {
-                (slideInVertically(tween(320)) { it / 4 } + fadeIn(tween(320))) togetherWith
-                        fadeOut(tween(150))
-            }
-        },
-        label = "lock_gate"
-    ) { locked ->
-        if (locked) {
-            // If no PIN is set yet, go straight to SETUP so the user creates one before
-            // entering the app. If a PIN is already set, go to VERIFY as normal.
-            // lockEpoch is used as the ViewModel key: each lock() call increments it,
-            // forcing a brand-new ViewModel per lock cycle so stale isAuthenticated=true
-            // from a previous unlock never causes an instant auto-unlock.
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Nav graph only composed while unlocked — no locked-state side effects run.
+        if (!lockSnap.isLocked) {
+            MdmNavGraph(pinManager = pinManager)
+        }
+
+        // PIN overlay: plain `if` means it appears in the same frame that isLocked
+        // becomes true — zero-transition gap, no settings content ever bleeds through.
+        if (lockSnap.isLocked) {
             val lockMode = if (pinManager.isPinSet) PinScreenMode.VERIFY else PinScreenMode.SETUP
             PinLockScreen(
                 preventBack     = true,
                 onAuthenticated = { AppLockState.unlock() },
                 onComplete      = { AppLockState.unlock() },
                 viewModel       = androidx.lifecycle.viewmodel.compose.viewModel(
-                    key     = "lock_$lockEpoch",
+                    key     = "lock_${lockSnap.epoch}",
                     factory = PinLockViewModel.factory(lockMode)
                 )
             )
-        } else {
-            MdmNavGraph(pinManager = pinManager)
         }
     }
 }

@@ -82,7 +82,7 @@ object DeviceRegistry {
      */
     fun watchCommandQueue(
         context: Context,
-        onCommand: (type: String, ref: DocumentReference) -> Unit,
+        onCommand: (type: String, ref: DocumentReference, data: Map<String, Any>) -> Unit,
         onError: (() -> Unit)? = null,
     ): ListenerRegistration? {
         uid() ?: return null
@@ -97,7 +97,7 @@ object DeviceRegistry {
                 }
                 snaps?.documents?.forEach { doc ->
                     val type = doc.getString("type") ?: return@forEach
-                    onCommand(type, doc.reference)
+                    onCommand(type, doc.reference, doc.data ?: emptyMap())
                 }
             }
     }

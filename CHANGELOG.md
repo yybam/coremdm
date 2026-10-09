@@ -4,6 +4,18 @@ All notable changes to CORE MDM. This project uses `vX.Y.Z` release tags; the An
 its own `versionCode`/`versionName`. See the [Releases page](https://github.com/yybam/coremdm/releases)
 for downloadable APKs.
 
+## [v0.4.9](https://github.com/yybam/coremdm/releases/tag/v0.4.9) — app 0.4.9 (versionCode 46)
+### Added
+- **Console-controlled update notifications.** A super-admin **"Notify devices of
+  update"** button enqueues an `update_notify` command (version + link) to every
+  enrolled device; the app's command listener shows the update notification — the
+  same one the FCM push shows. Keeps the feature console-controllable (no server/FCM
+  credentials needed); the CLI `broadcast-update.js` remains for offline pushes.
+  Shared `UpdateNotifier` is now used by both the FCM and command-queue paths.
+### Included from 0.4.8
+- Google Sign-In falls back to `GetSignInWithGoogleOption` on `NoCredentialException`.
+- DNS content-filter toggle can no longer be bypassed from the quick-settings bar.
+
 ## [v0.4.7](https://github.com/yybam/coremdm/releases/tag/v0.4.7) — app 0.4.7 (versionCode 44)
 The complete, fully-unified build: everything from both work streams in one APK,
 built from `main`. Supersedes the parallel `v0.4.5`/`v0.4.6` tags (versionCode 43)

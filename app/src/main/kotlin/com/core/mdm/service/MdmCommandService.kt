@@ -21,6 +21,7 @@ import com.core.mdm.policy.AppPolicyManager
 import com.core.mdm.policy.DevicePolicyHelper
 import com.core.mdm.policy.PolicyEvents
 import com.core.mdm.remote.AlarmController
+import com.core.mdm.remote.UpdateNotifier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -93,9 +94,9 @@ class MdmCommandService : Service() {
             if (queueListener == null) {
                 queueListener = DeviceRegistry.watchCommandQueue(
                     context = applicationContext,
-                    onCommand = { type, ref ->
+                    onCommand = { type, ref, data ->
                         DeviceRegistry.claimCommand(ref) { claimed ->
-                            if (claimed) runQueuedCommand(type, helper)
+                            if (claimed) runQueuedCommand(type, data, helper)
                         }
                     },
                     onError = {
@@ -154,13 +155,18 @@ class MdmCommandService : Service() {
     }
 
     /** Dispatches a queued command that this service just claimed (state == executed). */
-    private fun runQueuedCommand(type: String, helper: DevicePolicyHelper) {
+    private fun runQueuedCommand(type: String, data: Map<String, Any>, helper: DevicePolicyHelper) {
         Log.i(TAG, "Executing queued command: $type")
         when (type) {
             "lock"     -> helper.lockNow()
             "reboot"   -> helper.reboot()
             "wipe"     -> helper.wipeDevice(includeExternal = false)
             "lockdown" -> serviceScope.launch(Dispatchers.Main) { applyFullLockdown(helper) }
+            "update_notify" -> UpdateNotifier.show(
+                applicationContext,
+                version     = (data["version"] as? String) ?: "New",
+                downloadUrl = (data["url"] as? String) ?: UpdateNotifier.INSTALLER_URL,
+            )
             else       -> Log.w(TAG, "Unknown queued command type: $type")
         }
     }

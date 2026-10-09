@@ -1,9 +1,5 @@
 package com.core.mdm.ui
 
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -50,13 +46,6 @@ private const val ROUTE_REMOTE    = "remote"
 
 class MainActivity : ComponentActivity() {
 
-    // Locks the app the instant the screen turns off, regardless of OEM lifecycle quirks.
-    private val screenOffReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            if (intent.action == Intent.ACTION_SCREEN_OFF) AppLockState.lock()
-        }
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         ThemePrefs.init(this)
@@ -67,24 +56,6 @@ class MainActivity : ComponentActivity() {
                 AppRoot()
             }
         }
-    }
-
-    override fun onStart() {
-        super.onStart()
-        registerReceiver(screenOffReceiver, IntentFilter(Intent.ACTION_SCREEN_OFF))
-    }
-
-    // Lock the moment the activity loses foreground — covers home button, task switch,
-    // notification shade, multi-window focus loss, and screen-off (belt-and-suspenders
-    // alongside the broadcast receiver which handles screen-off before onPause fires).
-    override fun onPause() {
-        super.onPause()
-        AppLockState.lock()
-    }
-
-    override fun onStop() {
-        super.onStop()
-        unregisterReceiver(screenOffReceiver)
     }
 }
 

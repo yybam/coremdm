@@ -4,6 +4,21 @@ All notable changes to CORE MDM. This project uses `vX.Y.Z` release tags; the An
 its own `versionCode`/`versionName`. See the [Releases page](https://github.com/yybam/coremdm/releases)
 for downloadable APKs.
 
+## [v0.4.5](https://github.com/yybam/coremdm/releases/tag/v0.4.5) — app 0.4.5 (versionCode 42)
+Unifies the two parallel work streams into one branch (`main`).
+### Added
+- **In-app update notifications over FCM.** An `update_available` push shows a
+  high-priority notification with a **Download** action that opens the installer
+  (`coremdm.web.app/install`). Ported from the second work stream, with branding
+  normalized to "CORE MDM".
+- **`scripts/broadcast-update.js`** — pushes an update ping to every enrolled device
+  (reads the project id from `FIREBASE_PROJECT_ID`, needs a `firebase login:ci` token).
+- **Delete a device entry from the console** (Danger tab) — permanently removes the
+  device document and its command history so a phone can be re-enrolled cleanly.
+### Fixed
+- Hosting now serves **clean URLs** (`/install`, `/console`, …) like the old Vercel
+  site, and allows **WebUSB** (`usb=(self)`) so the USB installer works.
+
 ## [v0.4.3](https://github.com/yybam/coremdm/releases/tag/v0.4.3) — app 41.0
 ### Fixed
 - **Endless reboot loop.** The field-based `rebootCommand` cleared the flag *after*

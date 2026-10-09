@@ -150,11 +150,19 @@ class DnsVpnService : VpnService() {
     }
 
     override fun onRevoke() {
-        // Called when the user disconnects via the system VPN quick-settings tile or Android
-        // VPN settings. Save the intent so that START_STICKY doesn't re-launch the filter.
-        setFilterEnabled(this, false)
+        // Android calls this when the system VPN quick-settings tile is used to disconnect.
+        // Device Owner policy: the filter cannot be stopped from outside CoreMDM.
+        // If the filter is supposed to be running, tear down the old tunnel and
+        // immediately re-establish it — the revoke is silently ignored from the
+        // user's perspective. The VPN permission (from prepare()) is still valid;
+        // only the current session was revoked, so establish() will succeed.
+        // The admin can still stop the filter via ACTION_STOP sent from within the app.
         stopVpn()
-        stopSelf()
+        if (isFilterEnabled(this)) {
+            startVpn()
+        } else {
+            stopSelf()
+        }
     }
 
     // ── Notification ──────────────────────────────────────────────────────────

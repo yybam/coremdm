@@ -4,11 +4,16 @@ All notable changes to CORE MDM. This project uses `vX.Y.Z` release tags; the An
 its own `versionCode`/`versionName`. See the [Releases page](https://github.com/yybam/coremdm/releases)
 for downloadable APKs.
 
-## [v0.4.6](https://github.com/yybam/coremdm/releases/tag/v0.4.6) — app 0.4.6 (versionCode 44)
-Unifies the two parallel work streams into one branch (`main`) and supersedes a
-parallel `v0.4.5` tag (versionCode 43) that was cut from the other branch and was
-missing the FCM and delete-device features.
-### Added
+## [v0.4.7](https://github.com/yybam/coremdm/releases/tag/v0.4.7) — app 0.4.7 (versionCode 44)
+The complete, fully-unified build: everything from both work streams in one APK,
+built from `main`. Supersedes the parallel `v0.4.5`/`v0.4.6` tags (versionCode 43)
+that were cut mid-merge and were each missing some features.
+### Added (now all in one build)
+- **Screen-off auto-lock** — the app locks the instant the screen turns off
+  (`ACTION_SCREEN_OFF`), on top of the existing lock-on-background.
+- **Prominent Wipe Device** button in the console's Commands tab (also still in Danger).
+- **Delete a device entry from the console** — removes the device doc + command
+  history so a phone re-enrolls cleanly.
 - **In-app update notifications over FCM.** An `update_available` push shows a
   high-priority notification with a **Download** action that opens the installer
   (`coremdm.web.app/install`). Ported from the second work stream, with branding

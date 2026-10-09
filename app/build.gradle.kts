@@ -13,8 +13,8 @@ android {
         applicationId = "com.core.mdm"
         minSdk = 24
         targetSdk = 34
-        versionCode = 44
-        versionName = "0.4.6"
+        versionCode = 45
+        versionName = "0.4.8"
     }
 
     signingConfigs {

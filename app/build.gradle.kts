@@ -13,7 +13,7 @@ android {
         applicationId = "com.core.mdm"
         minSdk = 24
         targetSdk = 34
-        versionCode = 42
+        versionCode = 43
         versionName = "0.4.5"
     }
 

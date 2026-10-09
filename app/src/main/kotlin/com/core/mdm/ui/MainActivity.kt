@@ -1,5 +1,9 @@
 package com.core.mdm.ui
 
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -46,6 +50,14 @@ private const val ROUTE_REMOTE    = "remote"
 
 class MainActivity : ComponentActivity() {
 
+    // Locks when the screen turns off — screen-off doesn't always trigger onStop
+    // immediately on all OEMs, so this receiver closes that gap.
+    private val screenOffReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (intent.action == Intent.ACTION_SCREEN_OFF) AppLockState.lock()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         ThemePrefs.init(this)
@@ -56,6 +68,21 @@ class MainActivity : ComponentActivity() {
                 AppRoot()
             }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        registerReceiver(screenOffReceiver, IntentFilter(Intent.ACTION_SCREEN_OFF))
+    }
+
+    // onStop fires when the app is completely hidden (home button, task switch, another
+    // app takes over). onPause is intentionally NOT used — it also fires for transient
+    // system overlays like the VPN permission dialog, which would force a PIN re-entry
+    // just to enable the content filter.
+    override fun onStop() {
+        super.onStop()
+        unregisterReceiver(screenOffReceiver)
+        AppLockState.lock()
     }
 }
 

@@ -237,6 +237,9 @@ header { background: rgba(10,13,24,.55); border-bottom: 1px solid var(--border);
 /* Wipe confirm */
 #wipe-confirm { display: none; position: fixed; inset: 0; z-index: 200; align-items: center; justify-content: center; padding: 24px; }
 #wipe-confirm.open { display: flex; }
+#delete-confirm { display: none; position: fixed; inset: 0; z-index: 200; align-items: center; justify-content: center; padding: 24px; }
+.btn-delete-entry { background: linear-gradient(135deg,#ff6b7d,#e23b55); color: #fff; border-radius: 12px; padding: 12px 22px; font-size: 14px; font-weight: 700; transition: transform .15s; }
+.btn-delete-entry:hover { transform: translateY(-1px); }
 .wipe-backdrop { position: absolute; inset: 0; background: rgba(3,6,14,0.8); backdrop-filter: blur(4px); }
 .wipe-dialog { position: relative; z-index: 1; background: rgba(13,17,28,.9); border: 1px solid rgba(255,107,125,0.4); border-radius: 20px; padding: 30px; max-width: 380px; width: 100%; box-shadow: var(--shadow); }
 .wipe-dialog h2 { font-size: 19px; font-weight: 800; color: var(--red); margin-bottom: 10px; }
@@ -282,6 +285,7 @@ header { background: rgba(10,13,24,.55); border-bottom: 1px solid var(--border);
 .audit-ALARM_ON      { background: rgba(255,107,125,.15); color: var(--red); }
 .audit-ALARM_OFF     { background: rgba(255,255,255,.06); color: var(--textSec); }
 .audit-WIPE          { background: linear-gradient(135deg,#ff6b7d,#e23b55); color: #fff; }
+.audit-DELETE_DEVICE { background: linear-gradient(135deg,#ff6b7d,#e23b55); color: #fff; }
 .audit-FULL_LOCKDOWN { background: rgba(255,107,125,.2); color: var(--red); }
 .audit-REBOOT        { background: rgba(139,123,240,.18); color: var(--purple); }
 .audit-POLICY        { background: rgba(74,222,155,.14); color: var(--green); }
@@ -440,12 +444,25 @@ header { background: rgba(10,13,24,.55); border-bottom: 1px solid var(--border);
   </div>
 </div>
 
+<!-- ─── Delete Device Entry Confirm Dialog ──────────────── -->
+<div id="delete-confirm">
+  <div class="wipe-backdrop animate-fadeIn" onclick="cancelDelete()"></div>
+  <div class="wipe-dialog animate-slideUp">
+    <h2>Delete device entry?</h2>
+    <p>This permanently removes this device and <strong>all of its data</strong> (policies, command history, app inventory) from the console. It stops appearing here and can be re-enrolled cleanly later. This <strong>cannot be undone</strong>, and it does <strong>not</strong> factory-reset the phone.</p>
+    <div class="wipe-btns">
+      <button class="btn-cancel transition-transform duration-150 hover:scale-[1.02] active:scale-95" onclick="cancelDelete()">Cancel</button>
+      <button class="btn-confirm-wipe transition-transform duration-150 hover:scale-[1.02] active:scale-95" onclick="executeDelete()">Delete Permanently</button>
+    </div>
+  </div>
+</div>
+
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { getFirestore, collection, query, where, orderBy, limit,
-         onSnapshot, doc, updateDoc, deleteDoc, getDoc, setDoc,
+         onSnapshot, doc, updateDoc, deleteDoc, getDoc, getDocs, setDoc,
          addDoc, serverTimestamp, Timestamp, arrayUnion, arrayRemove }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
@@ -939,6 +956,11 @@ function renderDangerTab(d) {
     <div class="danger-title">Wipe Device</div>
     <div class="danger-desc">Permanently erase all data on <strong>${esc(d.model)}</strong> and restore it to factory settings. This action cannot be undone.</div>
     <button class="btn-wipe transition-transform duration-150 hover:scale-[1.02] active:scale-95" onclick="window._mdm.confirmWipe('${d.id}')">Wipe Device</button>
+  </div>
+  <div class="danger-card" style="margin-top:16px;">
+    <div class="danger-title">Delete From Console</div>
+    <div class="danger-desc">Permanently remove <strong>${esc(dispName(d))}</strong> and all of its data (policies, command history, app inventory) from the console. The device stops appearing here and can be re-enrolled cleanly in the future with no leftover state. This does <strong>not</strong> wipe or unmanage the phone itself — use Wipe Device first if you need that. This cannot be undone.</div>
+    <button class="btn-delete-entry transition-transform duration-150 hover:scale-[1.02] active:scale-95" onclick="window._mdm.confirmDelete('${d.id}')">Delete Device Entry</button>
   </div>`;
 }
 
@@ -1072,6 +1094,40 @@ async function executeWipe() {
     logAudit('WIPE', id, dispName(devicesMap[id]) || id);
   } catch(e) { alert('Wipe command failed: ' + e.message); }
   cancelWipe();
+  closeModal();
+}
+
+// ── Delete device entry (permanent, removes all its Firestore data) ──
+let deleteTargetId = null;
+function confirmDelete(id) {
+  deleteTargetId = id;
+  document.getElementById('delete-confirm').style.display = 'flex';
+}
+function cancelDelete() {
+  deleteTargetId = null;
+  document.getElementById('delete-confirm').style.display = '';
+}
+async function executeDelete() {
+  if (!deleteTargetId) return;
+  const id   = deleteTargetId;
+  const name = dispName(devicesMap[id]) || id;
+  const btn  = document.querySelector('#delete-confirm .btn-confirm-wipe');
+  if (btn) { btn.disabled = true; btn.textContent = 'Deleting…'; }
+  try {
+    // Delete the command subcollection FIRST — while the parent device doc still
+    // exists, because the commands delete rule checks the parent's ownerId — then
+    // delete the device document itself so no orphaned data is left behind.
+    const cmds = await getDocs(collection(db, 'devices', id, 'commands'));
+    await Promise.all(cmds.docs.map(c => deleteDoc(c.ref)));
+    await deleteDoc(doc(db, 'devices', id));
+    logAudit('DELETE_DEVICE', id, `deleted ${name} and all its data from the console`);
+    // The devices onSnapshot listener removes the card automatically.
+  } catch(e) {
+    alert('Delete failed: ' + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Delete Permanently'; }
+  }
+  cancelDelete();
   closeModal();
 }
 
@@ -1530,7 +1586,7 @@ async function deleteInvRecord(docId) {
 // ── Global exposure ──────────────────────────────────────────
 window._mdm = {
   openModal, switchTab, toggleAlarm, sendLock, sendReboot,
-  sendFullLockdown, setPolicy, lockDns, clearDns, addPkg, removePkg, confirmWipe,
+  sendFullLockdown, setPolicy, lockDns, clearDns, addPkg, removePkg, confirmWipe, confirmDelete,
   renameDevice, cancelCommand, setPinLen, setAppState, appSearchInput,
   switchToAdmin, switchToDashboard, switchAdminTab, adminManage,
   preRegisterDevice, copyLastToken, copyInvToken,
@@ -1539,6 +1595,8 @@ window._mdm = {
 };
 window.cancelWipe  = cancelWipe;
 window.executeWipe = executeWipe;
+window.cancelDelete  = cancelDelete;
+window.executeDelete = executeDelete;
 window.closeModal  = closeModal;
 </script>
 </body>

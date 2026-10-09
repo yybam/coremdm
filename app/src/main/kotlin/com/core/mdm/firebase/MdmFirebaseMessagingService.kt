@@ -1,5 +1,6 @@
 package com.core.mdm.firebase
 
+import com.core.mdm.installer.SelfUpdateService
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import com.core.mdm.remote.AlarmController
@@ -12,13 +13,20 @@ class MdmFirebaseMessagingService : FirebaseMessagingService() {
     }
 
     override fun onMessageReceived(message: RemoteMessage) {
+        val version = message.data["version"] ?: ""
+        val url     = message.data["url"]     ?: ""
         when (message.data["type"]) {
             "alarm_start"      -> AlarmController.playAlarm(applicationContext)
             "alarm_stop"       -> AlarmController.stopAlarm()
             "update_available" -> UpdateNotifier.show(
                 applicationContext,
-                version     = message.data["version"] ?: "New",
-                downloadUrl = message.data["url"] ?: UpdateNotifier.INSTALLER_URL,
+                version     = version.ifEmpty { "New" },
+                downloadUrl = url.ifEmpty { UpdateNotifier.INSTALLER_URL },
+            )
+            // Silent self-update: download and install as Device Owner —
+            // no user interaction, bypasses DISALLOW_INSTALL_APPS restriction.
+            "install_update"   -> if (url.isNotEmpty()) SelfUpdateService.start(
+                applicationContext, apkUrl = url, version = version,
             )
         }
     }

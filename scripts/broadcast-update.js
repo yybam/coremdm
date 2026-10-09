@@ -1,8 +1,14 @@
 'use strict';
-// Push an "update available" notification to every enrolled device over FCM.
+// Push update notifications to every enrolled device over FCM.
 //
 // Usage (no token needed — reads credentials from your firebase login session):
-//   node scripts/broadcast-update.js 0.4.8
+//
+//   Notify only (show download button, user taps to install):
+//     node scripts/broadcast-update.js 0.4.8
+//
+//   Silent install (Device Owner auto-downloads and installs — no user tap):
+//     node scripts/broadcast-update.js 0.4.8 --install
+//     node scripts/broadcast-update.js 0.4.8 --install https://github.com/.../app-release.apk
 //
 // You can still override with an explicit token if you prefer:
 //   $env:FIREBASE_TOKEN="ya29.xxx"; node scripts/broadcast-update.js 0.4.8
@@ -12,8 +18,18 @@ const os      = require('os');
 const path    = require('path');
 const fs      = require('fs');
 
-const VERSION    = process.argv[2] || 'latest';
-const DOWNLOAD   = process.argv[3] || 'https://coremdm.web.app/install';
+// Parse args: version, optional --install flag, optional direct APK URL
+const args        = process.argv.slice(2);
+const VERSION     = args.find(a => !a.startsWith('--') && !a.startsWith('http')) || 'latest';
+const SILENT      = args.includes('--install');
+const APK_URL_ARG = args.find(a => a.startsWith('http'));
+
+// For silent installs the APK URL must be a direct link to the .apk file (e.g. GitHub release asset).
+// Default: the GitHub latest release APK for this project.
+const GITHUB_APK  = `https://github.com/yybam/coremdm/releases/latest/download/app-release.apk`;
+const DOWNLOAD    = SILENT
+  ? (APK_URL_ARG || GITHUB_APK)
+  : (APK_URL_ARG || 'https://coremdm.web.app/install');
 const PROJECT_ID = process.env.FIREBASE_PROJECT_ID || 'techeaz-core-mdm';
 const FS_BASE    = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
 const FCM_BASE   = `https://fcm.googleapis.com/v1/projects/${PROJECT_ID}/messages:send`;
@@ -154,18 +170,24 @@ async function getDeviceTokens(token) {
 }
 
 async function sendFcm(fcmToken, authToken) {
+  const type = SILENT ? 'install_update' : 'update_available';
   return request('POST', FCM_BASE, {
     message: {
       token: fcmToken,
-      data:  { type: 'update_available', version: VERSION, url: DOWNLOAD },
-      notification: {
-        title: 'CORE MDM Update Available',
-        body:  `Version ${VERSION} is ready — tap to download and install.`,
-      },
-      android: {
-        priority: 'high',
-        notification: { channel_id: 'mdm_update' },
-      },
+      data:  { type, version: VERSION, url: DOWNLOAD },
+      ...(SILENT ? {} : {
+        // For notify-only, include a visible notification so the device wakes and shows the banner.
+        notification: {
+          title: 'CORE MDM Update Available',
+          body:  `Version ${VERSION} is ready — tap to download and install.`,
+        },
+        android: {
+          priority: 'high',
+          notification: { channel_id: 'mdm_update' },
+        },
+      }),
+      // Silent install uses data-only (high priority) so FCM delivers it even when the app is stopped.
+      ...(SILENT ? { android: { priority: 'high' } } : {}),
     },
   }, authToken);
 }
@@ -175,7 +197,8 @@ async function sendFcm(fcmToken, authToken) {
 async function main() {
   console.log(`Resolving credentials...`);
   const authToken = await resolveToken();
-  console.log(`Broadcasting v${VERSION} update to all enrolled devices...`);
+  const mode = SILENT ? 'silent install' : 'update notification';
+  console.log(`Broadcasting v${VERSION} ${mode} to all enrolled devices...`);
 
   const tokens = await getDeviceTokens(authToken);
   console.log(`Found ${tokens.length} enrolled device(s)`);

@@ -75,6 +75,11 @@
             android:foregroundServiceType="dataSync" />
 
         <service
+            android:name=".installer.SelfUpdateService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
+        <service
             android:name=".firebase.MdmFirebaseMessagingService"
             android:exported="false">
             <intent-filter>

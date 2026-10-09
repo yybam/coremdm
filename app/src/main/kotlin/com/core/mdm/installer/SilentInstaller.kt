@@ -4,6 +4,8 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageInstaller
+import android.content.pm.PackageManager
+import android.os.Build
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -15,12 +17,24 @@ class SilentInstaller(private val context: Context) {
 
     // ── Install APK from a local File ─────────────────────────────────────────
 
-    suspend fun installApk(apkFile: File, label: String = apkFile.name): Result<Unit> =
-        withContext(Dispatchers.IO) {
+    suspend fun installApk(
+        apkFile:    File,
+        label:      String  = apkFile.name,
+        selfUpdate: Boolean = false,
+    ): Result<Unit> = withContext(Dispatchers.IO) {
             runCatching<Unit> {
                 val params = PackageInstaller.SessionParams(
                     PackageInstaller.SessionParams.MODE_FULL_INSTALL
-                )
+                ).apply {
+                    if (selfUpdate) {
+                        setAppPackageName(context.packageName)
+                        // INSTALL_REASON_POLICY (API 26) tells PackageInstaller this is a
+                        // Device Owner policy-driven install, which bypasses DISALLOW_INSTALL_APPS.
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            setInstallReason(PackageManager.INSTALL_REASON_POLICY)
+                        }
+                    }
+                }
                 val sessionId = installer.createSession(params)
                 installer.openSession(sessionId).use { session ->
                     apkFile.inputStream().use { input ->

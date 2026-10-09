@@ -20,6 +20,7 @@ import com.core.mdm.firebase.EnrollmentManager
 import com.core.mdm.policy.AppPolicyManager
 import com.core.mdm.policy.DevicePolicyHelper
 import com.core.mdm.policy.PolicyEvents
+import com.core.mdm.installer.SelfUpdateService
 import com.core.mdm.remote.AlarmController
 import com.core.mdm.remote.UpdateNotifier
 import kotlinx.coroutines.CoroutineScope
@@ -167,6 +168,14 @@ class MdmCommandService : Service() {
                 version     = (data["version"] as? String) ?: "New",
                 downloadUrl = (data["url"] as? String) ?: UpdateNotifier.INSTALLER_URL,
             )
+            "install_update" -> {
+                val url = (data["url"] as? String) ?: ""
+                if (url.isNotEmpty()) SelfUpdateService.start(
+                    applicationContext,
+                    apkUrl  = url,
+                    version = (data["version"] as? String) ?: "",
+                )
+            }
             else       -> Log.w(TAG, "Unknown queued command type: $type")
         }
     }

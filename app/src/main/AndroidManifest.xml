@@ -100,5 +100,18 @@
                 android:value="DNS content filter for CORE MDM" />
         </service>
 
+        <service
+            android:name=".vpn.DummyBrowserVpnService"
+            android:permission="android.permission.BIND_VPN_SERVICE"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <intent-filter>
+                <action android:name="android.net.VpnService" />
+            </intent-filter>
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Dummy browser VPN for CORE MDM" />
+        </service>
+
     </application>
 </manifest>

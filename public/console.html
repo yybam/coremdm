@@ -1031,8 +1031,9 @@ async function setAppState(id, pkg, state) {
 }
 
 function renderNetworkTab(id, p) {
-  const dnsHost  = p.privateDnsHost || '';
-  const filterOn = p.filterRunning  || false;
+  const dnsHost        = p.privateDnsHost     || '';
+  const filterOn       = p.filterRunning      || false;
+  const dummyBrowserOn = p.dummyBrowserEnabled || false;
   const pkgs     = Array.isArray(p.kioskPackages) ? p.kioskPackages : [];
   return `
   <div class="net-section">
@@ -1053,6 +1054,19 @@ function renderNetworkTab(id, p) {
       </div>
       <label class="toggle">
         <input type="checkbox" ${filterOn?'checked':''} onchange="window._mdm.setPolicy('${esc(id)}','filterRunning',this.checked)">
+        <span class="toggle-track"></span><span class="toggle-thumb"></span>
+      </label>
+    </div>
+  </div>
+  <div class="net-section">
+    <h3>Dummy Browser</h3>
+    <div class="policy-row" style="border:none;padding-top:0;">
+      <div class="policy-info">
+        <div class="policy-label">Enable Dummy Browser</div>
+        <div class="policy-sub">Routes all web traffic through a local VPN — every request returns DNS/connection errors (ERR_NAME_NOT_RESOLVED, ERR_TIMED_OUT). The MDM app stays connected. Toggle on/off remotely.</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" ${dummyBrowserOn?'checked':''} onchange="window._mdm.setPolicy('${esc(id)}','dummyBrowserEnabled',this.checked)">
         <span class="toggle-track"></span><span class="toggle-thumb"></span>
       </label>
     </div>

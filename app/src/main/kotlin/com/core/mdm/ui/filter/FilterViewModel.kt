@@ -7,6 +7,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.core.mdm.vpn.BlocklistRepository
 import com.core.mdm.vpn.DnsVpnService
+import com.core.mdm.vpn.DummyBrowserVpnService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,16 +15,17 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class FilterUiState(
-    val isFilterRunning: Boolean     = false,
-    val useDefaultBlocklist: Boolean = true,
-    val customBlocked: List<String>  = emptyList(),
-    val importedCount: Int           = 0,
-    val whitelist: List<String>      = emptyList(),
-    val blocklistUrl: String         = "",
-    val upstreamDns: String          = "1.1.1.1",
-    val isFetching: Boolean          = false,
-    val snackbar: String?            = null,
-    val vpnPermissionIntent: Intent? = null,  // non-null triggers permission dialog
+    val isFilterRunning: Boolean      = false,
+    val isDummyBrowserEnabled: Boolean = false,
+    val useDefaultBlocklist: Boolean  = true,
+    val customBlocked: List<String>   = emptyList(),
+    val importedCount: Int            = 0,
+    val whitelist: List<String>       = emptyList(),
+    val blocklistUrl: String          = "",
+    val upstreamDns: String           = "1.1.1.1",
+    val isFetching: Boolean           = false,
+    val snackbar: String?             = null,
+    val vpnPermissionIntent: Intent?  = null,  // non-null triggers permission dialog
 )
 
 class FilterViewModel(application: Application) : AndroidViewModel(application) {
@@ -40,19 +42,25 @@ class FilterViewModel(application: Application) : AndroidViewModel(application) 
                 _state.update { it.copy(isFilterRunning = running) }
             }
         }
+        viewModelScope.launch {
+            DummyBrowserVpnService.isRunning.collect { enabled ->
+                _state.update { it.copy(isDummyBrowserEnabled = enabled) }
+            }
+        }
         reload()
     }
 
     fun reload() {
         _state.update {
             it.copy(
-                useDefaultBlocklist = repo.useDefaultBlocklist,
-                customBlocked       = repo.getCustomBlocked().sorted(),
-                importedCount       = repo.importedCount,
-                whitelist           = repo.getWhitelist().sorted(),
-                blocklistUrl        = repo.blocklistUrl,
-                upstreamDns         = repo.upstreamDns,
-                isFilterRunning     = DnsVpnService.isRunning.value,
+                useDefaultBlocklist   = repo.useDefaultBlocklist,
+                customBlocked         = repo.getCustomBlocked().sorted(),
+                importedCount         = repo.importedCount,
+                whitelist             = repo.getWhitelist().sorted(),
+                blocklistUrl          = repo.blocklistUrl,
+                upstreamDns           = repo.upstreamDns,
+                isFilterRunning       = DnsVpnService.isRunning.value,
+                isDummyBrowserEnabled = DummyBrowserVpnService.isRunning.value,
             )
         }
     }
@@ -89,6 +97,28 @@ class FilterViewModel(application: Application) : AndroidViewModel(application) 
         val intent = Intent(getApplication(), DnsVpnService::class.java)
             .setAction(DnsVpnService.ACTION_STOP)
         getApplication<Application>().startService(intent)
+    }
+
+    // ── Dummy browser toggle ──────────────────────────────────────────────────
+
+    fun requestToggleDummyBrowser() {
+        val app = getApplication<Application>()
+        if (DummyBrowserVpnService.isRunning.value) {
+            app.startService(
+                Intent(app, DummyBrowserVpnService::class.java)
+                    .setAction(DummyBrowserVpnService.ACTION_STOP)
+            )
+        } else {
+            val permIntent = VpnService.prepare(app)
+            if (permIntent == null) {
+                app.startService(
+                    Intent(app, DummyBrowserVpnService::class.java)
+                        .setAction(DummyBrowserVpnService.ACTION_START)
+                )
+            } else {
+                _state.update { it.copy(vpnPermissionIntent = permIntent) }
+            }
+        }
     }
 
     // ── Blocklist management ──────────────────────────────────────────────────

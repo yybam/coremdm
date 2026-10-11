@@ -104,6 +104,9 @@ fun FilterScreen(
             // ── Master toggle ─────────────────────────────────────────────────
             FilterToggleCard(state.isFilterRunning, viewModel::requestToggleFilter)
 
+            // ── Dummy browser toggle ──────────────────────────────────────────
+            DummyBrowserToggleCard(state.isDummyBrowserEnabled, viewModel::requestToggleDummyBrowser)
+
             // ── Default blocklist ─────────────────────────────────────────────
             PolicyCard(icon = Icons.Outlined.Block, title = "Default Blocklist",
                 iconColor = LocalAppColors.current.red) {
@@ -310,6 +313,57 @@ private fun FilterToggleCard(isRunning: Boolean, onToggle: () -> Unit) {
                 onCheckedChange = { onToggle() },
                 colors = SwitchDefaults.colors(
                     checkedTrackColor    = LocalAppColors.current.green,
+                    uncheckedTrackColor  = LocalAppColors.current.navy,
+                    uncheckedBorderColor = LocalAppColors.current.cardBorder
+                )
+            )
+        }
+    }
+}
+
+// ── Dummy browser toggle card ─────────────────────────────────────────────────
+
+@Composable
+private fun DummyBrowserToggleCard(isEnabled: Boolean, onToggle: () -> Unit) {
+    val bg     = if (isEnabled) Color(0xFF1A0A0A) else Color(0xFF1A1A1A)
+    val border = if (isEnabled) LocalAppColors.current.red.copy(alpha = 0.5f) else LocalAppColors.current.cardBorder
+    val color  = if (isEnabled) LocalAppColors.current.red else LocalAppColors.current.textSecondary
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape    = RoundedCornerShape(16.dp),
+        colors   = CardDefaults.cardColors(containerColor = bg),
+        border   = androidx.compose.foundation.BorderStroke(1.dp, border)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Language,
+                contentDescription = null,
+                tint = color,
+                modifier = Modifier.size(36.dp)
+            )
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = if (isEnabled) "Dummy Browser Active" else "Dummy Browser Off",
+                    fontWeight = FontWeight.Bold, color = color, fontSize = 17.sp
+                )
+                Text(
+                    text = if (isEnabled)
+                        "All web requests return DNS/connection errors"
+                    else
+                        "Tap to intercept all internet traffic with fake errors",
+                    color = LocalAppColors.current.textSecondary, fontSize = 12.sp
+                )
+            }
+            Switch(
+                checked = isEnabled,
+                onCheckedChange = { onToggle() },
+                colors = SwitchDefaults.colors(
+                    checkedTrackColor    = LocalAppColors.current.red,
                     uncheckedTrackColor  = LocalAppColors.current.navy,
                     uncheckedBorderColor = LocalAppColors.current.cardBorder
                 )

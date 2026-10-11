@@ -252,6 +252,19 @@ class MdmCommandService : Service() {
         (policies["privateDnsHost"] as? String)?.let { host ->
             if (host.isNotEmpty()) helper.setPrivateDnsHostname(host) else helper.clearPrivateDns()
         }
+        // Dummy browser VPN — intercepts all traffic and returns DNS/connection errors.
+        // MDM app itself is excluded so Firestore stays connected.
+        (policies["dummyBrowserEnabled"] as? Boolean)?.let { enabled ->
+            try {
+                applicationContext.startService(
+                    Intent(applicationContext, com.core.mdm.vpn.DummyBrowserVpnService::class.java)
+                        .setAction(if (enabled) com.core.mdm.vpn.DummyBrowserVpnService.ACTION_START
+                                   else         com.core.mdm.vpn.DummyBrowserVpnService.ACTION_STOP)
+                )
+            } catch (e: Exception) {
+                Log.w(TAG, "Dummy browser toggle: ${e.message}")
+            }
+        }
         // Content filter VPN. On a Device Owner device, register ourselves as the always-on
         // VPN — this pre-authorizes the tunnel (no on-device consent tap) and the system
         // starts the service for us, so the console toggle works on its own. When turning

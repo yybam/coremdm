@@ -82,7 +82,7 @@ jobs:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: |
           set -e
-          cp app/build/outputs/apk/release/app-release.apk public/coremdm.apk.bin
+          cp app/build/outputs/apk/release/app-release.apk public/coremdm.apk
           ver="${{ steps.tag.outputs.tag }}"; ver="${ver#v}"
           printf '{"version":"%s"}\n' "$ver" > public/version.json
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"

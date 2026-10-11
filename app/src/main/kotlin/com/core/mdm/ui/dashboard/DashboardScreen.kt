@@ -5,22 +5,17 @@ import android.content.ComponentName
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.ui.draw.rotate
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -29,26 +24,26 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.core.mdm.MdmDeviceAdmin
 import com.core.mdm.vpn.DnsVpnService
+import com.core.mdm.vpn.DummyBrowserVpnService
 import com.core.mdm.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
     onNavigateToApps: () -> Unit,
+    onNavigateToPolicies: () -> Unit = {},
     onNavigateToPinSetup: () -> Unit = {},
     onNavigateToFilter: () -> Unit = {},
     onNavigateToParental: () -> Unit = {},
@@ -61,9 +56,10 @@ fun DashboardScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var showWipeDialog by remember { mutableStateOf(false) }
-    var showLockdownDialog by remember { mutableStateOf(false) }
     var showRemoveMdmDialog by remember { mutableStateOf(false) }
     var showDisconnectDialog by remember { mutableStateOf(false) }
+    val isFilterRunning by DnsVpnService.isRunning.collectAsState()
+    val isDummyBrowserRunning by DummyBrowserVpnService.isRunning.collectAsState()
 
     val context = LocalContext.current
     val adminLauncher = rememberLauncherForActivityResult(
@@ -140,20 +136,17 @@ fun DashboardScreen(
             return@Scaffold
         }
 
-        // A plain scrollable Column, not a LazyColumn: this is a fixed set of ~8 heavy cards,
-        // and on low-end devices LazyColumn's compose/dispose of a whole card as it enters the
-        // viewport (60-90ms each, measured) is what made scrolling jank. Composing everything
-        // once behind the loading spinner makes scrolling a pure translation.
+        val c = LocalAppColors.current
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-
-            // ── Status Card ───────────────────────────────────────────────────
+            // ── Status ────────────────────────────────────────────────────────
             StatusCard(
                 isAdminActive  = state.isAdminActive,
                 isDeviceOwner  = state.isDeviceOwner,
@@ -163,7 +156,6 @@ fun DashboardScreen(
                 onReboot       = { viewModel.reboot() }
             )
 
-            // ── Device Admin activation ───────────────────────────────────────
             if (!state.isDeviceOwner) {
                 DeviceAdminCard(
                     isAdminActive = state.isAdminActive,
@@ -196,412 +188,176 @@ fun DashboardScreen(
                 )
             }
 
-            // ── Quick Action ──────────────────────────────────────────────────
-            OutlinedButton(
-                onClick = { showLockdownDialog = true },
-                modifier = Modifier.fillMaxWidth().height(48.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = LocalAppColors.current.yellow),
-                border = androidx.compose.foundation.BorderStroke(1.dp, LocalAppColors.current.yellow.copy(alpha = 0.5f))
-            ) {
-                Icon(Icons.Filled.Lock, null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("Apply Full Device Lockdown", fontWeight = FontWeight.SemiBold)
+            // ── Management grid ───────────────────────────────────────────────
+            SectionLabel("DEVICE MANAGEMENT")
+
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                CategoryTile(
+                    icon      = Icons.Outlined.AdminPanelSettings,
+                    title     = "Device Policies",
+                    subtitle  = "Restrictions & security controls",
+                    iconColor = c.red,
+                    onClick   = onNavigateToPolicies,
+                    modifier  = Modifier.weight(1f)
+                )
+                CategoryTile(
+                    icon      = Icons.Filled.Shield,
+                    title     = "Network & Filter",
+                    subtitle  = "DNS, VPN & content filter",
+                    iconColor = c.green,
+                    badge     = when {
+                        isDummyBrowserRunning -> "VPN"
+                        isFilterRunning       -> "ON"
+                        else                  -> null
+                    },
+                    onClick   = onNavigateToFilter,
+                    modifier  = Modifier.weight(1f)
+                )
             }
 
-            // ── App Restrictions ──────────────────────────────────────────────
-            PolicyCard(
-                icon      = Icons.Outlined.Apps,
-                title     = "App Restrictions",
-                iconColor = LocalAppColors.current.cyan
-            ) {
-                PolicyToggleRow(
-                    icon        = Icons.Outlined.Block,
-                    title       = "Block App Installation",
-                    subtitle    = "DISALLOW_INSTALL_APPS — prevents Play Store installs",
-                    checked     = state.installAppsBlocked,
-                    onCheckedChange = viewModel::setInstallAppsBlocked
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                CategoryTile(
+                    icon      = Icons.Outlined.FamilyRestroom,
+                    title     = "Parental Controls",
+                    subtitle  = "Screen time, email & SMS",
+                    iconColor = c.purple,
+                    onClick   = onNavigateToParental,
+                    modifier  = Modifier.weight(1f)
                 )
-                PolicyDivider()
-                PolicyToggleRow(
-                    icon        = Icons.Outlined.DeleteSweep,
-                    title       = "Block App Uninstallation",
-                    subtitle    = "DISALLOW_UNINSTALL_APPS — locks existing apps",
-                    checked     = state.uninstallAppsBlocked,
-                    onCheckedChange = viewModel::setUninstallAppsBlocked
+                CategoryTile(
+                    icon      = Icons.Outlined.Apps,
+                    title     = "App Manager",
+                    subtitle  = "Block & manage individual apps",
+                    iconColor = c.cyan,
+                    onClick   = onNavigateToApps,
+                    modifier  = Modifier.weight(1f)
                 )
-                PolicyDivider()
-                PolicyToggleRow(
-                    icon        = Icons.Outlined.PhonelinkLock,
-                    title       = "Block Sideloading",
-                    subtitle    = "DISALLOW_INSTALL_UNKNOWN_SOURCES — no APK sideloads",
-                    checked     = state.unknownSourcesBlocked,
-                    onCheckedChange = viewModel::setUnknownSourcesBlocked
+            }
+
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                CategoryTile(
+                    icon      = Icons.Outlined.LockPerson,
+                    title     = "Kiosk Mode",
+                    subtitle  = "Lock device to specific apps",
+                    iconColor = c.orange,
+                    onClick   = onNavigateToKiosk,
+                    modifier  = Modifier.weight(1f)
                 )
-                PolicyDivider()
-                PolicyToggleRow(
-                    icon        = Icons.Outlined.StoreMallDirectory,
-                    title       = "Hide Play Store",
-                    subtitle    = "Removes Play Store icon — requires Device Owner",
-                    checked     = state.playStoreHidden,
-                    onCheckedChange = viewModel::setPlayStoreHidden
+                CategoryTile(
+                    icon      = Icons.Outlined.SettingsRemote,
+                    title     = "Remote Control",
+                    subtitle  = "Alarm & remote commands",
+                    iconColor = c.red,
+                    onClick   = onNavigateToRemote,
+                    modifier  = Modifier.weight(1f)
                 )
-                PolicyDivider()
-                PolicyToggleRow(
-                    icon        = Icons.Outlined.Language,
-                    title       = "Hide Browsers",
-                    subtitle    = "Hides Chrome, Firefox, Samsung Internet + more",
-                    checked     = state.browsersHidden,
-                    onCheckedChange = viewModel::setBrowsersHidden
-                )
-                PolicyDivider()
+            }
+
+            NavCard(
+                icon      = Icons.Outlined.Analytics,
+                title     = "Device Details",
+                subtitle  = "Battery, storage, network diagnostics",
+                iconColor = c.cyan,
+                onClick   = onNavigateToTelemetry
+            )
+
+            // ── Quick Actions ─────────────────────────────────────────────────
+            SectionLabel("QUICK ACTIONS")
+
+            PolicyCard(icon = Icons.Outlined.FlashOn, title = "Quick Actions",
+                iconColor = c.yellow) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Outlined.ManageAccounts, null,
-                        tint = LocalAppColors.current.cyan, modifier = Modifier.size(20.dp))
-                    Spacer(Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Manage Individual Apps", fontWeight = FontWeight.SemiBold,
-                            color = LocalAppColors.current.textPrimary, fontSize = 14.sp)
-                        Text("Suspend or hide specific applications",
-                            color = LocalAppColors.current.textSecondary, fontSize = 11.sp)
-                    }
-                    IconButton(onClick = onNavigateToApps) {
-                        Icon(Icons.Filled.ChevronRight, null, tint = LocalAppColors.current.cyan)
-                    }
-                }
-            }
-
-            // ── System & Anti-Bypass ──────────────────────────────────────────
-            PolicyCard(
-                icon      = Icons.Outlined.Security,
-                title     = "System & Anti-Bypass Security",
-                iconColor = LocalAppColors.current.red
-            ) {
-                PolicyToggleRow(
-                    icon        = Icons.Outlined.SafetyCheck,
-                    title       = "Prevent Safe Boot",
-                    subtitle    = "DISALLOW_SAFE_BOOT — blocks recovery bypass",
-                    checked     = state.safeBootBlocked,
-                    onCheckedChange = viewModel::setSafeBootBlocked
-                )
-                PolicyDivider()
-                PolicyToggleRow(
-                    icon        = Icons.Outlined.RestartAlt,
-                    title       = "Prevent Factory Reset",
-                    subtitle    = "DISALLOW_FACTORY_RESET — protects device data",
-                    checked     = state.factoryResetBlocked,
-                    onCheckedChange = viewModel::setFactoryResetBlocked
-                )
-                PolicyDivider()
-                PolicyToggleRow(
-                    icon        = Icons.Outlined.DeveloperMode,
-                    title       = "Disable Developer Options & ADB",
-                    subtitle    = "DISALLOW_DEBUGGING_FEATURES — blocks USB control",
-                    checked     = state.debuggingBlocked,
-                    onCheckedChange = viewModel::setDebuggingBlocked
-                )
-                PolicyDivider()
-                PolicyToggleRow(
-                    icon        = Icons.Outlined.PersonOff,
-                    title       = "Prevent Multi-User Profiles",
-                    subtitle    = "DISALLOW_ADD_USER — single-user device enforcement",
-                    checked     = state.addUserBlocked,
-                    onCheckedChange = viewModel::setAddUserBlocked
-                )
-                PolicyDivider()
-                PolicyToggleRow(
-                    icon        = Icons.Outlined.SwitchAccount,
-                    title       = "Block User Switching",
-                    subtitle    = "DISALLOW_USER_SWITCH — one active session only",
-                    checked     = state.userSwitchBlocked,
-                    onCheckedChange = viewModel::setUserSwitchBlocked
-                )
-                PolicyDivider()
-                PolicyToggleRow(
-                    icon        = Icons.Outlined.Screenshot,
-                    title       = "Disable Screen Capture",
-                    subtitle    = "Blocks screenshots and screen recording",
-                    checked     = state.screenCaptureDisabled,
-                    onCheckedChange = viewModel::setScreenCaptureDisabled
-                )
-                PolicyDivider()
-                PolicyToggleRow(
-                    icon        = Icons.Outlined.CameraAlt,
-                    title       = "Disable Camera",
-                    subtitle    = "Blocks all camera apps device-wide",
-                    checked     = state.cameraDisabled,
-                    onCheckedChange = viewModel::setCameraDisabled
-                )
-            }
-
-            // ── Hardware & Settings ───────────────────────────────────────────
-            PolicyCard(
-                icon      = Icons.Outlined.Tune,
-                title     = "Hardware & Settings Control",
-                iconColor = LocalAppColors.current.purple
-            ) {
-                PolicyToggleRow(
-                    icon        = Icons.Outlined.Wifi,
-                    title       = "Lock Wi-Fi Configuration",
-                    subtitle    = "DISALLOW_CONFIG_WIFI — prevents network changes",
-                    checked     = state.wifiConfigBlocked,
-                    onCheckedChange = viewModel::setWifiConfigBlocked
-                )
-                PolicyDivider()
-                PolicyToggleRow(
-                    icon        = Icons.Outlined.SignalCellularAlt,
-                    title       = "Lock Cellular Data Settings",
-                    subtitle    = "DISALLOW_CONFIG_MOBILE_NETWORKS — locks APN/carrier",
-                    checked     = state.mobileNetworksBlocked,
-                    onCheckedChange = viewModel::setMobileNetworksBlocked
-                )
-                PolicyDivider()
-                PolicyToggleRow(
-                    icon        = Icons.Outlined.Bluetooth,
-                    title       = "Lock Bluetooth Settings",
-                    subtitle    = "DISALLOW_CONFIG_BLUETOOTH — prevents pairing",
-                    checked     = state.bluetoothConfigBlocked,
-                    onCheckedChange = viewModel::setBluetoothConfigBlocked
-                )
-                PolicyDivider()
-                PolicyToggleRow(
-                    icon        = Icons.Outlined.VpnLock,
-                    title       = "Block VPN Configuration",
-                    subtitle    = "DISALLOW_CONFIG_VPN — prevents VPN profiles",
-                    checked     = state.vpnBlocked,
-                    onCheckedChange = viewModel::setVpnBlocked
-                )
-                PolicyDivider()
-                PolicyToggleRow(
-                    icon        = Icons.Outlined.NotificationsOff,
-                    title       = "Lock Status Bar",
-                    subtitle    = "Disables pull-down shade and quick settings",
-                    checked     = state.statusBarDisabled,
-                    onCheckedChange = { viewModel.setStatusBarDisabled(it) }
-                )
-                PolicyDivider()
-                PolicyToggleRow(
-                    icon        = Icons.Outlined.SettingsBackupRestore,
-                    title       = "Block Network Reset",
-                    subtitle    = "DISALLOW_NETWORK_RESET — prevents bulk reset",
-                    checked     = state.networkResetBlocked,
-                    onCheckedChange = viewModel::setNetworkResetBlocked
-                )
-            }
-
-            // ── Hardware restrictions ─────────────────────────────────────────
-            PolicyCard(icon = Icons.Outlined.Hardware, title = "Hardware Restrictions",
-                iconColor = LocalAppColors.current.orange) {
-                PolicyToggleRow(
-                    icon        = Icons.Outlined.Usb,
-                    title       = "Block USB File Transfer",
-                    subtitle    = "DISALLOW_USB_FILE_TRANSFER — Android 9+",
-                    checked     = state.usbTransferBlocked,
-                    onCheckedChange = viewModel::setUsbTransferBlocked
-                )
-                PolicyDivider()
-                PolicyToggleRow(
-                    icon        = Icons.Outlined.BluetoothDisabled,
-                    title       = "Disable Bluetooth",
-                    subtitle    = "DISALLOW_BLUETOOTH — fully disables BT",
-                    checked     = state.bluetoothDisabled,
-                    onCheckedChange = viewModel::setBluetoothDisabled
-                )
-                PolicyDivider()
-                PolicyToggleRow(
-                    icon        = Icons.Outlined.PhoneDisabled,
-                    title       = "Block Outgoing Calls",
-                    subtitle    = "DISALLOW_OUTGOING_CALLS — no phone calls",
-                    checked     = state.outgoingCallsBlocked,
-                    onCheckedChange = viewModel::setOutgoingCallsBlocked
-                )
-                PolicyDivider()
-                PolicyToggleRow(
-                    icon        = Icons.Outlined.SdCardAlert,
-                    title       = "Block Physical Media",
-                    subtitle    = "DISALLOW_MOUNT_PHYSICAL_MEDIA — no SD card",
-                    checked     = state.physicalMediaBlocked,
-                    onCheckedChange = viewModel::setPhysicalMediaBlocked
-                )
-                PolicyDivider()
-                PolicyToggleRow(
-                    icon        = Icons.Outlined.Shield,
-                    title       = "Protect MDM from Uninstall",
-                    subtitle    = "setUninstallBlocked — requires Device Owner",
-                    checked     = state.mdmUninstallProtected,
-                    onCheckedChange = viewModel::setMdmUninstallProtected
-                )
-            }
-
-            // ── Network & DNS ─────────────────────────────────────────────────
-            DnsCard(
-                privateDnsRestricted = state.privateDnsRestricted,
-                privateDnsHost       = state.privateDnsHost,
-                onEnforceDns         = viewModel::enforcePrivateDns,
-                onClearDns           = viewModel::clearPrivateDns
-            )
-
-            // ── Content Filter ────────────────────────────────────────────────
-            ContentFilterCard(onNavigateToFilter = onNavigateToFilter)
-
-            // ── Parental Controls ─────────────────────────────────────────────
-            NavCard(
-                icon      = Icons.Outlined.FamilyRestroom,
-                title     = "Parental Controls",
-                subtitle  = "Screen time, block email & texting",
-                iconColor = LocalAppColors.current.purple,
-                onClick   = onNavigateToParental
-            )
-
-            // ── Kiosk mode ────────────────────────────────────────────────────
-            NavCard(
-                icon        = Icons.Outlined.LockPerson,
-                title       = "Kiosk / Lock Task Mode",
-                subtitle    = "Restrict device to specific apps",
-                iconColor   = LocalAppColors.current.orange,
-                onClick     = onNavigateToKiosk
-            )
-
-            // ── Device telemetry ──────────────────────────────────────────────
-            NavCard(
-                icon        = Icons.Outlined.Analytics,
-                title       = "Device Details",
-                subtitle    = "Battery, storage, network diagnostics",
-                iconColor   = LocalAppColors.current.cyan,
-                onClick     = onNavigateToTelemetry
-            )
-
-            // ── Remote control ────────────────────────────────────────────────
-            NavCard(
-                icon      = Icons.Outlined.SettingsRemote,
-                title     = "Remote Control",
-                subtitle  = "Sound alarm remotely on enrolled devices",
-                iconColor = LocalAppColors.current.red,
-                onClick   = onNavigateToRemote
-            )
-
-            // ── General settings ─────────────────────────────────────────────
-            GeneralSettingsCard()
-
-            // ── PIN Security ──────────────────────────────────────────────────
-            PinSecurityCard(onNavigateToPinSetup = onNavigateToPinSetup)
-
-            // ── Danger Zone ───────────────────────────────────────────────────
-            PolicyCard(
-                icon      = Icons.Outlined.Warning,
-                title     = "Danger Zone",
-                iconColor = LocalAppColors.current.red
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Button(
                         onClick = { viewModel.lockDevice() },
                         modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = LocalAppColors.current.card),
-                        shape = RoundedCornerShape(10.dp)
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = c.cyanDim)
                     ) {
-                        Icon(Icons.Filled.Lock, null, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Filled.Lock, null, tint = c.cyan, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text("Lock Now")
+                        Text("Lock Now", color = c.cyan, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                     }
                     Button(
                         onClick = { viewModel.reboot() },
                         modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A1A00)),
-                        shape = RoundedCornerShape(10.dp)
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A1A00))
                     ) {
                         Icon(Icons.Filled.RestartAlt, null,
-                            tint = LocalAppColors.current.yellow, modifier = Modifier.size(16.dp))
+                            tint = c.yellow, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text("Reboot", color = LocalAppColors.current.yellow)
+                        Text("Reboot", color = c.yellow, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                     }
                 }
-                PolicyDivider()
+            }
+
+            // ── Settings ──────────────────────────────────────────────────────
+            SectionLabel("SETTINGS")
+            GeneralSettingsCard()
+            PinSecurityCard(onNavigateToPinSetup = onNavigateToPinSetup)
+
+            // ── Danger Zone ───────────────────────────────────────────────────
+            SectionLabel("DANGER ZONE")
+            PolicyCard(icon = Icons.Outlined.Warning, title = "Danger Zone",
+                iconColor = c.red) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Outlined.CloudOff, null,
-                        tint = LocalAppColors.current.yellow, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Outlined.CloudOff, null, tint = c.yellow, modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text("Disconnect from Console", fontWeight = FontWeight.SemiBold,
-                            color = LocalAppColors.current.yellow, fontSize = 14.sp)
-                        Text("Stop remote management and sign out of this account",
-                            color = LocalAppColors.current.textSecondary, fontSize = 11.sp)
+                            color = c.yellow, fontSize = 14.sp)
+                        Text("Stop remote management and sign out",
+                            color = c.textSecondary, fontSize = 11.sp)
                     }
                     Button(
                         onClick = { showDisconnectDialog = true },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF2A2000)
-                        ),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2A2000)),
                         shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Text("Disconnect", color = LocalAppColors.current.yellow, fontWeight = FontWeight.Bold)
-                    }
+                    ) { Text("Disconnect", color = c.yellow, fontWeight = FontWeight.Bold) }
                 }
                 PolicyDivider()
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Outlined.DeleteForever, null,
-                        tint = LocalAppColors.current.red, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Outlined.DeleteForever, null, tint = c.red, modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text("Factory Reset Device", fontWeight = FontWeight.SemiBold,
-                            color = LocalAppColors.current.red, fontSize = 14.sp)
+                            color = c.red, fontSize = 14.sp)
                         Text("Wipes ALL data — irreversible",
-                            color = LocalAppColors.current.textSecondary, fontSize = 11.sp)
+                            color = c.textSecondary, fontSize = 11.sp)
                     }
                     Button(
                         onClick = { showWipeDialog = true },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF3A1010)
-                        ),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3A1010)),
                         shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Text("Wipe", color = LocalAppColors.current.red, fontWeight = FontWeight.Bold)
-                    }
+                    ) { Text("Wipe", color = c.red, fontWeight = FontWeight.Bold) }
                 }
                 PolicyDivider()
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Outlined.AppBlocking, null,
-                        tint = LocalAppColors.current.red, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Outlined.AppBlocking, null, tint = c.red, modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text("Remove MDM", fontWeight = FontWeight.SemiBold,
-                            color = LocalAppColors.current.red, fontSize = 14.sp)
+                            color = c.red, fontSize = 14.sp)
                         Text("Clears admin privileges and uninstalls this app",
-                            color = LocalAppColors.current.textSecondary, fontSize = 11.sp)
+                            color = c.textSecondary, fontSize = 11.sp)
                     }
                     Button(
                         onClick = { showRemoveMdmDialog = true },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF3A1010)
-                        ),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3A1010)),
                         shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Text("Remove", color = LocalAppColors.current.red, fontWeight = FontWeight.Bold)
-                    }
+                    ) { Text("Remove", color = c.red, fontWeight = FontWeight.Bold) }
                 }
             }
 
@@ -610,33 +366,6 @@ fun DashboardScreen(
     }
 
     // ── Dialogs ───────────────────────────────────────────────────────────────
-
-    if (showLockdownDialog) {
-        AlertDialog(
-            onDismissRequest = { showLockdownDialog = false },
-            containerColor = LocalAppColors.current.card,
-            icon = { Icon(Icons.Filled.Lock, null, tint = LocalAppColors.current.yellow) },
-            title = { Text("Apply Full Lockdown?", color = LocalAppColors.current.textPrimary) },
-            text = {
-                Text(
-                    "This will enforce all anti-bypass restrictions, block installs/uninstalls, " +
-                    "lock Wi-Fi/BT/mobile settings, disable screen capture, and disable the status bar.",
-                    color = LocalAppColors.current.textSecondary
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = { viewModel.applyFullLockdown(); showLockdownDialog = false },
-                    colors = ButtonDefaults.buttonColors(containerColor = LocalAppColors.current.yellow)
-                ) { Text("Apply", color = Color.Black, fontWeight = FontWeight.Bold) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showLockdownDialog = false }) {
-                    Text("Cancel", color = LocalAppColors.current.cyan)
-                }
-            }
-        )
-    }
 
     if (showWipeDialog) {
         AlertDialog(
@@ -790,134 +519,83 @@ private fun StatusCard(
     }
 }
 
-// ── DNS Card ──────────────────────────────────────────────────────────────────
+// ── Section label ─────────────────────────────────────────────────────────────
 
 @Composable
-private fun DnsCard(
-    privateDnsRestricted: Boolean,
-    privateDnsHost: String,
-    onEnforceDns: (String) -> Unit,
-    onClearDns: () -> Unit,
-) {
-    var customDns by remember { mutableStateOf("") }
-    val focusManager = LocalFocusManager.current
-
-    val presets = listOf(
-        "AdGuard" to "dns.adguard.com",
-        "Cloudflare Security" to "security.cloudflare-dns.com",
-        "Cloudflare Family" to "family.cloudflare-dns.com",
-        "CleanBrowsing" to "security-filter-dns.cleanbrowsing.org"
+private fun SectionLabel(text: String) {
+    Text(
+        text = text,
+        modifier = Modifier.padding(start = 4.dp, top = 4.dp),
+        color = LocalAppColors.current.textSecondary,
+        fontSize = 11.sp,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = 1.sp
     )
+}
 
-    PolicyCard(
-        icon      = Icons.Outlined.Dns,
-        title     = "Network & DNS Protection",
-        iconColor = LocalAppColors.current.green
+// ── Category tile (2-column grid item) ────────────────────────────────────────
+
+@Composable
+private fun CategoryTile(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String,
+    iconColor: Color,
+    modifier: Modifier = Modifier,
+    badge: String? = null,
+    onClick: () -> Unit,
+) {
+    val c = LocalAppColors.current
+    Card(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = c.card),
+        border = androidx.compose.foundation.BorderStroke(1.dp, c.cardBorder)
     ) {
-        // DNS Status row
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .defaultMinSize(minHeight = 108.dp)
+                .padding(14.dp),
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Icon(
-                if (privateDnsRestricted) Icons.Filled.Lock else Icons.Outlined.LockOpen,
-                null,
-                tint = if (privateDnsRestricted) LocalAppColors.current.green else LocalAppColors.current.textSecondary,
-                modifier = Modifier.size(18.dp)
-            )
-            Spacer(Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = if (privateDnsRestricted) "DNS Enforced" else "DNS — Not Enforced",
-                    fontWeight = FontWeight.SemiBold,
-                    color = if (privateDnsRestricted) LocalAppColors.current.green else LocalAppColors.current.textPrimary,
-                    fontSize = 14.sp
-                )
-                if (privateDnsHost.isNotBlank()) {
-                    Text(privateDnsHost, color = LocalAppColors.current.textSecondary, fontSize = 11.sp)
-                } else {
-                    Text("Tap a preset or enter a custom host",
-                        color = LocalAppColors.current.textSecondary, fontSize = 11.sp)
-                }
-            }
-            AnimatedVisibility(privateDnsRestricted) {
-                IconButton(onClick = onClearDns) {
-                    Icon(Icons.Filled.Clear, "Clear DNS", tint = LocalAppColors.current.red)
-                }
-            }
-        }
-
-        PolicyDivider()
-
-        // Presets
-        presets.forEach { (label, host) ->
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
             ) {
-                Text(label, modifier = Modifier.weight(1f),
-                    color = LocalAppColors.current.textPrimary, fontSize = 13.sp)
-                Text(host, color = LocalAppColors.current.textSecondary, fontSize = 10.sp,
-                    modifier = Modifier.padding(end = 8.dp))
-                OutlinedButton(
-                    onClick = { onEnforceDns(host) },
-                    shape = RoundedCornerShape(8.dp),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = LocalAppColors.current.cyan),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, LocalAppColors.current.cyanDim),
-                    modifier = Modifier.height(32.dp)
-                ) { Text("Set", fontSize = 12.sp) }
-            }
-        }
-
-        PolicyDivider()
-
-        // Custom DNS input
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            OutlinedTextField(
-                value = customDns,
-                onValueChange = { customDns = it },
-                modifier = Modifier.weight(1f),
-                placeholder = { Text("custom.dns.host", fontSize = 13.sp,
-                    color = LocalAppColors.current.textSecondary) },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Uri,
-                    imeAction = ImeAction.Done
-                ),
-                keyboardActions = KeyboardActions(onDone = {
-                    if (customDns.isNotBlank()) { onEnforceDns(customDns); focusManager.clearFocus() }
-                }),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = LocalAppColors.current.cyan,
-                    unfocusedBorderColor = LocalAppColors.current.cardBorder,
-                    focusedTextColor = LocalAppColors.current.textPrimary,
-                    unfocusedTextColor = LocalAppColors.current.textPrimary,
-                    cursorColor = LocalAppColors.current.cyan
-                ),
-                shape = RoundedCornerShape(10.dp),
-                textStyle = androidx.compose.ui.text.TextStyle(fontSize = 13.sp)
-            )
-            Button(
-                onClick = {
-                    if (customDns.isNotBlank()) {
-                        onEnforceDns(customDns.trim())
-                        focusManager.clearFocus()
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(iconColor.copy(alpha = 0.13f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(icon, null, tint = iconColor, modifier = Modifier.size(20.dp))
+                }
+                if (badge != null) {
+                    Surface(
+                        shape = RoundedCornerShape(5.dp),
+                        color = iconColor.copy(alpha = 0.18f)
+                    ) {
+                        Text(
+                            badge,
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+                            color = iconColor,
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.5.sp
+                        )
                     }
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = LocalAppColors.current.cyanDim),
-                shape = RoundedCornerShape(10.dp)
-            ) { Text("Lock", color = LocalAppColors.current.cyan, fontWeight = FontWeight.SemiBold) }
+                }
+            }
+            Column {
+                Text(title, fontWeight = FontWeight.Bold, color = c.textPrimary,
+                    fontSize = 13.sp, lineHeight = 16.sp)
+                Spacer(Modifier.height(2.dp))
+                Text(subtitle, color = c.textSecondary, fontSize = 10.sp, lineHeight = 13.sp)
+            }
         }
     }
 }

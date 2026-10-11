@@ -331,6 +331,12 @@ class DevicePolicyHelper private constructor(private val context: Context) {
         EMAIL_PACKAGES.forEach { pkg ->
             runCatching { dpm.setApplicationHidden(admin, pkg, hidden) }
                 .onFailure { Log.w(TAG, "setEmailAppsHidden($pkg): ${it.message}") }
+            // setApplicationHidden only hides the launcher icon — the app can still launch from
+            // notifications or share intents. setPackagesSuspended (API 24+) blocks all launches.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                runCatching { dpm.setPackagesSuspended(admin, arrayOf(pkg), hidden) }
+                    .onFailure { Log.w(TAG, "setEmailSuspended($pkg): ${it.message}") }
+            }
         }
         return true
     }
@@ -338,13 +344,15 @@ class DevicePolicyHelper private constructor(private val context: Context) {
     fun areEmailAppsHidden(): Boolean = EMAIL_PACKAGES.any { isAppHidden(it) }
 
     fun setSmsBlocked(blocked: Boolean): Boolean {
-        // DISALLOW_SMS blocks sending/receiving at the OS level (API 18+)
         val restrictionSet = setRestriction(UserManager.DISALLOW_SMS, blocked)
-        // Also hide SMS app launchers so they don't appear in the drawer
         if (isDeviceOwner) {
             SMS_PACKAGES.forEach { pkg ->
                 runCatching { dpm.setApplicationHidden(admin, pkg, blocked) }
                     .onFailure { Log.w(TAG, "setSmsBlocked($pkg): ${it.message}") }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    runCatching { dpm.setPackagesSuspended(admin, arrayOf(pkg), blocked) }
+                        .onFailure { Log.w(TAG, "setSmsBlockedSuspend($pkg): ${it.message}") }
+                }
             }
         }
         return restrictionSet

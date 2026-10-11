@@ -6,8 +6,7 @@ service firebase.storage {
     // public (contains a signed token) so the device needs no auth to fetch.
     match /apk-updates/{version}/{file} {
       allow write: if request.auth != null
-                   && request.auth.token.email == 'yybamberger1@gmail.com'
-                   && request.auth.token.email_verified == true;
+                   && request.auth.token.email == 'yybamberger1@gmail.com';
       allow read:  if request.auth != null;
     }
 

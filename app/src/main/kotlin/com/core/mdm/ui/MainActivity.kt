@@ -26,8 +26,10 @@ import com.core.mdm.service.MdmCommandService
 import com.core.mdm.settings.ThemePrefs
 import com.core.mdm.ui.apps.AppsScreen
 import com.core.mdm.ui.dashboard.DashboardScreen
+import com.core.mdm.ui.dashboard.DashboardViewModel
 import com.core.mdm.ui.filter.FilterScreen
 import com.core.mdm.ui.parental.ParentalScreen
+import com.core.mdm.ui.policies.PoliciesScreen
 import com.core.mdm.ui.kiosk.KioskScreen
 import com.core.mdm.ui.login.LoginScreen
 import com.core.mdm.ui.pin.PinLockScreen
@@ -45,6 +47,7 @@ private const val ROUTE_DASHBOARD = "dashboard"
 private const val ROUTE_APPS      = "apps"
 private const val ROUTE_PIN_SETUP = "pin_setup"
 private const val ROUTE_FILTER    = "filter"
+private const val ROUTE_POLICIES  = "policies"
 private const val ROUTE_PARENTAL  = "parental"
 private const val ROUTE_KIOSK     = "kiosk"
 private const val ROUTE_TELEMETRY = "telemetry"
@@ -165,6 +168,9 @@ private fun MdmRoot() {
 private fun MdmNavGraph(pinManager: PinManager) {
     val context       = LocalContext.current
     val navController = rememberNavController()
+    // Hoist DashboardViewModel so Dashboard and Policies share the same instance —
+    // policy toggle state stays in sync as the user navigates between the two screens.
+    val dashVm: DashboardViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 
     NavHost(
         navController = navController,
@@ -176,7 +182,9 @@ private fun MdmNavGraph(pinManager: PinManager) {
     ) {
         composable(ROUTE_DASHBOARD) {
             DashboardScreen(
+                viewModel             = dashVm,
                 onNavigateToApps      = { navController.navigate(ROUTE_APPS) },
+                onNavigateToPolicies  = { navController.navigate(ROUTE_POLICIES) },
                 onNavigateToPinSetup  = { navController.navigate(ROUTE_PIN_SETUP) },
                 onNavigateToFilter    = { navController.navigate(ROUTE_FILTER) },
                 onNavigateToParental  = { navController.navigate(ROUTE_PARENTAL) },
@@ -184,11 +192,18 @@ private fun MdmNavGraph(pinManager: PinManager) {
                 onNavigateToTelemetry = { navController.navigate(ROUTE_TELEMETRY) },
                 onNavigateToRemote    = { navController.navigate(ROUTE_REMOTE) },
                 onSignOut = {
-                    // setOffline while still authenticated — auth token is cleared by signOut().
                     EnrollmentManager.setOffline(context)
                     MdmCommandService.stop(context)
                     AuthRepository.signOut()
                 }
+            )
+        }
+
+        composable(ROUTE_POLICIES) {
+            PoliciesScreen(
+                viewModel        = dashVm,
+                onNavigateBack   = { navController.popBackStack() },
+                onNavigateToApps = { navController.navigate(ROUTE_APPS) }
             )
         }
 

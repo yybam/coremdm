@@ -233,6 +233,43 @@ object DeviceRegistry {
             .addOnFailureListener { Log.e(TAG, "writePolicyAck failed: ${it.message}") }
     }
 
+    fun writeDeviceStatus(
+        context: Context,
+        batteryLevel: Int,
+        isCharging: Boolean,
+        networkInfo: Map<String, Any>,
+    ) {
+        uid() ?: return
+        val id = EnrollmentManager.getHardwareId(context)
+        val update = mutableMapOf<String, Any>(
+            "batteryLevel" to batteryLevel,
+            "isCharging"   to isCharging,
+        )
+        update.putAll(networkInfo)
+        devices().document(id).update(update)
+            .addOnFailureListener { Log.e(TAG, "writeDeviceStatus failed: ${it.message}") }
+    }
+
+    fun writeLocation(context: Context, lat: Double, lng: Double, accuracy: Float) {
+        uid() ?: return
+        val id = EnrollmentManager.getHardwareId(context)
+        devices().document(id).update(mapOf(
+            "lastLat"              to lat,
+            "lastLng"              to lng,
+            "lastLocationAccuracy" to accuracy,
+            "lastLocationAt"       to FieldValue.serverTimestamp(),
+        )).addOnFailureListener { Log.e(TAG, "writeLocation failed: ${it.message}") }
+    }
+
+    fun writeUsageStats(context: Context, stats: List<Map<String, Any>>) {
+        uid() ?: return
+        val id = EnrollmentManager.getHardwareId(context)
+        devices().document(id).update(mapOf(
+            "usageStats"          to stats,
+            "usageStatsUpdatedAt" to FieldValue.serverTimestamp(),
+        )).addOnFailureListener { Log.e(TAG, "writeUsageStats failed: ${it.message}") }
+    }
+
     fun watchAllDevices(onUpdate: (List<DeviceInfo>) -> Unit): ListenerRegistration? {
         val uid = uid() ?: return null
         return devices()

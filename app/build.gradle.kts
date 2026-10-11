@@ -22,8 +22,8 @@ android {
         applicationId = "com.core.mdm"
         minSdk = 24
         targetSdk = 34
-        versionCode = 55
-        versionName = "0.6.1"
+        versionCode = 56
+        versionName = "0.7.0"
         buildConfigField("String", "WS_BACKEND_URL",
             "\"${localProps.getProperty("WS_BACKEND_URL", "")}\"")
     }
@@ -106,5 +106,6 @@ dependencies {
     implementation(libs.androidx.credentials.play.services)
     implementation(libs.google.identity.googleid)
     implementation(libs.okhttp)
+    implementation(libs.play.services.location)
     debugImplementation(libs.androidx.ui.tooling)
 }

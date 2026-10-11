@@ -50,6 +50,7 @@ fun DashboardScreen(
     onNavigateToKiosk: () -> Unit = {},
     onNavigateToTelemetry: () -> Unit = {},
     onNavigateToRemote: () -> Unit = {},
+    onNavigateToLocation: () -> Unit = {},
     onSignOut: () -> Unit = {},
     viewModel: DashboardViewModel = viewModel()
 ) {
@@ -252,6 +253,14 @@ fun DashboardScreen(
                     modifier  = Modifier.weight(1f)
                 )
             }
+
+            NavCard(
+                icon      = Icons.Outlined.LocationOn,
+                title     = "Location & Tracking",
+                subtitle  = "GPS tracking, geofencing, usage stats",
+                iconColor = c.green,
+                onClick   = onNavigateToLocation
+            )
 
             NavCard(
                 icon      = Icons.Outlined.Analytics,

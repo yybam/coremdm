@@ -19,9 +19,12 @@ import com.core.mdm.firebase.DeviceRegistry
 import com.core.mdm.firebase.EnrollmentManager
 import com.core.mdm.policy.AppPolicyManager
 import com.core.mdm.policy.DevicePolicyHelper
+import com.core.mdm.policy.GeofenceManager
 import com.core.mdm.policy.PolicyEvents
+import com.core.mdm.policy.ScheduledLockdownManager
 import com.core.mdm.installer.SelfUpdateService
 import com.core.mdm.remote.AlarmController
+import com.core.mdm.ui.message.MessageAlertActivity
 import com.core.mdm.ws.WsCommandClient
 import com.core.mdm.remote.UpdateNotifier
 import kotlinx.coroutines.CoroutineScope
@@ -76,12 +79,22 @@ class MdmCommandService : Service() {
             while (isActive) {
                 delay(60_000L)
                 DeviceRegistry.updateLastSeen(applicationContext)
+                writeDeviceStatus()
                 // If enrollment failed or a listener was dropped by an error, keep
                 // retrying — otherwise web console commands would silently stop arriving.
                 if ((commandListener == null || queueListener == null) &&
                         Firebase.auth.currentUser != null) {
                     launch(Dispatchers.Main) { connectCommandListener(helper) }
                 }
+            }
+        }
+
+        // Collect usage stats less frequently — once every 15 minutes is plenty.
+        serviceScope.launch {
+            while (isActive) {
+                delay(15 * 60_000L)
+                val stats = UsageStatsCollector.collect(applicationContext)
+                if (stats.isNotEmpty()) DeviceRegistry.writeUsageStats(applicationContext, stats)
             }
         }
     }
@@ -179,8 +192,26 @@ class MdmCommandService : Service() {
                     version = (data["version"] as? String) ?: "",
                 )
             }
-            else       -> Log.w(TAG, "Unknown queued command type: $type")
+            "show_message" -> {
+                val title = (data["title"] as? String) ?: "Message from Administrator"
+                val text  = (data["text"]  as? String) ?: ""
+                applicationContext.startActivity(
+                    android.content.Intent(applicationContext, MessageAlertActivity::class.java)
+                        .putExtra(MessageAlertActivity.EXTRA_TITLE, title)
+                        .putExtra(MessageAlertActivity.EXTRA_TEXT, text)
+                        .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or
+                                  android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                )
+            }
+            else -> Log.w(TAG, "Unknown queued command type: $type")
         }
+    }
+
+    private fun writeDeviceStatus() {
+        val battery  = DeviceStatusCollector.getBatteryLevel(applicationContext)
+        val charging = DeviceStatusCollector.isCharging(applicationContext)
+        val network  = DeviceStatusCollector.getNetworkInfo(applicationContext)
+        DeviceRegistry.writeDeviceStatus(applicationContext, battery, charging, network)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int) = START_STICKY
@@ -362,6 +393,42 @@ class MdmCommandService : Service() {
                 com.core.mdm.policy.ScreenTimeScheduler.cancel(applicationContext)
             }
         }
+
+        // Location tracking
+        (policies["locationTrackingEnabled"] as? Boolean)?.let { enabled ->
+            if (enabled) {
+                helper.grantMdmPermissions()
+                LocationService.start(applicationContext)
+            } else {
+                LocationService.stop(applicationContext)
+            }
+        }
+
+        // Geofencing
+        @Suppress("UNCHECKED_CAST")
+        (policies["geofence"] as? Map<String, Any>)?.let { gf ->
+            val enabled = gf["enabled"] as? Boolean ?: false
+            if (enabled) {
+                val lat     = (gf["lat"]    as? Number)?.toDouble() ?: return@let
+                val lng     = (gf["lng"]    as? Number)?.toDouble() ?: return@let
+                val radius  = ((gf["radius"] as? Number)?.toFloat() ?: 200f)
+                val action  = (gf["action"] as? String) ?: "lock"
+                val message = (gf["message"] as? String) ?: ""
+                GeofenceManager.register(applicationContext, lat, lng, radius, action, message)
+            } else {
+                GeofenceManager.unregister(applicationContext)
+            }
+        }
+
+        // Scheduled lockdown
+        val lockdownEnabled = policies["scheduledLockdownEnabled"] as? Boolean
+        val lockdownStart   = policies["scheduledLockdownStart"]   as? String ?: "07:00"
+        val lockdownEnd     = policies["scheduledLockdownEnd"]     as? String ?: "22:00"
+        if (lockdownEnabled != null) {
+            if (lockdownEnabled) ScheduledLockdownManager.schedule(applicationContext, lockdownEnd, lockdownStart)
+            else                 ScheduledLockdownManager.cancel(applicationContext)
+        }
+
         Log.d(TAG, "Remote policies applied (${policies.size} keys)")
     }
 

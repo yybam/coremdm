@@ -10,6 +10,8 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
 <!-- Self-hosted, purged Tailwind build (no runtime CDN script) -->
 <link rel="stylesheet" href="tailwind.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 :root {
   --bg:       #070a14;
@@ -136,8 +138,45 @@ header { background: rgba(10,13,24,.55); border-bottom: 1px solid var(--border);
 .dc-id { display: flex; gap: 8px; font-size: 12px; }
 .dc-id-lbl { color: var(--textSec); width: 48px; flex-shrink: 0; }
 .dc-id-val { color: var(--text); font-family: ui-monospace, monospace; font-size: 11px; word-break: break-all; }
-.dc-lastseen { font-size: 11px; color: var(--textDim); margin-bottom: 14px; }
+.dc-lastseen { font-size: 11px; color: var(--textDim); margin-bottom: 6px; }
+.dc-battery-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.dc-bat-pill { display: flex; align-items: center; gap: 5px; background: rgba(255,255,255,.05); border: 1px solid var(--border); border-radius: 20px; padding: 2px 8px 2px 6px; font-size: 11px; }
+.dc-bat-icon { font-size: 13px; }
+.dc-bat-val { font-weight: 700; }
+.dc-net-pill { display: flex; align-items: center; gap: 4px; background: rgba(255,255,255,.05); border: 1px solid var(--border); border-radius: 20px; padding: 2px 8px; font-size: 11px; color: var(--textSec); }
 .dc-actions { display: flex; gap: 9px; }
+/* compliance/status tab */
+.comp-row { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--border); }
+.comp-row:last-child { border-bottom: none; }
+.comp-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.comp-dot.ok  { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.comp-dot.warn { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+.comp-dot.bad { background: var(--red); box-shadow: 0 0 6px var(--red); }
+.comp-label { font-size: 13px; font-weight: 600; color: var(--text); flex: 1; }
+.comp-val { font-size: 12px; color: var(--textSec); text-align: right; }
+/* usage stats */
+.usage-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,.06); }
+.usage-row:last-child { border-bottom: none; }
+.usage-bar-wrap { flex: 1; background: rgba(255,255,255,.07); border-radius: 4px; height: 5px; overflow: hidden; }
+.usage-bar { height: 5px; background: linear-gradient(90deg,var(--cyan),var(--accent2)); border-radius: 4px; }
+.usage-label { font-size: 12px; color: var(--text); width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.usage-time { font-size: 11px; color: var(--textSec); width: 60px; text-align: right; }
+/* message tab */
+.msg-form { display: flex; flex-direction: column; gap: 12px; }
+.msg-form label { font-size: 11px; color: var(--textSec); font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
+.msg-form input, .msg-form textarea { background: var(--navy); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; color: var(--text); font-size: 14px; resize: vertical; }
+.msg-form input:focus, .msg-form textarea:focus { border-color: var(--cyan); outline: none; }
+.btn-send-msg { background: linear-gradient(135deg,var(--cyan),var(--accent2)); color: #fff; font-weight: 700; border-radius: 12px; padding: 12px 0; font-size: 14px; width: 100%; }
+/* location tab */
+#loc-map { height: 280px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); margin-bottom: 16px; }
+.geo-form { display: flex; flex-direction: column; gap: 10px; }
+.geo-row { display: flex; gap: 10px; }
+.geo-row > div { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.geo-row label { font-size: 11px; color: var(--textSec); }
+.geo-row input, .geo-select { background: var(--navy); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; color: var(--text); font-size: 13px; }
+.geo-select { width: 100%; }
+.btn-set-geo { background: rgba(139,123,240,.2); color: var(--purple); border: 1px solid rgba(139,123,240,.4); border-radius: 10px; padding: 10px 18px; font-weight: 700; font-size: 13px; }
+.btn-clear-geo { background: rgba(255,107,125,.1); color: var(--red); border: 1px solid rgba(255,107,125,.3); border-radius: 10px; padding: 10px 18px; font-weight: 700; font-size: 13px; }
 .dc-btn { flex: 1; padding: 10px 6px; border-radius: 11px; font-size: 12px; font-weight: 700; text-align: center; transition: transform .15s, opacity 0.2s; }
 .dc-btn:hover { opacity: 0.9; }
 .dc-btn-alarm  { background: rgba(255,193,94,.12); color: var(--yellow); border: 1px solid rgba(255,193,94,.3); }
@@ -585,14 +624,17 @@ const HW_POLICIES = [
   { key:'mdmUninstallProtected',  label:'Protect MDM from Uninstall',   sub:'Prevents CORE MDM app removal' },
 ];
 const TABS = [
-  { id:'commands',  label:'Commands' },
-  { id:'apps',      label:'App Policies' },
-  { id:'installed', label:'Installed Apps' },
-  { id:'system',    label:'System' },
-  { id:'hardware',  label:'Hardware' },
-  { id:'network',   label:'Network' },
-  { id:'parental',  label:'Parental' },
-  { id:'danger',    label:'Danger', danger: true },
+  { id:'commands',   label:'Commands' },
+  { id:'apps',       label:'App Policies' },
+  { id:'installed',  label:'Installed Apps' },
+  { id:'system',     label:'System' },
+  { id:'hardware',   label:'Hardware' },
+  { id:'network',    label:'Network' },
+  { id:'parental',   label:'Parental' },
+  { id:'status',     label:'Status' },
+  { id:'location',   label:'Location' },
+  { id:'message',    label:'Message' },
+  { id:'danger',     label:'Danger', danger: true },
 ];
 
 // ── Utility ──────────────────────────────────────────────────
@@ -760,6 +802,17 @@ function startDeviceListener(uid) {
         imei:        data.imei || '',
         serial:      data.serial || '',
         policies:    data.policies || {},
+        batteryLevel:  data.batteryLevel ?? null,
+        isCharging:    data.isCharging ?? null,
+        networkType:   data.networkType || null,
+        wifiRssi:      data.wifiRssi ?? null,
+        lastLat:       data.lastLat ?? null,
+        lastLng:       data.lastLng ?? null,
+        lastLocationAccuracy: data.lastLocationAccuracy ?? null,
+        lastLocationAt: data.lastLocationAt?.toMillis?.() ?? null,
+        usageStats:    Array.isArray(data.usageStats) ? data.usageStats : [],
+        lastInstalledVersion: data.lastInstalledVersion || null,
+        policyAcknowledgedAt: data.policyAcknowledgedAt?.toMillis?.() ?? null,
       };
     });
     // Auto-advance from setup screen the moment the first device registers
@@ -809,6 +862,10 @@ function renderCards() {
         ${d.serial?`<div class="dc-id"><span class="dc-id-lbl">Serial</span><span class="dc-id-val">${esc(d.serial)}</span></div>`:''}
       </div>
       <div class="dc-lastseen">Last seen: ${timeSince(d.lastSeen)}</div>
+      <div class="dc-battery-row">
+        ${d.batteryLevel !== null ? `<div class="dc-bat-pill"><span class="dc-bat-icon">${d.isCharging ? '⚡' : (d.batteryLevel > 20 ? '🔋' : '🪫')}</span><span class="dc-bat-val" style="color:${d.batteryLevel > 20 ? 'var(--green)' : 'var(--red)'}">${d.batteryLevel}%</span></div>` : ''}
+        ${d.networkType ? `<div class="dc-net-pill">📶 ${esc(d.networkType)}${d.networkType==='wifi'&&d.wifiRssi ? ` ${d.wifiRssi}dBm` : ''}</div>` : ''}
+      </div>
       <div class="dc-actions">
         <button class="dc-btn dc-btn-alarm${alarm?' active':''} transition-transform duration-150 hover:scale-105 active:scale-95" onclick="window._mdm.toggleAlarm('${d.id}',${!alarm})">${alarm?'Stop Alarm':'Sound Alarm'}</button>
         <button class="dc-btn dc-btn-manage transition-transform duration-150 hover:scale-105 active:scale-95" onclick="window._mdm.openModal('${d.id}')">Manage &rarr;</button>
@@ -832,6 +889,7 @@ function closeModal() {
   selectedId = null;
   if (unsubCommands) { unsubCommands(); unsubCommands = null; }
   pendingCommands = [];
+  if (_leafletMap) { _leafletMap.remove(); _leafletMap = null; }
   document.getElementById('dev-modal').style.display = '';
   document.body.style.overflow = '';
 }
@@ -878,16 +936,20 @@ function renderTabContent() {
   const p = d.policies || {};
   let html = '';
   switch (activeTab) {
-    case 'commands': html = renderCommandsTab(d); break;
-    case 'apps':     html = renderPoliciesTab(d.id, p, APP_POLICIES); break;
-    case 'installed':html = renderInstalledAppsTab(d, p); break;
-    case 'system':   html = renderPoliciesTab(d.id, p, SYS_POLICIES) + renderPinPolicy(d.id, p); break;
-    case 'hardware': html = renderPoliciesTab(d.id, p, HW_POLICIES); break;
-    case 'network':  html = renderNetworkTab(d.id, p); break;
-    case 'parental': html = renderParentalTab(d.id, p); break;
-    case 'danger':   html = renderDangerTab(d); break;
+    case 'commands':  html = renderCommandsTab(d); break;
+    case 'apps':      html = renderPoliciesTab(d.id, p, APP_POLICIES); break;
+    case 'installed': html = renderInstalledAppsTab(d, p); break;
+    case 'system':    html = renderPoliciesTab(d.id, p, SYS_POLICIES) + renderPinPolicy(d.id, p); break;
+    case 'hardware':  html = renderPoliciesTab(d.id, p, HW_POLICIES); break;
+    case 'network':   html = renderNetworkTab(d.id, p); break;
+    case 'parental':  html = renderParentalTab(d.id, p); break;
+    case 'status':    html = renderStatusTab(d); break;
+    case 'location':  html = renderLocationTab(d); break;
+    case 'message':   html = renderMessageTab(d.id); break;
+    case 'danger':    html = renderDangerTab(d); break;
   }
   document.getElementById('tab-body').innerHTML = `<div class="animate-fadeIn">${html}</div>`;
+  if (activeTab === 'location') setTimeout(() => initLocationMap(d), 50);
 }
 
 function renderCommandsTab(d) {
@@ -1142,7 +1204,238 @@ function renderParentalTab(id, p) {
         <span class="toggle-track"></span><span class="toggle-thumb"></span>
       </label>
     </div>
+  </div>
+  <div class="net-section">
+    <h3>Scheduled Lockdown</h3>
+    <div class="policy-row" style="border:none;padding-top:0;">
+      <div class="policy-info">
+        <div class="policy-label">Enable Scheduled Lockdown</div>
+        <div class="policy-sub">Locks the device at the "Lock at" time every day. Device can be unlocked by PIN after the "Unlock at" time.</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" ${p.scheduledLockdownEnabled?'checked':''} onchange="window._mdm.setPolicy('${esc(id)}','scheduledLockdownEnabled',this.checked)">
+        <span class="toggle-track"></span><span class="toggle-thumb"></span>
+      </label>
+    </div>
+    <div style="display:flex;gap:12px;margin-top:10px;">
+      <div style="flex:1;">
+        <div style="font-size:11px;color:var(--textSec);margin-bottom:4px;">Unlock at</div>
+        <input type="time" value="${esc(p.scheduledLockdownStart||'07:00')}" style="width:100%;background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--green);font-size:18px;font-weight:700;"
+          onchange="window._mdm.setPolicy('${esc(id)}','scheduledLockdownStart',this.value)">
+      </div>
+      <div style="flex:1;">
+        <div style="font-size:11px;color:var(--textSec);margin-bottom:4px;">Lock at</div>
+        <input type="time" value="${esc(p.scheduledLockdownEnd||'22:00')}" style="width:100%;background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--red);font-size:18px;font-weight:700;"
+          onchange="window._mdm.setPolicy('${esc(id)}','scheduledLockdownEnd',this.value)">
+      </div>
+    </div>
   </div>`;
+}
+
+function renderStatusTab(d) {
+  const bat    = d.batteryLevel;
+  const charge = d.isCharging;
+  const net    = d.networkType;
+  const rssi   = d.wifiRssi;
+  const stats  = d.usageStats || [];
+  const maxMs  = stats.length ? Math.max(...stats.map(s => s.usageMs || 0)) : 1;
+  function fmtMs(ms) {
+    if (!ms) return '0m';
+    const h = Math.floor(ms / 3600000); const m = Math.floor((ms % 3600000) / 60000);
+    return h ? `${h}h ${m}m` : `${m}m`;
+  }
+  return `
+  <div class="net-section">
+    <h3>Battery &amp; Network</h3>
+    ${bat !== null ? `
+    <div class="comp-row">
+      <div class="comp-dot ${bat > 20 ? 'ok' : 'bad'}"></div>
+      <div class="comp-label">Battery</div>
+      <div class="comp-val">${bat}% ${charge ? '⚡ Charging' : ''}</div>
+    </div>` : '<p class="policy-sub">No battery data yet — reported on next heartbeat.</p>'}
+    ${net ? `
+    <div class="comp-row">
+      <div class="comp-dot ok"></div>
+      <div class="comp-label">Network</div>
+      <div class="comp-val">${esc(net)}${net==='wifi'&&rssi ? ` · ${rssi} dBm` : ''}</div>
+    </div>` : ''}
+  </div>
+  <div class="net-section">
+    <h3>Compliance</h3>
+    ${renderComplianceRows(d)}
+  </div>
+  <div class="net-section">
+    <h3>App Usage (last 24h)</h3>
+    ${stats.length ? `
+    <div id="usage-list">
+      ${stats.slice(0,15).map(s => `
+      <div class="usage-row">
+        <div class="usage-label" title="${esc(s.pkg)}">${esc(s.label||s.pkg)}</div>
+        <div class="usage-bar-wrap"><div class="usage-bar" style="width:${Math.round((s.usageMs/maxMs)*100)}%"></div></div>
+        <div class="usage-time">${fmtMs(s.usageMs)}</div>
+      </div>`).join('')}
+    </div>` : '<p class="policy-sub">No usage data yet. Usage stats permission must be granted on the device — open Location &amp; Tracking in the CORE MDM app.</p>'}
+  </div>`;
+}
+
+function renderComplianceRows(d) {
+  const p         = d.policies || {};
+  const now       = Date.now();
+  const ackAge    = d.policyAcknowledgedAt ? now - d.policyAcknowledgedAt : null;
+  const seenAge   = d.lastSeen ? now - d.lastSeen : null;
+  const rows = [
+    {
+      label: 'Online',
+      ok: isOnline(d),
+      val: d.lastSeen ? timeSince(d.lastSeen) : 'Never seen',
+    },
+    {
+      label: 'Policy Applied',
+      ok: ackAge !== null && ackAge < 24 * 3600000,
+      val: ackAge !== null ? timeSince(d.policyAcknowledgedAt) : 'Never',
+    },
+    {
+      label: 'APK Version',
+      ok: !!d.lastInstalledVersion,
+      val: d.lastInstalledVersion || 'Unknown',
+    },
+  ];
+  return rows.map(r => `
+  <div class="comp-row">
+    <div class="comp-dot ${r.ok?'ok':'warn'}"></div>
+    <div class="comp-label">${esc(r.label)}</div>
+    <div class="comp-val">${esc(r.val)}</div>
+  </div>`).join('');
+}
+
+let _leafletMap = null;
+function renderLocationTab(d) {
+  const hasLoc = d.lastLat !== null && d.lastLng !== null;
+  const gf = d.policies?.geofence || {};
+  return `
+  <div class="net-section">
+    <h3>Last Known Location</h3>
+    ${hasLoc
+      ? `<p style="font-size:12px;color:var(--textSec);margin-bottom:10px">
+           ${d.lastLat.toFixed(6)}, ${d.lastLng.toFixed(6)}
+           ${d.lastLocationAccuracy ? `· ±${Math.round(d.lastLocationAccuracy)}m` : ''}
+           · ${timeSince(d.lastLocationAt)}
+         </p>
+         <div id="loc-map"></div>`
+      : '<p class="policy-sub">No location data yet. Enable "Location Tracking" in policies below, then wait for the device to check in.</p>'}
+  </div>
+  <div class="net-section">
+    <h3>Location Tracking Policy</h3>
+    <div class="policy-row" style="border:none;padding-top:0;">
+      <div class="policy-info">
+        <div class="policy-label">Enable GPS Tracking</div>
+        <div class="policy-sub">Device sends GPS coordinates every 5 minutes. Location permission is auto-granted on Device Owner devices.</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" ${d.policies?.locationTrackingEnabled?'checked':''}
+          onchange="window._mdm.setPolicy('${esc(d.id)}','locationTrackingEnabled',this.checked)">
+        <span class="toggle-track"></span><span class="toggle-thumb"></span>
+      </label>
+    </div>
+  </div>
+  <div class="net-section">
+    <h3>Geofence Alert</h3>
+    <p style="font-size:12px;color:var(--textSec);margin-bottom:14px">When the device leaves the defined radius, trigger an action automatically.</p>
+    <div class="geo-form">
+      <div class="geo-row">
+        <div><label>Latitude</label><input id="gf-lat" type="number" step="any" placeholder="e.g. 40.7128" value="${esc(gf.lat||'')}"></div>
+        <div><label>Longitude</label><input id="gf-lng" type="number" step="any" placeholder="e.g. -74.0060" value="${esc(gf.lng||'')}"></div>
+      </div>
+      <div class="geo-row">
+        <div><label>Radius (meters)</label><input id="gf-radius" type="number" min="50" placeholder="200" value="${esc(gf.radius||200)}"></div>
+        <div><label>On Exit Action</label>
+          <select id="gf-action" class="geo-select">
+            <option value="lock"    ${(gf.action||'lock')==='lock'   ?'selected':''}>Lock Device</option>
+            <option value="alarm"   ${gf.action==='alarm'  ?'selected':''}>Sound Alarm</option>
+            <option value="message" ${gf.action==='message'?'selected':''}>Show Message</option>
+          </select>
+        </div>
+      </div>
+      <div><label style="font-size:11px;color:var(--textSec)">Alert Message (optional)</label>
+        <input id="gf-msg" type="text" placeholder="Device has left the allowed area" value="${esc(gf.message||'')}">
+      </div>
+      <div style="display:flex;gap:10px;margin-top:4px;">
+        <button class="btn-set-geo" onclick="window._mdm.setGeofence('${esc(d.id)}')">${gf.enabled?'Update Geofence':'Enable Geofence'}</button>
+        ${gf.enabled?`<button class="btn-clear-geo" onclick="window._mdm.clearGeofence('${esc(d.id)}')">Disable Geofence</button>`:''}
+      </div>
+      ${gf.enabled?`<p style="font-size:11px;color:var(--green);margin-top:4px">✓ Geofence active · radius ${esc(gf.radius||200)}m · action: ${esc(gf.action||'lock')}</p>`:''}
+    </div>
+  </div>`;
+}
+
+function initLocationMap(d) {
+  if (!d.lastLat || !d.lastLng) return;
+  const el = document.getElementById('loc-map');
+  if (!el) return;
+  if (_leafletMap) { _leafletMap.remove(); _leafletMap = null; }
+  _leafletMap = L.map(el).setView([d.lastLat, d.lastLng], 15);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap',
+    maxZoom: 19,
+  }).addTo(_leafletMap);
+  L.marker([d.lastLat, d.lastLng])
+    .addTo(_leafletMap)
+    .bindPopup(`<b>${esc(dispName(d))}</b><br>${d.lastLat.toFixed(5)}, ${d.lastLng.toFixed(5)}<br>${timeSince(d.lastLocationAt)}`)
+    .openPopup();
+  const gf = d.policies?.geofence;
+  if (gf?.enabled && gf.lat && gf.lng) {
+    L.circle([gf.lat, gf.lng], { radius: gf.radius||200, color:'#8b7bf0', fillOpacity:0.12 }).addTo(_leafletMap);
+  }
+}
+
+async function setGeofence(id) {
+  const lat    = parseFloat(document.getElementById('gf-lat')?.value);
+  const lng    = parseFloat(document.getElementById('gf-lng')?.value);
+  const radius = parseFloat(document.getElementById('gf-radius')?.value) || 200;
+  const action = document.getElementById('gf-action')?.value || 'lock';
+  const msg    = document.getElementById('gf-msg')?.value || '';
+  if (isNaN(lat) || isNaN(lng)) { alert('Enter valid lat/lng coordinates.'); return; }
+  try {
+    await updateDoc(deviceRef(id), {
+      'policies.geofence': { enabled: true, lat, lng, radius, action, message: msg }
+    });
+  } catch(e) { alert('Failed to set geofence: ' + e.message); }
+}
+async function clearGeofence(id) {
+  try {
+    await updateDoc(deviceRef(id), { 'policies.geofence': { enabled: false } });
+  } catch(e) { alert('Failed to clear geofence: ' + e.message); }
+}
+
+function renderMessageTab(id) {
+  return `
+  <div class="net-section">
+    <h3>Send Message to Device</h3>
+    <p style="font-size:12px;color:var(--textSec);margin-bottom:16px">Pops up a fullscreen alert on the device — works even from the lock screen.</p>
+    <div class="msg-form">
+      <div>
+        <label>Title</label>
+        <input id="msg-title" type="text" placeholder="Message from Administrator" maxlength="80">
+      </div>
+      <div>
+        <label>Message</label>
+        <textarea id="msg-text" rows="4" placeholder="Enter your message here…" maxlength="500"></textarea>
+      </div>
+      <button class="btn-send-msg" onclick="window._mdm.sendMessage('${esc(id)}')">📢 Send Message</button>
+    </div>
+  </div>`;
+}
+
+async function sendMessage(id) {
+  const title = (document.getElementById('msg-title')?.value || '').trim() || 'Message from Administrator';
+  const text  = (document.getElementById('msg-text')?.value  || '').trim();
+  try {
+    await enqueueCommand(id, 'show_message', { title, text });
+    logAudit('SEND_MESSAGE', id, `"${title}" → ${dispName(devicesMap[id]) || id}`);
+    document.getElementById('msg-title').value = '';
+    document.getElementById('msg-text').value  = '';
+    alert('Message sent! The device will display it within seconds.');
+  } catch(e) { alert('Failed to send message: ' + e.message); }
 }
 
 function renderDangerTab(d) {
@@ -1504,7 +1797,7 @@ function adminManage(id) {
     getDoc(doc(db, 'devices', id)).then(snap => {
       if (!snap.exists()) { alert('Device not found.'); return; }
       const data = snap.data();
-      devicesMap[id] = { id, model: data.model||'Unknown', customName: data.customName||'', installedApps: Array.isArray(data.installedApps)?data.installedApps:[], osVersion: data.osVersion||'', status: data.status||'offline', lastSeen: data.lastSeen?.toMillis?.()||null, alarmActive: data.alarmActive||false, imei: data.imei||'', serial: data.serial||'', policies: data.policies||{} };
+      devicesMap[id] = { id, model: data.model||'Unknown', customName: data.customName||'', installedApps: Array.isArray(data.installedApps)?data.installedApps:[], osVersion: data.osVersion||'', status: data.status||'offline', lastSeen: data.lastSeen?.toMillis?.()||null, alarmActive: data.alarmActive||false, imei: data.imei||'', serial: data.serial||'', policies: data.policies||{}, batteryLevel: data.batteryLevel??null, isCharging: data.isCharging??null, networkType: data.networkType||null, wifiRssi: data.wifiRssi??null, lastLat: data.lastLat??null, lastLng: data.lastLng??null, lastLocationAccuracy: data.lastLocationAccuracy??null, lastLocationAt: data.lastLocationAt?.toMillis?.()??null, usageStats: Array.isArray(data.usageStats)?data.usageStats:[], lastInstalledVersion: data.lastInstalledVersion||null, policyAcknowledgedAt: data.policyAcknowledgedAt?.toMillis?.()??null };
       openModal(id);
     }).catch(e => alert('Failed to load device: ' + e.message));
   } else {
@@ -1811,6 +2104,7 @@ window._mdm = {
   preRegisterDevice, copyLastToken, copyInvToken,
   renewInvToken, markEnrolled, markDisenrolled,
   blockInvDevice, unblockInvDevice, deleteInvRecord,
+  sendMessage, setGeofence, clearGeofence,
 };
 window.cancelWipe  = cancelWipe;
 window.executeWipe = executeWipe;

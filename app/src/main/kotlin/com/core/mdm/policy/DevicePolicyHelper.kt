@@ -252,6 +252,36 @@ class DevicePolicyHelper private constructor(private val context: Context) {
         Log.i(TAG, "Baseline restrictions applied")
     }
 
+    /**
+     * Device Owner can pre-grant runtime permissions so the user is never prompted.
+     * Called once after enrollment for location (fine, coarse, background).
+     */
+    fun grantMdmPermissions() {
+        if (!isDeviceOwner || Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return
+        listOf(
+            android.Manifest.permission.ACCESS_FINE_LOCATION,
+            android.Manifest.permission.ACCESS_COARSE_LOCATION,
+            android.Manifest.permission.READ_PHONE_STATE,
+        ).forEach { perm ->
+            runCatching {
+                dpm.setPermissionGrantState(
+                    admin, context.packageName, perm,
+                    DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED,
+                )
+            }.onFailure { Log.w(TAG, "grantPermission($perm): ${it.message}") }
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            runCatching {
+                dpm.setPermissionGrantState(
+                    admin, context.packageName,
+                    android.Manifest.permission.ACCESS_BACKGROUND_LOCATION,
+                    DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED,
+                )
+            }.onFailure { Log.w(TAG, "grantPermission(ACCESS_BACKGROUND_LOCATION): ${it.message}") }
+        }
+        Log.i(TAG, "MDM runtime permissions pre-granted")
+    }
+
     // ── Extended hardware/system restrictions ─────────────────────────────────
 
     /** Requires API 28+; silently no-ops below. */

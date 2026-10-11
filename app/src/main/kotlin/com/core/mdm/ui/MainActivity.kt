@@ -39,6 +39,7 @@ import com.core.mdm.ui.provisioning.ProvisioningState
 import com.core.mdm.ui.provisioning.ProvisioningTokenDialog
 import com.core.mdm.ui.provisioning.ProvisioningViewModel
 import com.core.mdm.ui.remote.RemoteControlScreen
+import com.core.mdm.ui.location.LocationScreen
 import com.core.mdm.ui.telemetry.TelemetryScreen
 import com.core.mdm.ui.theme.CoreMdmTheme
 import com.core.mdm.ui.theme.ThemeMode
@@ -52,6 +53,7 @@ private const val ROUTE_PARENTAL  = "parental"
 private const val ROUTE_KIOSK     = "kiosk"
 private const val ROUTE_TELEMETRY = "telemetry"
 private const val ROUTE_REMOTE    = "remote"
+private const val ROUTE_LOCATION  = "location"
 
 class MainActivity : ComponentActivity() {
 
@@ -191,6 +193,7 @@ private fun MdmNavGraph(pinManager: PinManager) {
                 onNavigateToKiosk     = { navController.navigate(ROUTE_KIOSK) },
                 onNavigateToTelemetry = { navController.navigate(ROUTE_TELEMETRY) },
                 onNavigateToRemote    = { navController.navigate(ROUTE_REMOTE) },
+                onNavigateToLocation  = { navController.navigate(ROUTE_LOCATION) },
                 onSignOut = {
                     EnrollmentManager.setOffline(context)
                     MdmCommandService.stop(context)
@@ -229,6 +232,10 @@ private fun MdmNavGraph(pinManager: PinManager) {
 
         composable(ROUTE_REMOTE) {
             RemoteControlScreen(onNavigateBack = { navController.popBackStack() })
+        }
+
+        composable(ROUTE_LOCATION) {
+            LocationScreen(onNavigateBack = { navController.popBackStack() })
         }
 
         composable(ROUTE_PIN_SETUP) {

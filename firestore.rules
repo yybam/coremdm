@@ -37,7 +37,13 @@ service cloud.firestore {
                         request.resource.data.diff(resource.data).affectedKeys()
                           .hasOnly(['lastSeen', 'status', 'fcmToken',
                                     'hardwareId', 'androidId', 'model',
-                                    'manufacturer', 'osVersion', 'imei', 'serial', 'deviceUid'])
+                                    'manufacturer', 'osVersion', 'imei', 'serial', 'deviceUid',
+                                    'batteryLevel', 'isCharging', 'networkType', 'wifiRssi',
+                                    'lastLat', 'lastLng', 'lastLocationAccuracy', 'lastLocationAt',
+                                    'usageStats', 'usageStatsUpdatedAt',
+                                    'lastInstalledVersion', 'lastInstallSuccess',
+                                    'lastInstallAt', 'lastInstallError',
+                                    'policyAcknowledgedAt'])
                         && (
                           !request.resource.data.diff(resource.data).affectedKeys()
                              .hasAll(['deviceUid'])

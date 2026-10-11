@@ -1369,7 +1369,7 @@ function renderLocationTab(d) {
 }
 
 function initLocationMap(d) {
-  if (!d.lastLat || !d.lastLng) return;
+  if (d.lastLat === null || d.lastLng === null) return;
   const el = document.getElementById('loc-map');
   if (!el) return;
   if (_leafletMap) { _leafletMap.remove(); _leafletMap = null; }

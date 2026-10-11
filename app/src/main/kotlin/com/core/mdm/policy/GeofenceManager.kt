@@ -16,6 +16,7 @@ object GeofenceManager {
     private const val TAG         = "GeofenceManager"
     private const val GEOFENCE_ID = "mdm_primary"
     private const val PREFS_NAME  = "mdm_geofence"
+    private const val COOLDOWN_MS = 10 * 60 * 1000L
 
     fun register(
         context: Context,
@@ -52,6 +53,7 @@ object GeofenceManager {
     }
 
     fun unregister(context: Context) {
+        // Wipe all config including cooldown so a re-enable triggers immediately.
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().clear().apply()
         runCatching {
             LocationServices.getGeofencingClient(context)
@@ -67,6 +69,11 @@ object GeofenceManager {
         val fLng   = prefs.getString("lng", null)?.toDoubleOrNull()   ?: return
         val radius = prefs.getFloat("radius", 200f)
         if (haversineMeters(lat, lng, fLat, fLng) > radius) {
+            // Cooldown: only trigger once every 10 minutes to avoid repeated actions while outside the fence.
+            val now      = System.currentTimeMillis()
+            val lastFire = prefs.getLong("lastTriggerAt", 0L)
+            if (now - lastFire < COOLDOWN_MS) return
+            prefs.edit().putLong("lastTriggerAt", now).apply()
             val action  = prefs.getString("action", "lock")    ?: "lock"
             val message = prefs.getString("message", "")       ?: ""
             Log.w(TAG, "Geofence exit detected — action=$action")

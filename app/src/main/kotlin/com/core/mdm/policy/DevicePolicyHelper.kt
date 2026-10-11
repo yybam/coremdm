@@ -17,6 +17,26 @@ class DevicePolicyHelper private constructor(private val context: Context) {
 
         @Volatile private var INSTANCE: DevicePolicyHelper? = null
 
+        val EMAIL_PACKAGES = listOf(
+            "com.google.android.gm",                   // Gmail
+            "com.microsoft.office.outlook",             // Outlook
+            "com.yahoo.mobile.client.android.mail",     // Yahoo Mail
+            "com.android.email",                        // AOSP Email
+            "com.samsung.android.email",                // Samsung Email
+            "com.huawei.email",                         // Huawei Email
+            "com.oneplus.email",                        // OnePlus Email
+        )
+
+        val SMS_PACKAGES = listOf(
+            "com.google.android.apps.messaging",        // Google Messages
+            "com.android.mms",                          // AOSP MMS
+            "com.android.messaging",                    // AOSP Messages
+            "com.samsung.android.messaging",            // Samsung Messages
+            "com.sec.android.app.messaging",            // Samsung older
+            "com.huawei.messagecenter",                 // Huawei Messages
+            "com.oneplus.mms",                          // OnePlus Messages
+        )
+
         val BROWSER_PACKAGES = listOf(
             "com.android.chrome",
             "com.sec.android.app.sbrowser",  // Samsung Internet
@@ -305,6 +325,32 @@ class DevicePolicyHelper private constructor(private val context: Context) {
     }
 
     fun areBrowsersHidden(): Boolean = BROWSER_PACKAGES.any { isAppHidden(it) }
+
+    fun setEmailAppsHidden(hidden: Boolean): Boolean {
+        if (!isDeviceOwner) return false
+        EMAIL_PACKAGES.forEach { pkg ->
+            runCatching { dpm.setApplicationHidden(admin, pkg, hidden) }
+                .onFailure { Log.w(TAG, "setEmailAppsHidden($pkg): ${it.message}") }
+        }
+        return true
+    }
+
+    fun areEmailAppsHidden(): Boolean = EMAIL_PACKAGES.any { isAppHidden(it) }
+
+    fun setSmsBlocked(blocked: Boolean): Boolean {
+        // DISALLOW_SMS blocks sending/receiving at the OS level (API 18+)
+        val restrictionSet = setRestriction(UserManager.DISALLOW_SMS, blocked)
+        // Also hide SMS app launchers so they don't appear in the drawer
+        if (isDeviceOwner) {
+            SMS_PACKAGES.forEach { pkg ->
+                runCatching { dpm.setApplicationHidden(admin, pkg, blocked) }
+                    .onFailure { Log.w(TAG, "setSmsBlocked($pkg): ${it.message}") }
+            }
+        }
+        return restrictionSet
+    }
+
+    fun isSmsBlocked(): Boolean = hasRestriction(UserManager.DISALLOW_SMS)
 
     /**
      * Undoes every policy this app may have applied, then strips Device Owner and Device

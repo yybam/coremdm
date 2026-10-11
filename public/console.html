@@ -591,6 +591,7 @@ const TABS = [
   { id:'system',    label:'System' },
   { id:'hardware',  label:'Hardware' },
   { id:'network',   label:'Network' },
+  { id:'parental',  label:'Parental' },
   { id:'danger',    label:'Danger', danger: true },
 ];
 
@@ -883,6 +884,7 @@ function renderTabContent() {
     case 'system':   html = renderPoliciesTab(d.id, p, SYS_POLICIES) + renderPinPolicy(d.id, p); break;
     case 'hardware': html = renderPoliciesTab(d.id, p, HW_POLICIES); break;
     case 'network':  html = renderNetworkTab(d.id, p); break;
+    case 'parental': html = renderParentalTab(d.id, p); break;
     case 'danger':   html = renderDangerTab(d); break;
   }
   document.getElementById('tab-body').innerHTML = `<div class="animate-fadeIn">${html}</div>`;
@@ -1082,6 +1084,63 @@ function renderNetworkTab(id, p) {
     <div class="kiosk-add-row">
       <input class="kiosk-add-input" id="kiosk-pkg-input" type="text" placeholder="com.example.app" autocomplete="off">
       <button class="btn-add-pkg" onclick="window._mdm.addPkg('${esc(id)}')">+ Add</button>
+    </div>
+  </div>`;
+}
+
+function renderParentalTab(id, p) {
+  const screenOn    = p.screenTimeEnabled  || false;
+  const startTime   = p.screenTimeStart    || '07:00';
+  const endTime     = p.screenTimeEnd      || '21:00';
+  const emailBlocked = p.emailBlocked      || false;
+  const smsBlocked   = p.smsBlocked        || false;
+  return `
+  <div class="net-section">
+    <h3>Screen Time</h3>
+    <div class="policy-row" style="border:none;padding-top:0;">
+      <div class="policy-info">
+        <div class="policy-label">Enable Screen Time Limits</div>
+        <div class="policy-sub">Locks the device at the end time daily. Device can be unlocked again after the start time.</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" ${screenOn?'checked':''} onchange="window._mdm.setPolicy('${esc(id)}','screenTimeEnabled',this.checked)">
+        <span class="toggle-track"></span><span class="toggle-thumb"></span>
+      </label>
+    </div>
+    <div style="display:flex;gap:12px;margin-top:10px;">
+      <div style="flex:1;">
+        <div style="font-size:11px;color:var(--textSec);margin-bottom:4px;">Available from</div>
+        <input type="time" value="${esc(startTime)}" style="width:100%;background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--green);font-size:18px;font-weight:700;"
+          onchange="window._mdm.setPolicy('${esc(id)}','screenTimeStart',this.value)">
+      </div>
+      <div style="flex:1;">
+        <div style="font-size:11px;color:var(--textSec);margin-bottom:4px;">Locks at</div>
+        <input type="time" value="${esc(endTime)}" style="width:100%;background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--red);font-size:18px;font-weight:700;"
+          onchange="window._mdm.setPolicy('${esc(id)}','screenTimeEnd',this.value)">
+      </div>
+    </div>
+  </div>
+  <div class="net-section">
+    <h3>Communication</h3>
+    <div class="policy-row">
+      <div class="policy-info">
+        <div class="policy-label">Block Email Apps</div>
+        <div class="policy-sub">Hides Gmail, Outlook and other email clients from the device launcher</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" ${emailBlocked?'checked':''} onchange="window._mdm.setPolicy('${esc(id)}','emailBlocked',this.checked)">
+        <span class="toggle-track"></span><span class="toggle-thumb"></span>
+      </label>
+    </div>
+    <div class="policy-row" style="border:none;">
+      <div class="policy-info">
+        <div class="policy-label">Block Text Messaging (SMS)</div>
+        <div class="policy-sub">Blocks SMS/MMS at the OS level and hides messaging apps — requires Device Owner</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" ${smsBlocked?'checked':''} onchange="window._mdm.setPolicy('${esc(id)}','smsBlocked',this.checked)">
+        <span class="toggle-track"></span><span class="toggle-thumb"></span>
+      </label>
     </div>
   </div>`;
 }

@@ -345,6 +345,22 @@ class MdmCommandService : Service() {
                 lastSuspendedApps = desired
             }
         }
+        // ── Parental controls ─────────────────────────────────────────────────
+        (policies["emailBlocked"] as? Boolean)?.let { helper.setEmailAppsHidden(it) }
+        (policies["smsBlocked"]   as? Boolean)?.let { helper.setSmsBlocked(it) }
+
+        // Screen time: when enabled, schedule daily lock/unlock alarms from the stored times.
+        val screenTimeEnabled = policies["screenTimeEnabled"] as? Boolean
+        val screenTimeStart   = policies["screenTimeStart"]   as? String ?: "07:00"
+        val screenTimeEnd     = policies["screenTimeEnd"]     as? String ?: "21:00"
+        if (screenTimeEnabled != null) {
+            com.core.mdm.policy.ScreenTimeScheduler.save(applicationContext, screenTimeEnabled, screenTimeStart, screenTimeEnd)
+            if (screenTimeEnabled) {
+                com.core.mdm.policy.ScreenTimeScheduler.schedule(applicationContext, screenTimeStart, screenTimeEnd)
+            } else {
+                com.core.mdm.policy.ScreenTimeScheduler.cancel(applicationContext)
+            }
+        }
         Log.d(TAG, "Remote policies applied (${policies.size} keys)")
     }
 

@@ -61,6 +61,16 @@
         </receiver>
 
         <receiver
+            android:name=".policy.ScreenTimeReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.core.mdm.screentime.LOCK" />
+                <action android:name="com.core.mdm.screentime.UNLOCK" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
             android:name=".installer.InstallerReceiver"
             android:exported="false">
             <intent-filter>

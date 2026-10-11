@@ -27,6 +27,7 @@ import com.core.mdm.settings.ThemePrefs
 import com.core.mdm.ui.apps.AppsScreen
 import com.core.mdm.ui.dashboard.DashboardScreen
 import com.core.mdm.ui.filter.FilterScreen
+import com.core.mdm.ui.parental.ParentalScreen
 import com.core.mdm.ui.kiosk.KioskScreen
 import com.core.mdm.ui.login.LoginScreen
 import com.core.mdm.ui.pin.PinLockScreen
@@ -44,6 +45,7 @@ private const val ROUTE_DASHBOARD = "dashboard"
 private const val ROUTE_APPS      = "apps"
 private const val ROUTE_PIN_SETUP = "pin_setup"
 private const val ROUTE_FILTER    = "filter"
+private const val ROUTE_PARENTAL  = "parental"
 private const val ROUTE_KIOSK     = "kiosk"
 private const val ROUTE_TELEMETRY = "telemetry"
 private const val ROUTE_REMOTE    = "remote"
@@ -177,6 +179,7 @@ private fun MdmNavGraph(pinManager: PinManager) {
                 onNavigateToApps      = { navController.navigate(ROUTE_APPS) },
                 onNavigateToPinSetup  = { navController.navigate(ROUTE_PIN_SETUP) },
                 onNavigateToFilter    = { navController.navigate(ROUTE_FILTER) },
+                onNavigateToParental  = { navController.navigate(ROUTE_PARENTAL) },
                 onNavigateToKiosk     = { navController.navigate(ROUTE_KIOSK) },
                 onNavigateToTelemetry = { navController.navigate(ROUTE_TELEMETRY) },
                 onNavigateToRemote    = { navController.navigate(ROUTE_REMOTE) },
@@ -195,6 +198,10 @@ private fun MdmNavGraph(pinManager: PinManager) {
 
         composable(ROUTE_FILTER) {
             FilterScreen(onNavigateBack = { navController.popBackStack() })
+        }
+
+        composable(ROUTE_PARENTAL) {
+            ParentalScreen(onNavigateBack = { navController.popBackStack() })
         }
 
         composable(ROUTE_KIOSK) {

@@ -51,6 +51,7 @@ fun DashboardScreen(
     onNavigateToApps: () -> Unit,
     onNavigateToPinSetup: () -> Unit = {},
     onNavigateToFilter: () -> Unit = {},
+    onNavigateToParental: () -> Unit = {},
     onNavigateToKiosk: () -> Unit = {},
     onNavigateToTelemetry: () -> Unit = {},
     onNavigateToRemote: () -> Unit = {},
@@ -447,6 +448,15 @@ fun DashboardScreen(
 
             // ── Content Filter ────────────────────────────────────────────────
             ContentFilterCard(onNavigateToFilter = onNavigateToFilter)
+
+            // ── Parental Controls ─────────────────────────────────────────────
+            NavCard(
+                icon      = Icons.Outlined.FamilyRestroom,
+                title     = "Parental Controls",
+                subtitle  = "Screen time, block email & texting",
+                iconColor = LocalAppColors.current.purple,
+                onClick   = onNavigateToParental
+            )
 
             // ── Kiosk mode ────────────────────────────────────────────────────
             NavCard(

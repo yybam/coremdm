@@ -213,4 +213,17 @@ class PolicyRepository private constructor(context: Context) {
     suspend fun setMdmUninstallProtected(protected: Boolean): Boolean = withContext(Dispatchers.IO) {
         helper.setSelfUninstallBlocked(protected)
     }
+
+    // ── Parental controls ─────────────────────────────────────────────────────
+
+    fun isEmailBlocked(): Boolean = helper.areEmailAppsHidden()
+    fun isSmsBlocked(): Boolean   = helper.isSmsBlocked()
+
+    suspend fun setEmailBlocked(blocked: Boolean): Boolean = withContext(Dispatchers.IO) {
+        helper.setEmailAppsHidden(blocked)
+    }
+
+    suspend fun setSmsBlocked(blocked: Boolean): Boolean = withContext(Dispatchers.IO) {
+        helper.setSmsBlocked(blocked)
+    }
 }

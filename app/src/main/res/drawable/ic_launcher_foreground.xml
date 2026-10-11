@@ -4,10 +4,8 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+    <!-- Bold white letter C centered in the safe zone -->
     <path
-        android:fillColor="#4DD2F0"
-        android:pathData="M54,18 L82,30 L82,54 C82,70 70,82 54,90 C38,82 26,70 26,54 L26,30 Z" />
-    <path
-        android:fillColor="#080814"
-        android:pathData="M48,58 L42,52 L38,56 L48,66 L70,44 L66,40 Z" />
+        android:fillColor="#FFFFFF"
+        android:pathData="M70.9,39.8 A22,22,0,1,1,70.9,68.2 L64.0,62.4 A13,13,0,1,0,64.0,45.6 Z" />
 </vector>

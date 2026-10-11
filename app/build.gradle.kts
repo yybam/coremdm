@@ -1,8 +1,17 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.google.services)
+}
+
+// Read WS_BACKEND_URL from local.properties so it's never committed.
+// Add this line to your local.properties:  WS_BACKEND_URL=ws://YOUR_SERVER:3000
+val localProps = Properties().also { p ->
+    val f = rootProject.file("local.properties")
+    if (f.exists()) p.load(f.inputStream())
 }
 
 android {
@@ -13,8 +22,10 @@ android {
         applicationId = "com.core.mdm"
         minSdk = 24
         targetSdk = 34
-        versionCode = 50
-        versionName = "0.5.3"
+        versionCode = 51
+        versionName = "0.5.4"
+        buildConfigField("String", "WS_BACKEND_URL",
+            "\"${localProps.getProperty("WS_BACKEND_URL", "")}\"")
     }
 
     signingConfigs {
@@ -60,7 +71,8 @@ android {
     }
 
     buildFeatures {
-        compose = true
+        buildConfig = true
+        compose     = true
     }
 
     packaging {
@@ -93,5 +105,6 @@ dependencies {
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services)
     implementation(libs.google.identity.googleid)
+    implementation(libs.okhttp)
     debugImplementation(libs.androidx.ui.tooling)
 }

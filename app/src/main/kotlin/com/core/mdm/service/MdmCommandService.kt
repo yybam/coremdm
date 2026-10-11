@@ -22,6 +22,7 @@ import com.core.mdm.policy.DevicePolicyHelper
 import com.core.mdm.policy.PolicyEvents
 import com.core.mdm.installer.SelfUpdateService
 import com.core.mdm.remote.AlarmController
+import com.core.mdm.ws.WsCommandClient
 import com.core.mdm.remote.UpdateNotifier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -69,6 +70,7 @@ class MdmCommandService : Service() {
             }
         }
         Firebase.auth.addAuthStateListener(authStateListener!!)
+        WsCommandClient.start(applicationContext)
 
         serviceScope.launch {
             while (isActive) {
@@ -188,6 +190,7 @@ class MdmCommandService : Service() {
         commandListener = null
         queueListener?.remove()
         queueListener = null
+        WsCommandClient.stop()
         serviceScope.cancel()
         AlarmController.stopAlarm()
         super.onDestroy()

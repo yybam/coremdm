@@ -9,6 +9,9 @@ const admin    = require('firebase-admin');
 const path     = require('path');
 const crypto   = require('crypto');
 
+const multer   = require('multer');
+const fs       = require('fs');
+
 const PROJECT_ID = process.env.FIREBASE_PROJECT_ID;
 if (!PROJECT_ID) throw new Error('FIREBASE_PROJECT_ID env var is required');
 const FS_BASE    = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
@@ -21,6 +24,37 @@ const server = http.createServer(app);
 const wss    = new WebSocketServer({ server });
 
 app.use(express.json());
+app.set('trust proxy', 1);   // Respect X-Forwarded-Proto from reverse proxies
+
+// ── APK upload storage ────────────────────────────────────────────────────────
+const UPLOADS_DIR = path.join(__dirname, 'uploads');
+if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+
+// Multer saves the file under a timestamp+original-name, then we rename to the
+// SHA-256 hash so duplicate uploads are deduplicated automatically.
+const _multerStorage = multer.diskStorage({
+  destination: UPLOADS_DIR,
+  filename: (_req, file, cb) => {
+    const safe = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+    cb(null, `${Date.now()}-${safe}`);
+  },
+});
+const upload = multer({
+  storage: _multerStorage,
+  limits: { fileSize: 200 * 1024 * 1024 },  // 200 MB max
+  fileFilter: (_req, file, cb) => {
+    if (file.originalname.toLowerCase().endsWith('.apk') ||
+        file.mimetype === 'application/vnd.android.package-archive' ||
+        file.mimetype === 'application/octet-stream') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only APK files are allowed'));
+    }
+  },
+});
+
+// Serve uploaded APKs — device downloads directly from this path
+app.use('/uploads', express.static(UPLOADS_DIR));
 
 // Security headers — CSP is Report-Only: both this console and the others in this repo use
 // inline <style>, inline style="", and inline onclick="" throughout, so an enforcing CSP
@@ -180,6 +214,76 @@ async function deviceBelongsToUser(deviceId, uid, idToken) {
 
 // ── REST — health ────────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => res.json({ ok: true }));
+
+// ── REST — fleet status (live connection counts) ──────────────────────────────
+app.get('/api/status', async (req, res) => {
+  const auth = req.headers.authorization || '';
+  if (!auth.startsWith('Bearer ')) return res.status(401).json({ error: 'Missing Bearer token' });
+  try {
+    await verifyToken(auth.slice(7));
+    res.json({
+      devicesOnline: deviceConnections.size,
+      adminsOnline:  adminConnections.size,
+    });
+  } catch (e) { res.status(401).json({ error: e.message }); }
+});
+
+// ── REST — upload APK + broadcast force-update to all connected devices ───────
+//
+// POST /api/update/broadcast
+//   Content-Type: multipart/form-data
+//   Body:  apk=<file>  version=<string>
+//
+// Auth: Bearer <Firebase ID token> (must be a valid authenticated user)
+//
+// The server saves the APK locally (deduped by SHA-256), derives a download URL,
+// then broadcasts { type:'force_update', url, version } over WebSocket to every
+// device that belongs to the calling user and is currently connected.
+app.post('/api/update/broadcast', upload.single('apk'), async (req, res) => {
+  const auth = req.headers.authorization || '';
+  if (!auth.startsWith('Bearer ')) {
+    if (req.file) fs.unlink(req.file.path, () => {});
+    return res.status(401).json({ error: 'Missing Bearer token' });
+  }
+  const idToken = auth.slice(7);
+
+  try {
+    const { uid } = await verifyToken(idToken);
+
+    if (!req.file) return res.status(400).json({ error: 'No APK file uploaded' });
+
+    // Rename to SHA-256 of content for deduplication
+    const hash = crypto.createHash('sha256')
+      .update(fs.readFileSync(req.file.path))
+      .digest('hex');
+    const finalName = `${hash}.apk`;
+    const finalPath = path.join(UPLOADS_DIR, finalName);
+    if (!fs.existsSync(finalPath)) fs.renameSync(req.file.path, finalPath);
+    else fs.unlink(req.file.path, () => {});  // duplicate — drop the temp copy
+
+    const version = String(req.body.version || '').replace(/[^a-zA-Z0-9._+-]/g, '');
+    const base    = process.env.BACKEND_PUBLIC_URL
+      || `${req.protocol}://${req.get('host')}`;
+    const apkUrl  = `${base}/uploads/${finalName}`;
+
+    // Broadcast to every WS-connected device owned by this admin
+    let pushed = 0;
+    for (const [, conn] of deviceConnections) {
+      if (conn.uid === uid) {
+        send(conn.ws, { type: 'force_update', url: apkUrl, version });
+        pushed++;
+      }
+    }
+
+    console.log(`[UPDATE] v${version} broadcast to ${pushed}/${deviceConnections.size} device(s): ${apkUrl}`);
+    res.json({ ok: true, url: apkUrl, version, pushed, total: deviceConnections.size });
+  } catch (e) {
+    if (req.file) fs.unlink(req.file.path, () => {});
+    const status = e.message?.toLowerCase().includes('auth') ? 401 : 500;
+    console.error('/api/update/broadcast error:', e.message);
+    res.status(status).json({ error: e.message });
+  }
+});
 
 // ── REST — list devices ──────────────────────────────────────────────────────
 app.get('/api/devices', async (req, res) => {

@@ -73,6 +73,19 @@ input { outline: none; border: none; }
 #login-msg { min-height: 20px; font-size: 13px; text-align: center; margin-top: 10px; color: var(--red); }
 #reset-panel { display: none; background: var(--navy); border: 1px solid var(--border); border-radius: 20px; padding: 28px; width: 100%; max-width: 390px; margin-top: 12px; box-shadow: var(--shadow); }
 #reset-panel.open { display: block; }
+
+/* ─── Setup gate ─────────────────────────────────────────── */
+#s-setup { display: none; min-height: 100vh; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
+.setup-card { background: var(--navy); border: 1px solid var(--border); border-radius: 20px; padding: 40px 36px; width: 100%; max-width: 420px; box-shadow: var(--shadow); }
+.setup-step { display: flex; gap: 14px; align-items: flex-start; padding: 14px 0; border-bottom: 1px solid var(--border); }
+.setup-step:last-of-type { border-bottom: none; }
+.setup-num { width: 28px; height: 28px; border-radius: 50%; background: var(--brand-soft); border: 1px solid rgba(46,154,230,.4); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; color: var(--cyan); flex-shrink: 0; margin-top: 1px; }
+.setup-step-body b { font-size: 14px; font-weight: 700; color: var(--text); display: block; margin-bottom: 4px; }
+.setup-step-body p { font-size: 12px; color: var(--textSec); line-height: 1.5; margin: 0; }
+#btn-setup-check { width: 100%; background: var(--brand); color: #fff; border-radius: 12px; padding: 13px; font-size: 14px; font-weight: 700; margin-top: 20px; box-shadow: var(--glow); transition: transform .15s, box-shadow .2s; }
+#btn-setup-check:hover { transform: translateY(-1px); }
+#btn-setup-check:disabled { opacity: .5; transform: none; }
+#setup-msg { min-height: 18px; font-size: 12px; text-align: center; margin-top: 10px; color: var(--textSec); }
 #reset-panel h3 { font-size: 16px; margin-bottom: 8px; }
 #reset-panel p { font-size: 13px; color: var(--textSec); margin-bottom: 16px; }
 .row-btns { display: flex; gap: 8px; }
@@ -370,6 +383,43 @@ header { background: rgba(10,13,24,.55); border-bottom: 1px solid var(--border);
   </div>
 </div>
 
+<!-- ─── Setup gate ──────────────────────────────────────── -->
+<div id="s-setup">
+  <div class="setup-card animate-slideUp">
+    <a class="logo" href="/" style="text-decoration:none;">
+      <div class="logo-mark">C</div>
+      <div class="logo-text">CORE MDM</div>
+    </a>
+    <div class="login-title">One more step before the console</div>
+    <p style="font-size:13px;color:var(--textSec);line-height:1.6;margin-bottom:18px;text-align:center;">
+      The console shows devices you've enrolled through the Android app.
+      No devices are linked to this account yet.
+    </p>
+    <div>
+      <div class="setup-step">
+        <div class="setup-num">1</div>
+        <div class="setup-step-body">
+          <b>Install CORE MDM on your phone</b>
+          <p>Use the web installer to set up the app as device owner over USB or QR code.</p>
+          <a href="install.html" style="display:inline-block;margin-top:8px;font-size:12px;font-weight:700;color:var(--cyan);text-decoration:none;">Open installer →</a>
+        </div>
+      </div>
+      <div class="setup-step">
+        <div class="setup-num">2</div>
+        <div class="setup-step-body">
+          <b>Sign in to the app with this account</b>
+          <p>Open CORE MDM on the phone and sign in with <span id="setup-email" style="color:var(--text);font-weight:600;"></span>. The device links to your account automatically.</p>
+        </div>
+      </div>
+    </div>
+    <button id="btn-setup-check">I've done it — show my devices</button>
+    <div id="setup-msg"></div>
+    <div class="login-footer" style="justify-content:center;margin-top:14px;">
+      <button class="link-btn" id="btn-setup-signout">Sign out</button>
+    </div>
+  </div>
+</div>
+
 <!-- ─── App ────────────────────────────────────────────── -->
 <div id="s-app">
   <header>
@@ -484,7 +534,7 @@ const auth = getAuth(app);
 const db   = getFirestore(app);
 
 // ── State ───────────────────────────────────────────────────
-const SUPER_ADMIN_EMAIL = 'yybambi23@gmail.com';
+const SUPER_ADMIN_EMAIL = 'yybamberger1@gmail.com';
 let isSuperAdmin        = false;
 let adminMode           = false;
 let adminTab            = 'devices';
@@ -604,24 +654,82 @@ document.getElementById('btn-reset-send').addEventListener('click', async () => 
   } catch(e) { msgEl.style.color='var(--red)'; msgEl.textContent=e.message; }
 });
 
-onAuthStateChanged(auth, user => {
+document.getElementById('btn-setup-check').addEventListener('click', async () => {
+  const user = auth.currentUser;
+  if (!user) return;
+  const btn = document.getElementById('btn-setup-check');
+  const msg = document.getElementById('setup-msg');
+  btn.textContent = 'Checking…';
+  btn.disabled = true;
+  msg.textContent = '';
+  try {
+    const snap = await getDocs(
+      query(collection(db, 'devices'), where('ownerId', '==', user.uid), limit(1))
+    );
+    if (snap.empty) {
+      msg.textContent = "No device found yet. Make sure you opened CORE MDM on the phone and signed in with this account.";
+      btn.textContent = "Check again";
+      btn.disabled = false;
+    } else {
+      showApp();
+    }
+  } catch(e) {
+    msg.textContent = 'Error checking — try again.';
+    btn.textContent = "Check again";
+    btn.disabled = false;
+  }
+});
+
+document.getElementById('btn-setup-signout').addEventListener('click', () => signOut(auth));
+
+function showApp() {
+  document.getElementById('s-login').style.display = 'none';
+  document.getElementById('s-setup').style.display = 'none';
+  const appEl = document.getElementById('s-app');
+  appEl.style.display = 'flex';
+  appEl.style.flexDirection = 'column';
+}
+
+function showSetup(email) {
+  document.getElementById('s-login').style.display = 'none';
+  document.getElementById('s-app').style.display   = 'none';
+  const el = document.getElementById('s-setup');
+  el.style.display = 'flex';
+  el.style.flexDirection = 'column';
+  const emailEl = document.getElementById('setup-email');
+  if (emailEl) emailEl.textContent = email || '';
+  document.getElementById('setup-msg').textContent = '';
+  const btn = document.getElementById('btn-setup-check');
+  btn.textContent = "I've done it — show my devices";
+  btn.disabled = false;
+}
+
+onAuthStateChanged(auth, async user => {
   if (user) {
     isSuperAdmin = user.email === SUPER_ADMIN_EMAIL;
-    document.getElementById('s-login').style.display = 'none';
-    document.getElementById('s-admin').style.display  = 'none';
-    const appEl = document.getElementById('s-app');
-    appEl.style.display = 'flex';
-    appEl.style.flexDirection = 'column';
     document.getElementById('btn-admin').style.display = isSuperAdmin ? 'inline-block' : 'none';
     adminMode = false;
     startDeviceListener(user.uid);
-    if (isSuperAdmin) logAudit('LOGIN', null, 'Super admin signed in');
+    if (isSuperAdmin) {
+      showApp();
+      logAudit('LOGIN', null, 'Super admin signed in');
+    } else {
+      const snap = await getDocs(
+        query(collection(db, 'devices'), where('ownerId', '==', user.uid), limit(1))
+      );
+      if (snap.empty) {
+        showSetup(user.email);
+      } else {
+        showApp();
+      }
+    }
   } else {
     isSuperAdmin = false;
     adminMode    = false;
-    document.getElementById('s-login').style.display = '';
-    document.getElementById('s-app').style.display   = 'none';
-    document.getElementById('s-admin').style.display = 'none';
+    document.getElementById('s-login').style.display  = '';
+    document.getElementById('s-app').style.display    = 'none';
+    document.getElementById('s-setup').style.display  = 'none';
+    document.getElementById('s-admin').style.display  = 'none';
     if (unsubDevices)      { unsubDevices(); unsubDevices = null; }
     if (unsubAdminDevices) { unsubAdminDevices(); unsubAdminDevices = null; }
     if (unsubAuditLog)     { unsubAuditLog(); unsubAuditLog = null; }
@@ -653,6 +761,10 @@ function startDeviceListener(uid) {
         policies:    data.policies || {},
       };
     });
+    // Auto-advance from setup screen the moment the first device registers
+    if (document.getElementById('s-setup').style.display !== 'none' && Object.keys(devicesMap).length > 0) {
+      showApp();
+    }
     renderCards();
     if (selectedId && devicesMap[selectedId]) updateModalHeader(selectedId);
   }, err => console.error('Firestore error:', err));

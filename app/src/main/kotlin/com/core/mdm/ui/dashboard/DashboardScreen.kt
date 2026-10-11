@@ -62,6 +62,7 @@ fun DashboardScreen(
     var showWipeDialog by remember { mutableStateOf(false) }
     var showLockdownDialog by remember { mutableStateOf(false) }
     var showRemoveMdmDialog by remember { mutableStateOf(false) }
+    var showDisconnectDialog by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val adminLauncher = rememberLauncherForActivityResult(
@@ -521,6 +522,32 @@ fun DashboardScreen(
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    Icon(Icons.Outlined.CloudOff, null,
+                        tint = LocalAppColors.current.yellow, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Disconnect from Console", fontWeight = FontWeight.SemiBold,
+                            color = LocalAppColors.current.yellow, fontSize = 14.sp)
+                        Text("Stop remote management and sign out of this account",
+                            color = LocalAppColors.current.textSecondary, fontSize = 11.sp)
+                    }
+                    Button(
+                        onClick = { showDisconnectDialog = true },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF2A2000)
+                        ),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("Disconnect", color = LocalAppColors.current.yellow, fontWeight = FontWeight.Bold)
+                    }
+                }
+                PolicyDivider()
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Icon(Icons.Outlined.DeleteForever, null,
                         tint = LocalAppColors.current.red, modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(12.dp))
@@ -651,6 +678,41 @@ fun DashboardScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showRemoveMdmDialog = false }) {
+                    Text("Cancel", color = LocalAppColors.current.cyan)
+                }
+            }
+        )
+    }
+
+    if (showDisconnectDialog) {
+        AlertDialog(
+            onDismissRequest = { showDisconnectDialog = false },
+            containerColor = LocalAppColors.current.card,
+            icon = { Icon(Icons.Outlined.CloudOff, null, tint = LocalAppColors.current.yellow) },
+            title = { Text("Disconnect from Console?", color = LocalAppColors.current.yellow) },
+            text = {
+                Text(
+                    "This device will stop receiving remote commands and policy updates " +
+                    "from the web console.\n\nAll restrictions already in place stay active. " +
+                    "You can reconnect at any time by signing back in to CORE MDM.",
+                    color = LocalAppColors.current.textSecondary
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = { showDisconnectDialog = false; onSignOut() },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = LocalAppColors.current.yellow.copy(alpha = 0.15f),
+                        contentColor   = LocalAppColors.current.yellow
+                    ),
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp, LocalAppColors.current.yellow.copy(alpha = 0.5f)
+                    ),
+                    elevation = ButtonDefaults.buttonElevation(0.dp)
+                ) { Text("Disconnect", fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDisconnectDialog = false }) {
                     Text("Cancel", color = LocalAppColors.current.cyan)
                 }
             }

@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CORE MDM — Fleet Updater</title>
+<link rel="icon" type="image/png" href="/favicon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+:root {
+  --bg:      #070a14;
+  --card:    rgba(255,255,255,.07);
+  --border:  rgba(255,255,255,.12);
+  --borderHi:rgba(255,255,255,.22);
+  --cyan:    #2e9ae6;
+  --green:   #4ade9b;
+  --red:     #ff6b7d;
+  --yellow:  #ffc15e;
+  --text:    #eef1f8;
+  --textSec: rgba(226,232,245,.62);
+  --textDim: rgba(226,232,245,.38);
+  --brand:   linear-gradient(135deg,#1f7fd6,#1fb58f);
+  --shadow:  0 20px 50px -24px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.06);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  color:var(--text);min-height:100vh;
+  background:
+    radial-gradient(1100px 700px at 50% -8%,#0b2640 0%,transparent 60%),
+    radial-gradient(800px 600px at 100% 0%,rgba(47,211,154,.07) 0%,transparent 55%),
+    var(--bg);
+  background-attachment:fixed;-webkit-font-smoothing:antialiased;
+}
+
+/* ── Auth / denied screens ── */
+#auth-screen,#denied-screen{
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;min-height:100vh;padding:24px;
+}
+.auth-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:20px;padding:40px 36px;width:100%;max-width:400px;
+  box-shadow:var(--shadow);backdrop-filter:blur(12px);
+}
+.logo{display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:28px}
+.logo-mark{
+  width:42px;height:42px;border-radius:12px;background:var(--brand);
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;font-weight:800;color:#fff;
+}
+.logo-text{font-size:22px;font-weight:800}
+.logo-text span{background:var(--brand);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.auth-sub{font-size:13px;color:var(--textSec);text-align:center;margin-bottom:26px}
+.field{margin-bottom:13px}
+.field label{display:block;font-size:11px;color:var(--textSec);margin-bottom:5px;letter-spacing:.5px;font-weight:600}
+.field input{
+  width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);
+  border-radius:10px;color:var(--text);font-size:14px;padding:11px 14px;
+  outline:none;font-family:inherit;transition:border-color .2s;
+}
+.field input:focus{border-color:var(--cyan)}
+.err{color:var(--red);font-size:12px;min-height:16px;margin-top:6px;text-align:center}
+.btn-primary{
+  display:flex;align-items:center;justify-content:center;
+  width:100%;padding:12px;border:none;border-radius:11px;
+  font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;
+  background:var(--brand);color:#fff;margin-top:4px;
+  transition:opacity .15s,transform .1s;
+}
+.btn-primary:disabled{opacity:.45;cursor:default}
+.btn-primary:active:not(:disabled){transform:scale(.98)}
+.btn-ghost{
+  display:flex;align-items:center;justify-content:center;
+  width:100%;padding:12px;border-radius:11px;border:1px solid var(--border);
+  font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;
+  background:transparent;color:var(--cyan);margin-top:8px;
+}
+
+/* Denied card */
+.denied-icon{font-size:48px;margin-bottom:14px;text-align:center}
+.denied-title{font-size:20px;font-weight:800;text-align:center;margin-bottom:8px;color:var(--red)}
+.denied-msg{font-size:13px;color:var(--textSec);text-align:center;line-height:1.6;margin-bottom:24px}
+
+/* ── App shell ── */
+#app{display:none}
+.topbar{
+  position:sticky;top:0;z-index:40;
+  background:rgba(7,10,20,.85);backdrop-filter:blur(18px);
+  border-bottom:1px solid var(--border);
+  padding:0 24px;height:56px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.topbar-left{display:flex;align-items:center;gap:12px}
+.topbar-mark{
+  width:32px;height:32px;border-radius:9px;background:var(--brand);
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;font-weight:800;color:#fff;
+}
+.topbar-title{font-size:16px;font-weight:800}
+.topbar-badge{
+  font-size:10px;font-weight:700;letter-spacing:.5px;
+  padding:3px 9px;border-radius:20px;text-transform:uppercase;
+  background:rgba(46,154,230,.15);color:var(--cyan);border:1px solid rgba(46,154,230,.25);
+}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.user-email{font-size:12px;color:var(--textSec)}
+.btn-out{
+  font-size:12px;font-weight:600;padding:6px 14px;
+  background:transparent;border:1px solid var(--border);
+  border-radius:8px;color:var(--textSec);cursor:pointer;
+  font-family:inherit;transition:border-color .2s,color .2s;
+}
+.btn-out:hover{border-color:var(--red);color:var(--red)}
+
+/* ── Main ── */
+.main{max-width:860px;margin:0 auto;padding:28px 24px 60px}
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.sh-title{font-size:12px;font-weight:700;color:var(--textSec);letter-spacing:.7px;text-transform:uppercase}
+.sh-action{font-size:12px;color:var(--cyan);background:transparent;border:none;cursor:pointer;font-family:inherit;font-weight:600}
+.sh-action:hover{text-decoration:underline}
+
+/* ── Target toggle ── */
+.target-bar{
+  display:flex;align-items:center;gap:8px;margin-bottom:16px;
+  background:rgba(255,255,255,.04);border:1px solid var(--border);
+  border-radius:12px;padding:5px;width:fit-content;
+}
+.target-btn{
+  font-size:12px;font-weight:700;padding:7px 16px;border-radius:9px;
+  border:none;cursor:pointer;font-family:inherit;
+  background:transparent;color:var(--textSec);
+  transition:background .15s,color .15s;
+}
+.target-btn.active{background:var(--cyan);color:#fff}
+
+/* ── Search box ── */
+.search-wrap{position:relative;margin-bottom:12px}
+.search-wrap input{
+  width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);
+  border-radius:10px;color:var(--text);font-size:13px;
+  padding:9px 12px 9px 36px;outline:none;font-family:inherit;
+  transition:border-color .2s;
+}
+.search-wrap input:focus{border-color:var(--cyan)}
+.search-wrap .search-icon{
+  position:absolute;left:11px;top:50%;transform:translateY(-50%);
+  font-size:14px;pointer-events:none;
+}
+
+/* ── Device grid ── */
+.device-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+  gap:10px;margin-bottom:24px;
+}
+.device-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:14px;padding:14px;
+  transition:border-color .2s,background .2s,transform .1s;
+}
+.device-card.selectable{cursor:pointer}
+.device-card.selectable:hover{border-color:var(--borderHi);background:rgba(255,255,255,.09)}
+.device-card.selected{border-color:var(--cyan);background:rgba(46,154,230,.08)}
+.device-card.pushed {border-color:var(--cyan);background:rgba(46,154,230,.06)}
+.device-card.done   {border-color:var(--green);background:rgba(74,222,155,.05)}
+.device-card.hidden-card{display:none}
+.dc-top{display:flex;align-items:flex-start;gap:9px;margin-bottom:6px}
+.dc-icon{font-size:22px;flex-shrink:0}
+.dc-info{flex:1;min-width:0}
+.dc-name{font-size:13px;font-weight:700;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dc-id  {font-size:9px;color:var(--textDim);margin-top:2px;font-family:'Courier New',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dc-os  {font-size:10px;color:var(--textSec);margin-top:1px}
+.check-box{
+  width:18px;height:18px;border-radius:5px;flex-shrink:0;
+  border:2px solid var(--border);background:transparent;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;transition:background .15s,border-color .15s;
+}
+.device-card.selected .check-box{background:var(--cyan);border-color:var(--cyan)}
+.device-card:not(.selectable) .check-box{display:none}
+.status-row{display:flex;align-items:center;gap:6px;margin-top:6px}
+.status-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--textDim)}
+.status-dot.online {background:var(--green)}
+.status-dot.pending{background:var(--yellow);animation:pulse 1.4s ease-in-out infinite}
+.status-dot.done   {background:var(--green)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.dc-state{font-size:10px;font-weight:600;color:var(--textSec)}
+.dc-state.pending{color:var(--yellow)}
+.dc-state.done   {color:var(--green)}
+
+/* ── Push card ── */
+.push-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:18px;padding:22px;margin-bottom:28px;
+  box-shadow:var(--shadow);
+}
+.push-card-head{
+  display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;
+}
+.push-card-title{font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px}
+.fleet-pill{
+  font-size:11px;font-weight:700;padding:4px 11px;border-radius:20px;
+  background:rgba(74,222,155,.1);color:var(--green);border:1px solid rgba(74,222,155,.2);
+}
+.fleet-pill.zero{
+  background:rgba(226,232,245,.06);color:var(--textDim);border-color:var(--border);
+}
+
+.drop-zone{
+  border:2px dashed var(--border);border-radius:14px;
+  padding:26px 18px;text-align:center;cursor:pointer;
+  transition:border-color .2s,background .2s;margin-bottom:16px;position:relative;
+}
+.drop-zone:hover,.drop-zone.over{border-color:var(--cyan);background:rgba(46,154,230,.04)}
+.drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.drop-icon{font-size:30px;margin-bottom:6px}
+.drop-hint{font-size:12px;color:var(--textSec)}
+.drop-name{font-size:13px;font-weight:700;color:var(--cyan);margin-top:5px;word-break:break-all}
+
+.fields-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+@media(max-width:480px){.fields-row{grid-template-columns:1fr}}
+.fields-row label{display:block;font-size:10px;font-weight:700;color:var(--textSec);letter-spacing:.5px;margin-bottom:5px}
+.fields-row input{
+  width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);
+  border-radius:9px;color:var(--text);font-size:13px;padding:9px 12px;
+  outline:none;font-family:inherit;transition:border-color .2s;
+}
+.fields-row input:focus{border-color:var(--cyan)}
+.fields-row input[readonly]{opacity:.55;cursor:default}
+
+.prog-wrap{margin-bottom:14px}
+.prog-label{font-size:11px;color:var(--textSec);margin-bottom:5px;display:flex;justify-content:space-between}
+.prog-track{height:5px;background:rgba(255,255,255,.07);border-radius:4px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--green));border-radius:4px;width:0%;transition:width .3s ease}
+
+.btn-push{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  width:100%;padding:13px;border:none;border-radius:12px;
+  font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;
+  background:var(--brand);color:#fff;
+  box-shadow:0 4px 20px -6px rgba(31,127,214,.5);
+  transition:opacity .15s,transform .1s,box-shadow .2s;
+}
+.btn-push:hover:not(:disabled){box-shadow:0 6px 28px -6px rgba(31,127,214,.7)}
+.btn-push:active:not(:disabled){transform:scale(.98)}
+.btn-push:disabled{opacity:.4;cursor:default;box-shadow:none}
+.push-result{font-size:12px;margin-top:10px;min-height:16px;line-height:1.5}
+.push-result.ok   {color:var(--green)}
+.push-result.error{color:var(--red)}
+
+.log-panel{
+  background:rgba(255,255,255,.03);border:1px solid var(--border);
+  border-radius:12px;padding:13px 15px;font-family:'Courier New',monospace;
+  font-size:11px;color:var(--textSec);max-height:160px;overflow-y:auto;
+}
+.log-line{margin-bottom:3px;line-height:1.5}
+.log-line.ok  {color:var(--green)}
+.log-line.warn{color:var(--yellow)}
+.log-line.err {color:var(--red)}
+
+.empty{text-align:center;padding:32px 20px;color:var(--textSec)}
+.empty-icon{font-size:36px;margin-bottom:8px}
+.empty p{font-size:13px}
+
+.sel-hint{font-size:12px;color:var(--textSec);margin-bottom:12px}
+.sel-hint span{color:var(--cyan);font-weight:700}
+</style>
+</head>
+<body>
+
+<!-- ── Auth screen ── -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="logo">
+      <div class="logo-mark">C</div>
+      <div class="logo-text">CORE <span>MDM</span></div>
+    </div>
+    <p class="auth-sub">Fleet Updater · Admin sign-in required</p>
+    <div class="field">
+      <label>EMAIL</label>
+      <input type="email" id="auth-email" placeholder="admin@example.com" autocomplete="username" />
+    </div>
+    <div class="field">
+      <label>PASSWORD</label>
+      <input type="password" id="auth-pass" placeholder="••••••••" autocomplete="current-password" />
+    </div>
+    <p class="err" id="auth-err"></p>
+    <button class="btn-primary" id="signin-btn">Sign In</button>
+    <button class="btn-ghost"   id="reset-btn">Forgot password?</button>
+  </div>
+</div>
+
+<!-- ── Access denied screen ── -->
+<div id="denied-screen" style="display:none">
+  <div class="auth-card">
+    <div class="denied-icon">🚫</div>
+    <div class="denied-title">Access Denied</div>
+    <p class="denied-msg">This tool is restricted to the system administrator.<br>Your account does not have permission to access the Fleet Updater.</p>
+    <button class="btn-primary" id="denied-signout-btn">Sign Out</button>
+  </div>
+</div>
+
+<!-- ── App ── -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-mark">C</div>
+      <span class="topbar-title">CORE MDM</span>
+      <span class="topbar-badge">Fleet Updater</span>
+    </div>
+    <div class="topbar-right">
+      <span class="user-email" id="user-email"></span>
+      <button class="btn-out" id="signout-btn">Sign Out</button>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- Device fleet -->
+    <div class="sh">
+      <span class="sh-title">Enrolled Devices</span>
+      <button class="sh-action" id="refresh-btn">↻ Refresh</button>
+    </div>
+
+    <!-- Target mode toggle -->
+    <div class="target-bar">
+      <button class="target-btn active" id="target-all-btn"  data-mode="all">All Devices</button>
+      <button class="target-btn"        id="target-pick-btn" data-mode="pick">Select Devices</button>
+    </div>
+
+    <!-- Search (shown in pick mode only) -->
+    <div id="search-wrap" class="search-wrap" style="display:none">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="search-input" placeholder="Search by name or device ID…" />
+    </div>
+
+    <div id="sel-hint" class="sel-hint" style="display:none">
+      Click device cards to select targets. <span id="sel-count">0 selected</span>
+    </div>
+
+    <div class="device-grid" id="device-grid">
+      <div class="empty"><div class="empty-icon">📱</div><p>Loading devices…</p></div>
+    </div>
+
+    <!-- Push update card -->
+    <div class="push-card">
+      <div class="push-card-head">
+        <div class="push-card-title">🚀 Push Update</div>
+        <span class="fleet-pill zero" id="fleet-pill">0 targets</span>
+      </div>
+
+      <div class="drop-zone" id="drop-zone">
+        <input type="file" id="apk-input" accept=".apk,application/vnd.android.package-archive" />
+        <div class="drop-icon">📦</div>
+        <div class="drop-hint">Click or drag &amp; drop an APK file here</div>
+        <div class="drop-name" id="drop-name"></div>
+      </div>
+
+      <div class="fields-row">
+        <div>
+          <label>VERSION (e.g. 0.5.4)</label>
+          <input type="text" id="ver-input" placeholder="0.5.4" maxlength="30" />
+        </div>
+        <div>
+          <label>TARGETS</label>
+          <input type="text" id="target-display" readonly />
+        </div>
+      </div>
+
+      <div class="prog-wrap" id="prog-wrap" style="display:none">
+        <div class="prog-label">
+          <span id="prog-label-text">Uploading…</span>
+          <span id="prog-pct">0%</span>
+        </div>
+        <div class="prog-track"><div class="prog-fill" id="prog-fill"></div></div>
+      </div>
+
+      <button class="btn-push" id="push-btn" disabled>Push Update</button>
+      <div class="push-result" id="push-result"></div>
+    </div>
+
+    <div class="sh"><span class="sh-title">Event Log</span></div>
+    <div class="log-panel" id="log"></div>
+
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp }
+  from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail,
+         onAuthStateChanged, signOut }
+  from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import { getFirestore, collection, query, where, getDocs,
+         addDoc, serverTimestamp, onSnapshot, doc }
+  from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { getStorage, ref, uploadBytesResumable, getDownloadURL }
+  from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
+
+const ADMIN_EMAIL = 'yybamberger1@gmail.com';
+
+const fbApp = initializeApp({
+  apiKey:            "AIzaSyCWew6jKeAyEMUWY1DYjuzhxH0jSke3JhE",
+  authDomain:        "techeaz-core-mdm.firebaseapp.com",
+  projectId:         "techeaz-core-mdm",
+  storageBucket:     "techeaz-core-mdm.firebasestorage.app",
+  messagingSenderId: "457812602789",
+  appId:             "1:457812602789:web:28f6e7ab364eef8738424c"
+});
+const auth    = getAuth(fbApp);
+const db      = getFirestore(fbApp);
+const storage = getStorage(fbApp);
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let devices      = [];      // [{id, name, osVersion, status, cmdState}]
+let selectedIds  = new Set();
+let targetMode   = 'all';   // 'all' | 'pick'
+let selectedApk  = null;
+let cmdUnsubs    = [];
+
+// ── Log ───────────────────────────────────────────────────────────────────────
+function log(msg, level = '') {
+  const panel = document.getElementById('log');
+  const el    = document.createElement('div');
+  el.className = 'log-line ' + level;
+  el.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  panel.prepend(el);
+  while (panel.children.length > 100) panel.lastChild.remove();
+}
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+document.getElementById('signin-btn').addEventListener('click', async () => {
+  const email = document.getElementById('auth-email').value.trim();
+  const pass  = document.getElementById('auth-pass').value;
+  const errEl = document.getElementById('auth-err');
+  errEl.textContent = '';
+  const btn = document.getElementById('signin-btn');
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  try {
+    await signInWithEmailAndPassword(auth, email, pass);
+  } catch (e) {
+    errEl.textContent = e.message.replace('Firebase: ', '');
+    btn.disabled = false; btn.textContent = 'Sign In';
+  }
+});
+
+document.getElementById('reset-btn').addEventListener('click', async () => {
+  const email = document.getElementById('auth-email').value.trim();
+  if (!email) { document.getElementById('auth-err').textContent = 'Enter your email first.'; return; }
+  await sendPasswordResetEmail(auth, email).catch(() => {});
+  const errEl = document.getElementById('auth-err');
+  errEl.style.color = 'var(--green)';
+  errEl.textContent = 'Reset email sent.';
+});
+
+function doSignOut() { signOut(auth); }
+document.getElementById('signout-btn').addEventListener('click', doSignOut);
+document.getElementById('denied-signout-btn').addEventListener('click', doSignOut);
+
+// ── Auth state ────────────────────────────────────────────────────────────────
+onAuthStateChanged(auth, async user => {
+  // Reset all screens
+  document.getElementById('auth-screen').style.display   = 'none';
+  document.getElementById('denied-screen').style.display = 'none';
+  document.getElementById('app').style.display           = 'none';
+
+  if (!user) {
+    // Signed out → show login
+    document.getElementById('auth-screen').style.display = 'flex';
+    document.getElementById('signin-btn').disabled  = false;
+    document.getElementById('signin-btn').textContent = 'Sign In';
+    cmdUnsubs.forEach(u => u()); cmdUnsubs = [];
+    devices = []; selectedIds.clear();
+    return;
+  }
+
+  // Wrong account → show denied
+  if (user.email !== ADMIN_EMAIL) {
+    document.getElementById('denied-screen').style.display = 'flex';
+    log(`Access denied for ${user.email}`, 'err');
+    return;
+  }
+
+  // Correct admin account → show app
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('user-email').textContent = user.email;
+  log(`Signed in as ${user.email}`, 'ok');
+  await loadDevices();
+});
+
+// ── Load devices ──────────────────────────────────────────────────────────────
+async function loadDevices() {
+  const uid = auth.currentUser?.uid;
+  if (!uid) return;
+  try {
+    const snap = await getDocs(query(collection(db, 'devices'), where('ownerId', '==', uid)));
+    devices = snap.docs.map(d => ({
+      id:        d.id,
+      name:      d.data().model     || 'Unknown Device',
+      osVersion: d.data().osVersion || '',
+      status:    d.data().status    || 'offline',
+      cmdState:  null,
+    }));
+    selectedIds.clear();
+    renderDevices();
+    updateTargetPill();
+    log(`Loaded ${devices.length} device(s)`, 'ok');
+  } catch (e) {
+    log('Failed to load devices: ' + e.message, 'err');
+  }
+}
+document.getElementById('refresh-btn').addEventListener('click', loadDevices);
+
+// ── Target mode ───────────────────────────────────────────────────────────────
+document.getElementById('target-all-btn').addEventListener('click',  () => setTargetMode('all'));
+document.getElementById('target-pick-btn').addEventListener('click', () => setTargetMode('pick'));
+
+function setTargetMode(mode) {
+  targetMode = mode;
+  document.getElementById('target-all-btn').className  = 'target-btn' + (mode === 'all'  ? ' active' : '');
+  document.getElementById('target-pick-btn').className = 'target-btn' + (mode === 'pick' ? ' active' : '');
+  document.getElementById('search-wrap').style.display = mode === 'pick' ? 'block' : 'none';
+  document.getElementById('sel-hint').style.display    = mode === 'pick' ? 'block' : 'none';
+  if (mode === 'all') selectedIds.clear();
+  renderDevices();
+  updateTargetPill();
+  syncPushBtn();
+}
+
+// ── Search ────────────────────────────────────────────────────────────────────
+document.getElementById('search-input').addEventListener('input', renderDevices);
+
+// ── Render device grid ────────────────────────────────────────────────────────
+function renderDevices() {
+  const grid      = document.getElementById('device-grid');
+  const searchVal = document.getElementById('search-input').value.trim().toLowerCase();
+  const selectable = targetMode === 'pick';
+
+  if (!devices.length) {
+    grid.innerHTML = `<div class="empty"><div class="empty-icon">📱</div><p>No enrolled devices.</p></div>`;
+    return;
+  }
+
+  grid.innerHTML = '';
+  let visibleCount = 0;
+
+  devices.forEach(d => {
+    const matchSearch = !searchVal
+      || d.name.toLowerCase().includes(searchVal)
+      || d.id.toLowerCase().includes(searchVal);
+
+    const isSelected  = selectedIds.has(d.id);
+    const dotClass    = d.cmdState === 'done' ? 'done' : d.status === 'online' ? 'online' : '';
+    const stateLabel  = d.cmdState === 'pending' ? 'Waiting for device…'
+                      : d.cmdState === 'done'    ? '✓ Update installed'
+                      : d.status === 'online'    ? 'Online'
+                      : 'Offline';
+    const stateClass  = d.cmdState === 'pending' ? 'pending'
+                      : d.cmdState === 'done'    ? 'done' : '';
+
+    const card = document.createElement('div');
+    card.dataset.id = d.id;
+    card.className  = [
+      'device-card',
+      selectable                   ? 'selectable' : '',
+      selectable && isSelected     ? 'selected'   : '',
+      d.cmdState === 'pending'     ? 'pushed'     : '',
+      d.cmdState === 'done'        ? 'done'        : '',
+      !matchSearch                 ? 'hidden-card' : '',
+    ].filter(Boolean).join(' ');
+
+    card.innerHTML = `
+      <div class="dc-top">
+        <span class="dc-icon">📱</span>
+        <div class="dc-info">
+          <div class="dc-name">${escHtml(d.name)}</div>
+          <div class="dc-id">${escHtml(d.id)}</div>
+          <div class="dc-os">${escHtml(d.osVersion)}</div>
+        </div>
+        <div class="check-box">${isSelected ? '✓' : ''}</div>
+      </div>
+      <div class="status-row">
+        <span class="status-dot ${dotClass}"></span>
+        <span class="dc-state ${stateClass}">${stateLabel}</span>
+      </div>
+    `;
+
+    if (selectable) {
+      card.addEventListener('click', () => toggleSelect(d.id));
+    }
+
+    grid.appendChild(card);
+    if (matchSearch) visibleCount++;
+  });
+
+  // Update selected count hint
+  document.getElementById('sel-count').textContent =
+    `${selectedIds.size} selected`;
+
+  if (visibleCount === 0 && searchVal) {
+    const empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.innerHTML = `<div class="empty-icon">🔍</div><p>No devices match "${escHtml(searchVal)}".</p>`;
+    grid.appendChild(empty);
+  }
+}
+
+function toggleSelect(id) {
+  if (selectedIds.has(id)) selectedIds.delete(id);
+  else selectedIds.add(id);
+  renderDevices();
+  updateTargetPill();
+  syncPushBtn();
+}
+
+// ── Target pill in push card ──────────────────────────────────────────────────
+function updateTargetPill() {
+  const pill = document.getElementById('fleet-pill');
+  const disp = document.getElementById('target-display');
+
+  if (targetMode === 'all') {
+    const n = devices.length;
+    pill.textContent = `${n} device${n !== 1 ? 's' : ''}`;
+    pill.className   = `fleet-pill${n === 0 ? ' zero' : ''}`;
+    disp.value       = n === 0 ? 'No enrolled devices' : `All ${n} device${n !== 1 ? 's' : ''}`;
+  } else {
+    const n = selectedIds.size;
+    pill.textContent = `${n} selected`;
+    pill.className   = `fleet-pill${n === 0 ? ' zero' : ''}`;
+    if (n === 0) {
+      disp.value = 'None selected';
+    } else if (n <= 2) {
+      disp.value = devices.filter(d => selectedIds.has(d.id)).map(d => d.name).join(', ');
+    } else {
+      disp.value = `${n} devices selected`;
+    }
+  }
+}
+
+// ── File picker ───────────────────────────────────────────────────────────────
+const dropZone = document.getElementById('drop-zone');
+const apkInput = document.getElementById('apk-input');
+
+apkInput.addEventListener('change', () => setFile(apkInput.files[0]));
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('over');
+  const f = e.dataTransfer.files[0];
+  if (f && f.name.toLowerCase().endsWith('.apk')) setFile(f);
+  else showResult('Only .apk files are supported.', 'error');
+});
+
+function setFile(f) {
+  selectedApk = f || null;
+  document.getElementById('drop-name').textContent = f ? f.name : '';
+  document.getElementById('push-result').textContent = '';
+  syncPushBtn();
+}
+
+document.getElementById('ver-input').addEventListener('input', syncPushBtn);
+
+function syncPushBtn() {
+  const ver     = document.getElementById('ver-input').value.trim();
+  const targets = targetMode === 'all' ? devices.length : selectedIds.size;
+  document.getElementById('push-btn').disabled = !selectedApk || !ver || targets === 0;
+}
+
+// ── Push update ───────────────────────────────────────────────────────────────
+document.getElementById('push-btn').addEventListener('click', pushUpdate);
+
+async function pushUpdate() {
+  const user = auth.currentUser;
+  if (!user || user.email !== ADMIN_EMAIL) return;
+  if (!selectedApk) return;
+
+  const version = document.getElementById('ver-input').value.trim();
+  if (!version) return;
+
+  // Determine target devices
+  const targets = targetMode === 'all'
+    ? devices
+    : devices.filter(d => selectedIds.has(d.id));
+
+  if (!targets.length) {
+    showResult('No target devices — select at least one.', 'error');
+    return;
+  }
+
+  // Clean up previous command listeners
+  cmdUnsubs.forEach(u => u()); cmdUnsubs = [];
+
+  const pushBtn = document.getElementById('push-btn');
+  pushBtn.disabled = true;
+  pushBtn.textContent = 'Uploading…';
+  setProgress(true, 0, 'Uploading APK to Firebase Storage…');
+  showResult('', '');
+  log(`Pushing v${version} to ${targets.length} device(s)…`);
+
+  try {
+    // 1. Upload APK to Firebase Storage
+    const safeVer  = version.replace(/[^a-zA-Z0-9._+-]/g, '_');
+    const safeName = selectedApk.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const storRef  = ref(storage, `apk-updates/${safeVer}/${safeName}`);
+    const task     = uploadBytesResumable(storRef, selectedApk);
+
+    const downloadUrl = await new Promise((resolve, reject) => {
+      task.on('state_changed',
+        snap => {
+          const pct = Math.round(snap.bytesTransferred / snap.totalBytes * 100);
+          setProgress(true, pct, `Uploading… ${pct}%`);
+        },
+        reject,
+        async () => resolve(await getDownloadURL(task.snapshot.ref))
+      );
+    });
+
+    setProgress(true, 100, 'Upload complete — writing commands…');
+    log(`APK uploaded: ${downloadUrl}`, 'ok');
+
+    // 2. Write install_update command to each target device's queue
+    targets.forEach(d => { d.cmdState = null; });
+    renderDevices();
+
+    const cmdIds = {};
+    await Promise.all(targets.map(async d => {
+      const ref_ = await addDoc(collection(db, 'devices', d.id, 'commands'), {
+        type:      'install_update',
+        url:       downloadUrl,
+        version,
+        state:     'pending',
+        createdAt: serverTimestamp(),
+      });
+      cmdIds[d.id]  = ref_.id;
+      d.cmdState    = 'pending';
+    }));
+
+    renderDevices();
+    setProgress(false);
+    log(`Commands queued on ${targets.length} device(s). Watching for ACKs…`, 'ok');
+    showResult(
+      `✓ v${version} pushed to ${targets.length} device${targets.length !== 1 ? 's' : ''}. Devices will install when they check in.`,
+      'ok'
+    );
+
+    // 3. Watch each command for ACK (state → executed)
+    targets.forEach(d => {
+      const cmdRef = doc(db, 'devices', d.id, 'commands', cmdIds[d.id]);
+      const unsub  = onSnapshot(cmdRef, snap => {
+        if (!snap.exists()) return;
+        if (snap.data().state === 'executed') {
+          d.cmdState = 'done';
+          renderDevices();
+          log(`${d.name} installed v${version}`, 'ok');
+        }
+      });
+      cmdUnsubs.push(unsub);
+    });
+
+    // Reset file picker
+    selectedApk = null; apkInput.value = '';
+    document.getElementById('drop-name').textContent = '';
+  } catch (e) {
+    log('Push failed: ' + e.message, 'err');
+    showResult('✗ ' + e.message, 'error');
+    setProgress(false);
+  } finally {
+    syncPushBtn();
+    pushBtn.textContent = 'Push Update';
+  }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function setProgress(show, pct = 0, label = '') {
+  const wrap = document.getElementById('prog-wrap');
+  wrap.style.display = show ? 'block' : 'none';
+  if (show) {
+    document.getElementById('prog-fill').style.width       = pct + '%';
+    document.getElementById('prog-label-text').textContent = label;
+    document.getElementById('prog-pct').textContent        = pct + '%';
+  }
+}
+
+function showResult(msg, cls = '') {
+  const el = document.getElementById('push-result');
+  el.textContent = msg;
+  el.className   = 'push-result' + (cls ? ' ' + cls : '');
+}
+
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>

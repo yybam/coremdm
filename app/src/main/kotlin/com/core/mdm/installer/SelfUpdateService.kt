@@ -7,9 +7,12 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
+import android.os.UserManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.core.mdm.R
+import com.core.mdm.firebase.DeviceRegistry
+import com.core.mdm.policy.DevicePolicyHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -45,15 +48,38 @@ class SelfUpdateService : Service() {
                 val apkFile = downloadApk(url, version)
                 notify(buildNotification("Installing v$version…", -1))
 
+                val helper         = DevicePolicyHelper.getInstance(applicationContext)
+                val hadRestriction = helper.hasRestriction(UserManager.DISALLOW_INSTALL_APPS)
+
+                // Persist intent so InstallerReceiver can write Firestore confirmation and
+                // restore DISALLOW_INSTALL_APPS even if the process is replaced by the new APK.
+                applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
+                    .putString(KEY_VERSION, version)
+                    .putBoolean(KEY_RESTORE, hadRestriction)
+                    .apply()
+
+                // Temporarily lift DISALLOW_INSTALL_APPS so the Device Owner PackageInstaller
+                // session is not blocked. The policy is restored by InstallerReceiver on
+                // completion (success or failure), or by MdmCommandService on next Firestore sync.
+                if (hadRestriction) helper.unrestrict(UserManager.DISALLOW_INSTALL_APPS)
+
                 SilentInstaller(applicationContext).installApk(
                     apkFile    = apkFile,
                     label      = "CORE MDM $version",
                     selfUpdate = true,
                 ).onFailure { e ->
                     Log.e(TAG, "Install failed: ${e.message}")
+                    // Session commit failed — restore restriction immediately and clear prefs.
+                    if (hadRestriction) helper.restrict(UserManager.DISALLOW_INSTALL_APPS)
+                    applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
+                        .remove(KEY_VERSION).remove(KEY_RESTORE).apply()
+                    DeviceRegistry.writeUpdateConfirmation(
+                        applicationContext, version, success = false, error = e.message)
                     notifyError("Install failed: ${e.message}")
                 }.onSuccess {
-                    Log.i(TAG, "Self-update committed — device will restart app")
+                    Log.i(TAG, "Self-update session committed — system installing v$version…")
+                    // InstallerReceiver.onReceive() handles the confirmation write and restriction
+                    // restore once the PackageInstaller broadcast arrives.
                 }
 
                 apkFile.delete()
@@ -144,12 +170,15 @@ class SelfUpdateService : Service() {
     }
 
     companion object {
-        private const val TAG          = "SelfUpdateService"
-        const val  CHANNEL_ID          = "mdm_update"
-        private const val NOTIF_ID     = 9003
+        private const val TAG            = "SelfUpdateService"
+        const val  CHANNEL_ID            = "mdm_update"
+        private const val NOTIF_ID       = 9003
         private const val NOTIF_ERROR_ID = 9004
-        const val EXTRA_URL            = "apk_url"
-        const val EXTRA_VERSION        = "version"
+        const val EXTRA_URL              = "apk_url"
+        const val EXTRA_VERSION          = "version"
+        private const val PREFS_NAME     = "mdm_update"
+        private const val KEY_VERSION    = "pending_version"
+        private const val KEY_RESTORE    = "restore_install_restriction"
 
         fun start(context: Context, apkUrl: String, version: String = "") {
             val intent = Intent(context, SelfUpdateService::class.java).apply {

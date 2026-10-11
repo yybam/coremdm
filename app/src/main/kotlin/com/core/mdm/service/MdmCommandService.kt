@@ -135,14 +135,15 @@ class MdmCommandService : Service() {
                         serviceScope.launch(Dispatchers.Main) { applyFullLockdown(helper) }
                     },
                     onPoliciesChange = { policies ->
-                        // The snapshot listener also fires for this service's own
-                        // lastSeen writes every 60s — only re-apply (and only tell the
-                        // UI to re-read) when the policy set actually changed.
+                        // DeviceRegistry no longer deduplicates policy snapshots so we can
+                        // catch reconnect re-deliveries; deduplicate here where the full
+                        // applied-state context lives.
                         if (policies != lastAppliedPolicies) {
                             lastAppliedPolicies = policies
                             serviceScope.launch(Dispatchers.Main) {
                                 applyRemotePolicies(helper, policies)
                                 PolicyEvents.notifyRemoteChange()
+                                DeviceRegistry.writePolicyAck(applicationContext)
                             }
                         }
                     },

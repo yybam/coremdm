@@ -100,7 +100,7 @@ fun KioskScreen(
                             fontSize = 14.sp
                         )
                         Text(
-                            "Requires Device Owner",
+                            if (state.isDeviceOwner) "Device Owner: Active" else "Requires Device Owner",
                             color = if (state.isDeviceOwner) c.green else c.red,
                             fontSize = 11.sp
                         )

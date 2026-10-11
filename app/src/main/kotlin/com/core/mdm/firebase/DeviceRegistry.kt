@@ -19,9 +19,6 @@ object DeviceRegistry {
     private fun devices() = Firebase.firestore.collection("devices")
     private fun uid(): String? = Firebase.auth.currentUser?.uid
 
-    // Cache last-seen policies so we don't re-apply on every 60-second heartbeat snapshot.
-    private var lastPolicies: Map<String, Any>? = null
-
     fun updateLastSeen(context: Context) {
         uid() ?: return
         val id = EnrollmentManager.getHardwareId(context)
@@ -178,10 +175,7 @@ object DeviceRegistry {
                 }
                 @Suppress("UNCHECKED_CAST")
                 val policies = snap.get("policies") as? Map<String, Any>
-                if (policies != null && policies != lastPolicies) {
-                    lastPolicies = policies
-                    onPoliciesChange?.invoke(policies)
-                }
+                if (policies != null) onPoliciesChange?.invoke(policies)
             }
     }
 
@@ -211,6 +205,32 @@ object DeviceRegistry {
     fun sendFullLockdownCommand(deviceId: String) {
         devices().document(deviceId).update("fullLockdownCommand", true)
             .addOnFailureListener { Log.e("DeviceRegistry", "sendFullLockdownCommand failed: ${it.message}") }
+    }
+
+    fun writeUpdateConfirmation(
+        context: Context,
+        version: String,
+        success: Boolean,
+        error:   String? = null,
+    ) {
+        uid() ?: return
+        val id = EnrollmentManager.getHardwareId(context)
+        val update = mutableMapOf<String, Any>(
+            "lastInstalledVersion" to if (success) version else "",
+            "lastInstallSuccess"   to success,
+            "lastInstallAt"        to FieldValue.serverTimestamp(),
+        )
+        if (error != null) update["lastInstallError"] = error
+        devices().document(id).update(update)
+            .addOnFailureListener { Log.e(TAG, "writeUpdateConfirmation failed: ${it.message}") }
+    }
+
+    fun writePolicyAck(context: Context) {
+        uid() ?: return
+        val id = EnrollmentManager.getHardwareId(context)
+        devices().document(id)
+            .update("policyAcknowledgedAt", FieldValue.serverTimestamp())
+            .addOnFailureListener { Log.e(TAG, "writePolicyAck failed: ${it.message}") }
     }
 
     fun watchAllDevices(onUpdate: (List<DeviceInfo>) -> Unit): ListenerRegistration? {

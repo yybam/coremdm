@@ -187,8 +187,16 @@ body{
 .status-dot.done   {background:var(--green)}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
 .dc-state{font-size:10px;font-weight:600;color:var(--textSec)}
-.dc-state.pending{color:var(--yellow)}
-.dc-state.done   {color:var(--green)}
+.dc-state.pending  {color:var(--yellow)}
+.dc-state.receiving{color:var(--yellow)}
+.dc-state.done     {color:var(--green)}
+.btn-resend{
+  margin-left:auto;font-size:10px;font-weight:700;padding:3px 10px;
+  border:1px solid rgba(255,193,94,.35);border-radius:6px;cursor:pointer;
+  background:rgba(255,193,94,.08);color:var(--yellow);font-family:inherit;
+  transition:background .15s,border-color .15s;
+}
+.btn-resend:hover{background:rgba(255,193,94,.18);border-color:rgba(255,193,94,.6)}
 
 /* ── Push card ── */
 .push-card{
@@ -414,11 +422,12 @@ const db      = getFirestore(fbApp);
 const storage = getStorage(fbApp);
 
 // ── State ─────────────────────────────────────────────────────────────────────
-let devices      = [];      // [{id, name, osVersion, status, cmdState}]
+let devices      = [];      // [{id, name, osVersion, status, cmdState, lastInstalledVersion, pushedVersion, pushedUrl}]
 let selectedIds  = new Set();
 let targetMode   = 'all';   // 'all' | 'pick'
 let selectedApk  = null;
 let cmdUnsubs    = [];
+let devUnsubs    = [];      // device-doc snapshot listeners watching for install confirmation
 
 // ── Log ───────────────────────────────────────────────────────────────────────
 function log(msg, level = '') {
@@ -472,6 +481,7 @@ onAuthStateChanged(auth, async user => {
     document.getElementById('signin-btn').disabled  = false;
     document.getElementById('signin-btn').textContent = 'Sign In';
     cmdUnsubs.forEach(u => u()); cmdUnsubs = [];
+    devUnsubs.forEach(u => u()); devUnsubs = [];
     devices = []; selectedIds.clear();
     return;
   }
@@ -497,11 +507,14 @@ async function loadDevices() {
   try {
     const snap = await getDocs(query(collection(db, 'devices'), where('ownerId', '==', uid)));
     devices = snap.docs.map(d => ({
-      id:        d.id,
-      name:      d.data().model     || 'Unknown Device',
-      osVersion: d.data().osVersion || '',
-      status:    d.data().status    || 'offline',
-      cmdState:  null,
+      id:                   d.id,
+      name:                 d.data().model              || 'Unknown Device',
+      osVersion:            d.data().osVersion          || '',
+      status:               d.data().status             || 'offline',
+      cmdState:             null,
+      lastInstalledVersion: d.data().lastInstalledVersion || '',
+      pushedVersion:        null,
+      pushedUrl:            null,
     }));
     selectedIds.clear();
     renderDevices();
@@ -552,23 +565,28 @@ function renderDevices() {
       || d.id.toLowerCase().includes(searchVal);
 
     const isSelected  = selectedIds.has(d.id);
-    const dotClass    = d.cmdState === 'done' ? 'done' : d.status === 'online' ? 'online' : '';
-    const stateLabel  = d.cmdState === 'pending' ? 'Waiting for device…'
-                      : d.cmdState === 'done'    ? '✓ Update installed'
-                      : d.status === 'online'    ? 'Online'
+    // Determine display state based on device confirmation, not just command execution.
+    const confirmed   = d.pushedVersion && d.lastInstalledVersion === d.pushedVersion;
+    const canResend   = d.pushedVersion && !confirmed;
+    const dotClass    = confirmed ? 'done' : d.status === 'online' ? 'online' : '';
+    const stateLabel  = confirmed                  ? '✓ Update confirmed'
+                      : d.cmdState === 'receiving' ? 'Installing on device…'
+                      : d.cmdState === 'pending'   ? 'Waiting for device…'
+                      : d.status === 'online'      ? 'Online'
                       : 'Offline';
-    const stateClass  = d.cmdState === 'pending' ? 'pending'
-                      : d.cmdState === 'done'    ? 'done' : '';
+    const stateClass  = confirmed                  ? 'done'
+                      : d.cmdState === 'receiving' ? 'receiving'
+                      : d.cmdState === 'pending'   ? 'pending' : '';
 
     const card = document.createElement('div');
     card.dataset.id = d.id;
     card.className  = [
       'device-card',
-      selectable                   ? 'selectable' : '',
-      selectable && isSelected     ? 'selected'   : '',
-      d.cmdState === 'pending'     ? 'pushed'     : '',
-      d.cmdState === 'done'        ? 'done'        : '',
-      !matchSearch                 ? 'hidden-card' : '',
+      selectable                             ? 'selectable' : '',
+      selectable && isSelected               ? 'selected'   : '',
+      d.cmdState === 'pending'               ? 'pushed'     : '',
+      confirmed                              ? 'done'       : '',
+      !matchSearch                           ? 'hidden-card': '',
     ].filter(Boolean).join(' ');
 
     card.innerHTML = `
@@ -584,12 +602,18 @@ function renderDevices() {
       <div class="status-row">
         <span class="status-dot ${dotClass}"></span>
         <span class="dc-state ${stateClass}">${stateLabel}</span>
+        ${canResend ? `<button class="btn-resend" data-id="${escHtml(d.id)}">↺ Resend</button>` : ''}
       </div>
     `;
 
     if (selectable) {
-      card.addEventListener('click', () => toggleSelect(d.id));
+      card.addEventListener('click', e => {
+        if (e.target.closest('.btn-resend')) return; // don't toggle on resend click
+        toggleSelect(d.id);
+      });
     }
+    const resendBtn = card.querySelector('.btn-resend');
+    if (resendBtn) resendBtn.addEventListener('click', () => resendUpdate(d));
 
     grid.appendChild(card);
     if (matchSearch) visibleCount++;
@@ -690,8 +714,9 @@ async function pushUpdate() {
     return;
   }
 
-  // Clean up previous command listeners
+  // Clean up previous listeners
   cmdUnsubs.forEach(u => u()); cmdUnsubs = [];
+  devUnsubs.forEach(u => u()); devUnsubs = [];
 
   const pushBtn = document.getElementById('push-btn');
   pushBtn.disabled = true;
@@ -734,30 +759,49 @@ async function pushUpdate() {
         state:     'pending',
         createdAt: serverTimestamp(),
       });
-      cmdIds[d.id]  = ref_.id;
-      d.cmdState    = 'pending';
+      cmdIds[d.id]   = ref_.id;
+      d.cmdState     = 'pending';
+      d.pushedVersion = version;
+      d.pushedUrl    = downloadUrl;
     }));
 
     renderDevices();
     setProgress(false);
-    log(`Commands queued on ${targets.length} device(s). Watching for ACKs…`, 'ok');
+    log(`Commands queued on ${targets.length} device(s). Watching for confirmation…`, 'ok');
     showResult(
       `✓ v${version} pushed to ${targets.length} device${targets.length !== 1 ? 's' : ''}. Devices will install when they check in.`,
       'ok'
     );
 
-    // 3. Watch each command for ACK (state → executed)
+    // 3. Watch command doc for device ACK (state → executed = device received the command).
+    //    Watch device doc for lastInstalledVersion = version (actual install confirmed).
     targets.forEach(d => {
       const cmdRef = doc(db, 'devices', d.id, 'commands', cmdIds[d.id]);
-      const unsub  = onSnapshot(cmdRef, snap => {
+      const cmdUnsub = onSnapshot(cmdRef, snap => {
         if (!snap.exists()) return;
-        if (snap.data().state === 'executed') {
-          d.cmdState = 'done';
+        if (snap.data().state === 'executed' && d.cmdState === 'pending') {
+          d.cmdState = 'receiving';
           renderDevices();
-          log(`${d.name} installed v${version}`, 'ok');
+          log(`${d.name} received v${version} — installing…`, 'warn');
         }
       });
-      cmdUnsubs.push(unsub);
+      cmdUnsubs.push(cmdUnsub);
+
+      // Watch device document for actual install confirmation.
+      const devRef  = doc(db, 'devices', d.id);
+      const devUnsub = onSnapshot(devRef, snap => {
+        if (!snap.exists()) return;
+        const confirmed = snap.data().lastInstalledVersion || '';
+        d.lastInstalledVersion = confirmed;
+        if (confirmed === version) {
+          d.cmdState = 'done';
+          renderDevices();
+          log(`${d.name} confirmed v${version} installed ✓`, 'ok');
+          devUnsub();
+          devUnsubs = devUnsubs.filter(u => u !== devUnsub);
+        }
+      });
+      devUnsubs.push(devUnsub);
     });
 
     // Reset file picker
@@ -770,6 +814,44 @@ async function pushUpdate() {
   } finally {
     syncPushBtn();
     pushBtn.textContent = 'Push Update';
+  }
+}
+
+// ── Resend update to a single device ─────────────────────────────────────────
+async function resendUpdate(d) {
+  if (!d.pushedUrl || !d.pushedVersion) return;
+  const user = auth.currentUser;
+  if (!user || user.email !== ADMIN_EMAIL) return;
+
+  try {
+    await addDoc(collection(db, 'devices', d.id, 'commands'), {
+      type:      'install_update',
+      url:       d.pushedUrl,
+      version:   d.pushedVersion,
+      state:     'pending',
+      createdAt: serverTimestamp(),
+    });
+    d.cmdState = 'pending';
+    renderDevices();
+    log(`Resent v${d.pushedVersion} to ${d.name}`, 'ok');
+
+    // Re-attach device doc listener for confirmation.
+    const devRef   = doc(db, 'devices', d.id);
+    const devUnsub = onSnapshot(devRef, snap => {
+      if (!snap.exists()) return;
+      const confirmed = snap.data().lastInstalledVersion || '';
+      d.lastInstalledVersion = confirmed;
+      if (confirmed === d.pushedVersion) {
+        d.cmdState = 'done';
+        renderDevices();
+        log(`${d.name} confirmed v${d.pushedVersion} installed ✓`, 'ok');
+        devUnsub();
+        devUnsubs = devUnsubs.filter(u => u !== devUnsub);
+      }
+    });
+    devUnsubs.push(devUnsub);
+  } catch (e) {
+    log(`Resend failed for ${d.name}: ${e.message}`, 'err');
   }
 }
 

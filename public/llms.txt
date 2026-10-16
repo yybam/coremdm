@@ -1,0 +1,36 @@
+# CORE MDM
+
+> CORE MDM is Android device management run from a web browser. It installs on any Android 8.0+ phone as device owner, then lets the phone's owner lock it down, filter content, block apps and settings, and send commands from a web console at coremdm.org/console, in real time.
+
+CORE MDM is for phones you own or are authorized to manage, used openly. It is not a tool for covert monitoring. Each phone is tied to the account that signed in on it, and only that account can see or manage it.
+
+Key facts:
+
+- Works on any brand (Samsung, Google Pixel, Motorola, Xiaomi and more) running Android 8.0 or newer.
+- Installs from the browser over USB (Chrome or Edge), or by scanning a setup QR code on a freshly reset phone. Nothing to download on the computer.
+- The phone must be fresh or factory reset, with no accounts signed in, because Android only lets an app become device owner on such a phone.
+- As device owner it can block uninstalling, factory reset, safe mode and USB debugging, so the rules stay on.
+- Features: remote lock, alarm, reboot, full lockdown and wipe; block app installs, uninstalls and sideloading; hide the Play Store and browsers; disable camera and screenshots; DNS content filter and enforced Private DNS; kiosk mode; lock Wi-Fi, Bluetooth, mobile network and VPN settings; block USB transfer, SD cards and outgoing calls.
+- Rules already applied keep working when the phone is offline; new changes arrive as soon as it is back online.
+- Organizations (charities, schools, communities, companies) can apply one set of rules to every phone and put their own logo on the lock screen.
+
+## Pages
+
+- [Home](https://coremdm.org/): overview and how it works
+- [Features](https://coremdm.org/features): everything CORE MDM can do
+- [Install](https://coremdm.org/install): the web installer (USB, QR code or manual ADB)
+- [Live demo](https://coremdm.org/demo): try the phone app and console in the browser
+- [Organizations](https://coremdm.org/organizations): CORE MDM for groups and companies
+- [Help](https://coremdm.org/help): step-by-step guides, every setting explained, troubleshooting
+- [FAQ](https://coremdm.org/faq): common questions
+
+## Policies
+
+- [Consent policy](https://coremdm.org/consent): acceptable use
+- [Privacy policy](https://coremdm.org/privacy): what is collected and who can see it
+- [Terms of service](https://coremdm.org/terms)
+
+## Optional
+
+- [About](https://coremdm.org/about)
+- Support: support@coremdm.org

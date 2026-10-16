@@ -1,0 +1,6 @@
+# All crawlers, including AI crawlers (GPTBot, ClaudeBot, Google-Extended,
+# PerplexityBot, ...), may read the public site.
+User-agent: *
+Disallow: /updater
+
+Sitemap: https://coremdm.org/sitemap.xml

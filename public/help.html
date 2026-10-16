@@ -1,0 +1,1210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Help — CORE MDM</title>
+<meta name="description" content="How to install CORE MDM, use the console, and what every setting does. Step-by-step guides, troubleshooting and answers.">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+  main.help { max-width: 1120px; padding-top: 40px; }
+
+  /* search */
+  .help-search { position: relative; max-width: 620px; margin: 22px auto 0; }
+  .help-search svg { z-index: 1; position: absolute; left: 18px; top: 50%; width: 20px; height: 20px; transform: translateY(-50%);
+    stroke: var(--muted); fill: none; stroke-width: 2; stroke-linecap: round; pointer-events: none; }
+  .help-search input { width: 100%; padding: 16px 48px 16px 50px; border-radius: 16px; border: 1px solid var(--line);
+    background: rgba(255, 255, 255, .07); color: var(--text); font: inherit; font-size: 1rem; outline: none;
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); transition: border-color .2s, background .2s; }
+  .help-search input::placeholder { color: var(--muted); }
+  .help-search input:focus { border-color: rgba(46, 154, 230, .7); background: rgba(255, 255, 255, .1); }
+  .help-search .clear { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); display: none;
+    width: 30px; height: 30px; border-radius: 9px; border: 0; background: rgba(255, 255, 255, .08); color: var(--text);
+    font-size: 1rem; cursor: pointer; }
+  .help-search.has-text .clear { display: block; }
+  .search-status { text-align: center; color: var(--muted); font-size: .9rem; min-height: 1.4em; margin: 10px 0 0; }
+
+  /* topic cards */
+  .topics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 30px 0 36px; }
+  .topic { display: flex; flex-direction: column; gap: 4px; padding: 16px 18px; border-radius: 18px; border: 1px solid var(--line);
+    background: linear-gradient(145deg, var(--glass-hi), var(--glass)); color: var(--text);
+    transition: transform .15s, border-color .2s; }
+  .topic:hover { transform: translateY(-2px); border-color: rgba(46, 154, 230, .55); }
+  .topic b { font-weight: 600; }
+  .topic span { color: var(--muted); font-size: .85rem; line-height: 1.4; }
+  .topic .t-ico { width: 30px; height: 30px; margin-bottom: 6px; stroke: var(--accent2); fill: none; stroke-width: 1.8;
+    stroke-linecap: round; stroke-linejoin: round; }
+
+  /* layout */
+  .help-layout { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 28px; align-items: start; }
+  .help-toc { position: sticky; top: 92px; max-height: calc(100vh - 110px); overflow-y: auto; padding: 16px 12px; border-radius: 18px;
+    border: 1px solid var(--line); background: rgba(10, 16, 30, .45);
+    backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
+  .help-toc p { margin: 0 8px 8px; font-size: .75rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  .help-toc a { display: block; padding: 7px 10px; border: 0; border-radius: 9px; color: var(--muted); font-size: .9rem; }
+  .help-toc a:hover { color: var(--text); background: rgba(255, 255, 255, .06); }
+  .help-toc a.current { color: var(--text); background: rgba(46, 154, 230, .16); }
+  .help-toc .toggle-all { width: 100%; margin-top: 10px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line);
+    background: rgba(255, 255, 255, .05); color: var(--text); font: inherit; font-size: .85rem; cursor: pointer; }
+  .help-toc .toggle-all:hover { background: rgba(255, 255, 255, .1); }
+
+  /* sections */
+  .h-section { scroll-margin-top: 92px; margin-bottom: 40px; }
+  .h-section > h2 { margin: 0 0 6px; font-size: 1.5rem; letter-spacing: -.02em; }
+  .h-section > .lead { margin: 0 0 16px; color: var(--muted); }
+  .h-section.hidden, .art.hidden { display: none; }
+
+  /* articles */
+  .art { margin: 0 0 10px; padding: 0; border-radius: 18px; scroll-margin-top: 92px;
+    backdrop-filter: none; -webkit-backdrop-filter: none; background: rgba(16, 22, 38, .72); }
+  .art > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 12px; padding: 16px 20px;
+    font-weight: 600; border-radius: 18px; }
+  .art > summary::-webkit-details-marker { display: none; }
+  .art > summary::before { content: none; }
+  .art > summary::after { content: ""; margin-left: auto; flex: none; width: 9px; height: 9px;
+    border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); transition: transform .2s; }
+  .art[open] > summary::after { transform: rotate(-135deg); }
+  .art > summary:hover { background: rgba(255, 255, 255, .03); }
+  .art .tag { flex: none; padding: 2px 9px; border-radius: 99px; font-size: .72rem; font-weight: 600;
+    background: rgba(46, 154, 230, .16); color: #7fd0f5; }
+  .art .tag.do { background: rgba(255, 193, 94, .14); color: var(--warn); }
+  .art .body { padding: 0 22px 20px; color: rgba(238, 241, 248, .86); }
+  .art .body > *:first-child { margin-top: 0; }
+  .art h4 { margin: 18px 0 6px; font-size: .98rem; color: var(--text); }
+  .art p, .art li { line-height: 1.65; }
+  .art ul, .art ol { padding-left: 22px; margin: 8px 0; }
+  .art li { margin: 4px 0; }
+  .art code { padding: 1px 6px; border-radius: 6px; background: rgba(255, 255, 255, .08); font-size: .86em; }
+  .art b { color: var(--text); }
+
+  .note { margin: 12px 0; padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(46, 154, 230, .35);
+    background: rgba(46, 154, 230, .08); font-size: .92rem; }
+  .note.warn { border-color: rgba(255, 193, 94, .4); background: rgba(255, 193, 94, .08); }
+  .note.bad { border-color: rgba(255, 107, 125, .4); background: rgba(255, 107, 125, .08); }
+  .note b { color: var(--text); }
+
+  .tbl { overflow-x: auto; margin: 10px 0 14px; border: 1px solid var(--line); border-radius: 14px; }
+  .tbl table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+  .tbl th { text-align: left; padding: 10px 14px; background: rgba(255, 255, 255, .05); color: var(--text); font-weight: 600;
+    border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .tbl td { padding: 10px 14px; vertical-align: top; border-bottom: 1px solid rgba(255, 255, 255, .06); }
+  .tbl tr:last-child td { border-bottom: 0; }
+  .tbl td:first-child { color: var(--text); font-weight: 500; }
+
+  mark { background: rgba(47, 211, 154, .3); color: inherit; border-radius: 3px; padding: 0 1px; }
+  .no-results { display: none; text-align: center; padding: 40px 20px; }
+  .no-results.show { display: block; }
+
+  @media (max-width: 900px) {
+    .topics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .help-layout { grid-template-columns: 1fr; }
+    .help-toc { display: none; }
+  }
+  @media (max-width: 520px) {
+    .topics { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .topic { padding: 12px 14px; }
+    .topic span { display: none; }
+    .art > summary { padding: 14px 16px; }
+    .art .body { padding: 0 16px 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="bg" aria-hidden="true"><span class="orb o1"></span><span class="orb o2"></span><span class="orb o3"></span></div>
+
+<nav class="nav">
+  <a class="brand" href="index.html"><img src="logo-mark.png" alt="" width="28" height="34"> CORE MDM</a>
+  <div class="links">
+    <a href="features.html">Features</a>
+    <a href="demo.html">Try the app</a>
+    <a href="faq.html">FAQ</a>
+    <a href="help.html" class="active">Help</a>
+    <a href="about.html">About</a>
+    <a href="organizations.html">Organizations</a>
+    <a class="pill ghost-pill" href="console.html">Manage</a>
+    <a class="pill" href="install.html">Install</a>
+  </div>
+</nav>
+
+<main class="help">
+  <header class="hero page-hero">
+    <p class="eyebrow">Help center</p>
+    <h1>How can we <span class="grad">help?</span></h1>
+    <p class="sub">Step-by-step guides for setting up a phone, and what every setting in CORE MDM does.</p>
+    <div class="help-search" id="search-box">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" type="search" placeholder="Search help — try “whatsapp”, “wipe”, “time limit”…" autocomplete="off" aria-label="Search help">
+      <button class="clear" id="q-clear" type="button" aria-label="Clear search">&#x2715;</button>
+    </div>
+    <p class="search-status" id="search-status" aria-live="polite"></p>
+  </header>
+
+  <div class="topics" id="topics">
+    <a class="topic" href="#start"><svg class="t-ico" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg><b>Getting started</b><span>Install, sign in, first steps</span></a>
+    <a class="topic" href="#console"><svg class="t-ico" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg><b>The console</b><span>Your devices and tabs</span></a>
+    <a class="topic" href="#apps"><svg class="t-ico" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1.5"/><rect x="14" y="4" width="6" height="6" rx="1.5"/><rect x="4" y="14" width="6" height="6" rx="1.5"/><path d="m14 14 6 6M20 14l-6 6"/></svg><b>Blocking apps</b><span>WhatsApp, social, AI, parts of apps</span></a>
+    <a class="topic" href="#internet"><svg class="t-ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg><b>Internet filter</b><span>Block sites, DNS, web in apps</span></a>
+    <a class="topic" href="#device"><svg class="t-ico" viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg><b>Device settings</b><span>Installs, calls, hardware, PIN</span></a>
+    <a class="topic" href="#location"><svg class="t-ico" viewBox="0 0 24 24"><path d="M12 21s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg><b>Location &amp; schedules</b><span>Map, geofence, bedtime</span></a>
+    <a class="topic" href="#orgs"><svg class="t-ico" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M15 20c0-2.5 1.5-4.5 4-4.5s2 .5 2 .5"/></svg><b>Organizations</b><span>Shared rules for groups</span></a>
+    <a class="topic" href="#trouble"><svg class="t-ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17.5v.01"/></svg><b>Troubleshooting</b><span>Fixes for common problems</span></a>
+  </div>
+
+  <div class="help-layout">
+    <aside class="help-toc" id="toc">
+      <p>Contents</p>
+      <a href="#start">Getting started</a>
+      <a href="#console">Using the console</a>
+      <a href="#commands">Commands</a>
+      <a href="#apps">Apps</a>
+      <a href="#limits">Time limits</a>
+      <a href="#internet">Internet</a>
+      <a href="#device">Device</a>
+      <a href="#location">Location &amp; schedule</a>
+      <a href="#remove">Removing &amp; wiping</a>
+      <a href="#orgs">Organizations</a>
+      <a href="#phone">The app on the phone</a>
+      <a href="#trouble">Troubleshooting</a>
+      <a href="#faq">Questions</a>
+      <a href="#needs">What each feature needs</a>
+      <button class="toggle-all" id="toggle-all" type="button">Expand all</button>
+    </aside>
+
+    <div id="content">
+
+      <div class="glass no-results" id="no-results">
+        <h3 style="margin:0 0 6px">Nothing found</h3>
+        <p class="muted" style="margin:0">Try a different word, or email <a href="mailto:support@coremdm.org">support@coremdm.org</a>.</p>
+      </div>
+
+      <!-- ───────────────── GETTING STARTED ───────────────── -->
+      <section class="h-section" id="start">
+        <h2>Getting started</h2>
+        <p class="lead">Setting up a phone takes about five minutes: install CORE MDM as device owner, sign in on the phone, set a PIN, then manage it from the console with the same account.</p>
+
+        <details class="glass art" id="what-is">
+          <summary>What is CORE MDM?</summary>
+          <div class="body">
+            <p>CORE MDM turns an Android phone into a managed phone you control from your browser. It has three parts:</p>
+            <ul>
+              <li><b>The CORE MDM app</b> on the phone, which applies your rules.</li>
+              <li><b>The console</b> at <a href="console.html">coremdm.org/console</a>, where you change settings and send commands.</li>
+              <li><b>This website</b>, with the <a href="install.html">installer</a>, help and organization pages.</li>
+            </ul>
+            <p>The app runs as <b>device owner</b>, the highest level of control Android gives an app. Android itself enforces the rules, so the person using the phone can't just switch them off, restart into safe mode, or reset the phone to escape them.</p>
+            <p>When you flip a switch in the console, the phone picks it up within seconds. Rules already applied keep working when the phone is offline, and commands sent to an offline phone wait until it reconnects.</p>
+            <div class="note">CORE MDM is for phones you own or are responsible for, used openly with the knowledge of the people who carry them. See the <a href="consent.html">Consent Policy</a>.</div>
+          </div>
+        </details>
+
+        <details class="glass art" id="choose-install">
+          <summary>Step 1 — Choose how to install</summary>
+          <div class="body">
+            <p>Both methods give the same result: CORE MDM installed and set as device owner. Open the <a href="install.html">installer</a> and pick one.</p>
+            <div class="tbl"><table>
+              <tr><th></th><th>USB cable</th><th>QR code</th></tr>
+              <tr><td>You need</td><td>A computer with Chrome or Edge, and a USB cable</td><td>Only the phone and Wi-Fi</td></tr>
+              <tr><td>Phone</td><td>Already set up is fine, once every account is removed</td><td>Brand new or just factory reset, still on the Welcome screen</td></tr>
+              <tr><td>Best for</td><td>Phones already in use</td><td>New phones, setting up many phones</td></tr>
+            </table></div>
+            <div class="note warn">Android only allows a device owner on a phone with <b>no accounts signed in</b>. This safety rule stops anyone quietly taking over a phone that's already in use.</div>
+          </div>
+        </details>
+
+        <details class="glass art" id="install-usb">
+          <summary>Step 2a — Install with a USB cable</summary>
+          <div class="body">
+            <ol>
+              <li>Factory reset the phone, or remove every account under <b>Settings › Accounts</b>. If you reset, skip Google sign-in during setup.</li>
+              <li>Turn on developer options: <b>Settings › About phone</b>, then tap <b>Build number</b> 7 times.</li>
+              <li>Turn on <b>USB debugging</b> in <b>Settings › System › Developer options</b>.</li>
+              <li>Connect the phone with a USB cable. If ADB is installed on your computer, close it first by running <code>adb kill-server</code>.</li>
+              <li>On the <a href="install.html">install page</a>, press <b>Connect phone</b>, choose the phone in the browser popup, then tap <b>Allow</b> on the phone's “Allow USB debugging?” prompt.</li>
+              <li>Press <b>Install and set device owner</b>. The page checks for accounts, installs the latest version and makes it device owner. Watch the Log box for progress.</li>
+            </ol>
+            <div class="note">Samsung phone not showing up on Windows? Install the Samsung USB driver, unplug and replug the phone, then try again.</div>
+          </div>
+        </details>
+
+        <details class="glass art" id="install-qr">
+          <summary>Step 2b — Install with a QR code</summary>
+          <div class="body">
+            <ol>
+              <li>Factory reset the phone, or start with a new one. Stay on the first <b>Welcome</b> screen.</li>
+              <li>Tap the same blank spot on the Welcome screen <b>6 times</b>. A QR scanner opens. (On Android 7 and 8 it first connects to Wi-Fi to download the scanner.)</li>
+              <li>Optional: on the <a href="install.html#qr">install page</a>, enter your Wi-Fi name, security type and password so the phone connects by itself. These stay in your browser.</li>
+              <li>Scan the code. The phone downloads CORE MDM and sets it as device owner; this takes a minute or two.</li>
+              <li>Accept the prompts saying the phone will be managed, then finish setup.</li>
+            </ol>
+            <div class="note">If the scanner never opens, the phone doesn't support QR setup. Use the USB method instead.</div>
+          </div>
+        </details>
+
+        <details class="glass art" id="sign-in">
+          <summary>Step 3 — Sign in on the phone</summary>
+          <div class="body">
+            <p>Open CORE MDM and sign in with email and password, or tap <b>Continue with Google</b>. New here? Tap <b>New here? Create an account</b>. Signing in adds the phone to your account and starts CORE MDM's background service.</p>
+            <p>If someone gave you an <b>enrollment token</b>, paste it in the box that appears and tap <b>Verify &amp; Enroll</b>. Otherwise tap <b>Skip</b>; signing in is all you need.</p>
+          </div>
+        </details>
+
+        <details class="glass art" id="pin">
+          <summary>Step 4 — Set the admin PIN</summary>
+          <div class="body">
+            <p>Before any settings appear, the app asks you to choose a PIN. It must be at least 4 digits (the console can raise this to 6 or 8).</p>
+            <ul>
+              <li>The app locks itself every time it leaves the screen or the screen turns off.</li>
+              <li>Wrong guesses make you wait: 30 seconds after 3 tries, 1 minute after 5, 2 minutes after 7, 5 minutes after 10.</li>
+            </ul>
+            <div class="note warn"><b>There is no “forgot PIN”.</b> Keep it somewhere safe. If you forget it, you can still manage the phone from the console.</div>
+          </div>
+        </details>
+
+        <details class="glass art" id="open-console">
+          <summary>Step 5 — Open the console</summary>
+          <div class="body">
+            <p>Go to <a href="console.html">coremdm.org/console</a> and sign in with the <b>same email and password</b> you used on the phone. Your phone appears within seconds. Click <b>Manage →</b> to control it.</p>
+            <div class="note">The console signs in with email and password. If you only used Google on the phone, press <b>Forgot password?</b> on the console to set a password for that email first.</div>
+          </div>
+        </details>
+
+        <details class="glass art" id="join-org">
+          <summary>Optional — Join an organization</summary>
+          <div class="body">
+            <p>If a school, charity, group or company gave you a join code, open the <b>Organization</b> tile in the app, choose <b>Join an organization</b>, type the code and tap <b>Find organization</b>. Confirm on the next screen. Joining means:</p>
+            <ul>
+              <li>The organization's admins can set rules on this phone, including some you can't change.</li>
+              <li>Its name, logo and message appear on the CORE MDM lock screen.</li>
+              <li>Only its admins can take the phone out again.</li>
+            </ul>
+          </div>
+        </details>
+
+        <details class="glass art" id="no-owner">
+          <summary>What if the app isn't device owner?</summary>
+          <div class="body">
+            <p>If CORE MDM was installed like a normal app, it runs as a <b>device admin</b> only. Lock, wipe, alarm, messages, rename and the app list still work. Blocking and hiding apps, the enforced PIN, reboot, kiosk mode, starting the filter remotely and most restrictions need device owner.</p>
+            <p>The top of the app's home screen shows which you have: <b>Device Owner — Protected</b>, <b>Admin Active — Not Device Owner</b>, or <b>Device Admin Not Active</b>. To upgrade, remove the phone's accounts and use the <a href="install.html">installer</a>.</p>
+          </div>
+        </details>
+      </section>
+
+      <!-- ───────────────── CONSOLE ───────────────── -->
+      <section class="h-section" id="console">
+        <h2>Using the console</h2>
+        <p class="lead">The console shows every phone signed in with your account. Changes reach the phone the moment you make them; there's no Save button.</p>
+
+        <details class="glass art" id="devices-list">
+          <summary>Your devices page</summary>
+          <div class="body">
+            <p>The top row counts <b>Total devices</b>, <b>Online</b>, <b>Offline</b> and <b>Alarming</b>. Each phone has a card showing:</p>
+            <ul>
+              <li><b>Name and model</b>, Android version, and IMEI and serial (device owner phones).</li>
+              <li><b>Badges</b>: ONLINE or OFFLINE, ALARM while the alarm sounds, PENDING while a command waits, and the organization's name if it belongs to one.</li>
+              <li><b>Chips</b> showing what's on, such as “WhatsApp off”, “Social off”, “3 sections”, “2 timed” or “Remote-only”. “Nothing blocked” means no restrictions are set.</li>
+              <li><b>Last seen</b>. A phone counts as online if it checked in within the last 5 minutes.</li>
+              <li><b>Sound Alarm</b> and <b>Manage →</b> buttons.</li>
+            </ul>
+            <p>Use the search box to find a phone by name, model, IMEI or serial.</p>
+          </div>
+        </details>
+
+        <details class="glass art" id="device-panel">
+          <summary>Managing one phone: the tabs</summary>
+          <div class="body">
+            <p><b>Manage →</b> opens the phone's panel. You can rename the phone from its header. The search box (“Search all settings”) finds any setting across every tab, even by everyday words like “tether” or “screenshot”.</p>
+            <div class="tbl"><table>
+              <tr><th>Tab</th><th>What's there</th></tr>
+              <tr><td><a href="#commands">Commands</a></td><td>Alarm, lock, reboot, full lockdown, the waiting queue, send a message</td></tr>
+              <tr><td><a href="#apps">Apps</a></td><td>Quick blocks, parts of apps, every installed app</td></tr>
+              <tr><td><a href="#limits">Time limits</a></td><td>Daily minutes per app</td></tr>
+              <tr><td><a href="#internet">Internet</a></td><td>Private DNS, content filter, web pages inside apps, dummy browser, kiosk</td></tr>
+              <tr><td><a href="#device">Device</a></td><td>Installing apps, keeping rules in place, hardware, PIN length</td></tr>
+              <tr><td><a href="#location">Location &amp; schedule</a></td><td>Map, geofence, screen time, scheduled lockdown, status, usage</td></tr>
+              <tr><td><a href="#remove">Danger</a></td><td>Wipe, remove from your account</td></tr>
+            </table></div>
+          </div>
+        </details>
+
+        <details class="glass art" id="reading-toggles">
+          <summary>Reading switches, tags and banners</summary>
+          <div class="body">
+            <p>A switch shows what's currently set on the phone. On phones in an organization you may see:</p>
+            <ul>
+              <li><b>“Default from &lt;org&gt; — you can change it”</b>: the organization chose a starting value; you can change it for this phone.</li>
+              <li><b>“🔒 Locked by &lt;org&gt;”</b>: the switch is greyed out. Only the organization's admins can change it.</li>
+            </ul>
+            <p>A yellow banner means something must be switched on at the phone, such as “Screen guard is off on this phone” or “Usage access is off on this phone”. Follow its instructions.</p>
+            <p>If <b>Remote-only mode</b> is on, a banner says the app on the phone is locked, with a <b>Turn off</b> button.</p>
+          </div>
+        </details>
+      </section>
+
+      <!-- ───────────────── COMMANDS ───────────────── -->
+      <section class="h-section" id="commands">
+        <h2>Commands</h2>
+        <p class="lead">One-time actions. All except the alarm wait in a queue until the phone picks them up, and you can cancel them until then. Each runs exactly once, even if the phone restarts.</p>
+
+        <details class="glass art" id="alarm">
+          <summary>Sound Alarm / Stop Alarm</summary>
+          <div class="body">
+            <p>Plays the phone's alarm tone on a loop until you press <b>Stop Alarm</b>. Great for finding a lost phone nearby.</p>
+            <ul>
+              <li>Instant, not queued. The card shows a pulsing ALARM badge while it sounds.</li>
+              <li>It plays at the phone's alarm volume, so a phone with alarm volume at zero may be quiet.</li>
+              <li>Also available on every device card, and from the phone app's Remote Control screen.</li>
+              <li>Works without device owner.</li>
+            </ul>
+          </div>
+        </details>
+
+        <details class="glass art" id="lock">
+          <summary>Lock screen</summary>
+          <div class="body">
+            <p>Turns the screen off and locks it immediately, like pressing the power button.</p>
+            <div class="note">The person unlocks it with the phone's own PIN, pattern or fingerprint. If the phone has no screen lock, this only turns the screen off. Set <a href="#pin-length">Minimum PIN length</a> to make sure there's a screen lock.</div>
+          </div>
+        </details>
+
+        <details class="glass art" id="reboot">
+          <summary>Reboot <span class="tag do">Device owner</span></summary>
+          <div class="body">
+            <p>Restarts the phone. It's offline for about a minute. Useful to clear a stuck state. Needs Android 7 or newer. The phone can't get stuck restarting over and over.</p>
+          </div>
+        </details>
+
+        <details class="glass art" id="full-lockdown">
+          <summary>Full lockdown <span class="tag do">Device owner</span></summary>
+          <div class="body">
+            <p>Turns on 13 restrictions in one step. Use it for a lost or stolen phone.</p>
+            <ul>
+              <li>Blocks safe mode, factory reset, USB debugging and adding users.</li>
+              <li>Blocks installing, uninstalling and sideloading apps.</li>
+              <li>Locks Wi-Fi, Bluetooth and mobile network settings.</li>
+              <li>Disables the pull-down status bar, screenshots and the camera.</li>
+            </ul>
+            <div class="note warn"><b>There's no single undo.</b> These restrictions don't appear as switches in the console. To lift one, find its switch on the <a href="#device">Device tab</a> and turn it on, then off.</div>
+          </div>
+        </details>
+
+        <details class="glass art" id="wipe">
+          <summary>Wipe</summary>
+          <div class="body">
+            <p>Factory resets the phone, erasing all apps, accounts, photos and files on the phone. An SD card is not erased. Found on the Commands tab and the Danger tab; a red confirmation appears first.</p>
+            <div class="note bad"><b>This can't be undone.</b> Afterwards CORE MDM is gone and the phone is no longer managed. If the phone is offline, the wipe waits and runs as soon as it reconnects, so cancel it if you change your mind.</div>
+          </div>
+        </details>
+
+        <details class="glass art" id="message">
+          <summary>Send a message to the phone</summary>
+          <div class="body">
+            <p>Shows a full-screen alert on the phone, on top of everything and even over the lock screen. The person taps to close it.</p>
+            <ul>
+              <li><b>Title</b>: up to 80 characters (default “Message from Administrator”).</li>
+              <li><b>Message</b>: up to 500 characters.</li>
+            </ul>
+            <p>Examples: “Come home for dinner”, or a contact number on a lost phone. A message to an offline phone appears when it reconnects.</p>
+          </div>
+        </details>
+
+        <details class="glass art" id="queue">
+          <summary>Pending commands and cancelling</summary>
+          <div class="body">
+            <p>While a command waits, its button shows a spinner and “pending… tap to cancel”, and the card shows a PENDING badge. Messages appear in the <b>Queued for the phone</b> list with a <b>Cancel</b> button. Once the phone picks a command up, it can't be cancelled.</p>
+          </div>
+        </details>
+      </section>
+
+      <!-- ───────────────── APPS ───────────────── -->
+      <section class="h-section" id="apps">
+        <h2>Apps</h2>
+        <p class="lead">Control which apps can open: block whole categories in one switch, block just part of an app, or block and hide individual apps. Needs device owner.</p>
+
+        <details class="glass art" id="block-vs-hide">
+          <summary>Block or hide — what's the difference?</summary>
+          <div class="body">
+            <p>Both keep the app's data and are fully reversible.</p>
+            <div class="tbl"><table>
+              <tr><th></th><th>Block (pause)</th><th>Hide</th></tr>
+              <tr><td>Home screen</td><td>Still there, greyed out</td><td>Gone from the home screen and app list</td></tr>
+              <tr><td>Tapping it</td><td>Android shows “App paused”</td><td>Can't be tapped</td></tr>
+              <tr><td>Best for</td><td>Making it clear the app is off-limits</td><td>Removing temptation</td></tr>
+            </table></div>
+          </div>
+        </details>
+
+        <details class="glass art" id="block-whatsapp">
+          <summary>Block WhatsApp</summary>
+          <div class="body">
+            <p>Pauses <b>WhatsApp</b> and <b>WhatsApp Business</b>, and blocks whatsapp.com, whatsapp.net and wa.me.</p>
+            <div class="note">Want chats but not Status or Channels? Use <a href="#app-parts">Block parts of an app</a> instead.</div>
+            <div class="note warn">Website blocking from any quick block only works while the <a href="#content-filter">content filter</a> is on.</div>
+          </div>
+        </details>
+
+        <details class="glass art" id="block-social">
+          <summary>Block social media</summary>
+          <div class="body">
+            <p><b>Apps paused:</b> Instagram, Instagram Lite, Threads, Facebook, Facebook Lite, Messenger, Messenger Lite, TikTok, Snapchat, X (Twitter), Reddit, Pinterest, Tumblr, LinkedIn, Discord, BeReal, YouTube, YouTube Music, Telegram, Viber and LINE.</p>
+            <p><b>Sites blocked</b> (with the content filter on): instagram.com, threads.net, facebook.com, messenger.com, tiktok.com, snapchat.com, x.com, twitter.com, reddit.com, pinterest.com, tumblr.com, linkedin.com, discord.com, bereal.com, youtube.com, telegram.org, viber.com, line.me and their image and video servers.</p>
+            <div class="note">This also pauses YouTube and messaging apps like Telegram and Viber.</div>
+          </div>
+        </details>
+
+        <details class="glass art" id="block-ai">
+          <summary>Block AI chats</summary>
+          <div class="body">
+            <p><b>Apps paused:</b> ChatGPT, Claude, Gemini, Microsoft Copilot, Bing, Perplexity, DeepSeek, Grok, Jasper, Character.AI, Replika, Luzia and Poe.</p>
+            <p><b>Sites blocked</b> (with the content filter on): chatgpt.com, openai.com, claude.ai, gemini.google.com, copilot.microsoft.com, perplexity.ai, deepseek.com, grok.com, character.ai, poe.com, replika.com, you.com and more.</p>
+          </div>
+        </details>
+
+        <details class="glass art" id="block-webview">
+          <summary>Block all in-app browsers</summary>
+          <div class="body">
+            <p>Turns off the part of Android that apps use to show web pages inside themselves. Web pages stop loading inside every app at once.</p>
+            <div class="note warn">Android can't do this for only some apps. Some banking, email and help screens will show blank pages. For a per-app choice, use <a href="#web-in-apps">Web pages inside apps</a> instead.</div>
+          </div>
+        </details>
+
+        <details class="glass art" id="app-parts">
+          <summary>Block parts of an app (Status, Reels, Shorts…)</summary>
+          <div class="body">
+            <p>Close one section of an app while the rest keeps working. Needs the <a href="#screen-guard">screen guard</a>.</p>
+            <div class="tbl"><table>
+              <tr><th>App</th><th>Section</th><th>Still works</th></tr>
+              <tr><td>WhatsApp</td><td>Updates tab (Status + Channels)</td><td>Chats, calls</td></tr>
+              <tr><td>WhatsApp</td><td>Status only</td><td>Chats, calls, Channels</td></tr>
+              <tr><td>WhatsApp</td><td>Channels only</td><td>Chats, calls, Status</td></tr>
+              <tr><td>Instagram</td><td>Reels</td><td>Messages, posts</td></tr>
+              <tr><td>Instagram</td><td>Stories</td><td>Messages, posts</td></tr>
+              <tr><td>Instagram</td><td>Explore</td><td>Messages, posts</td></tr>
+              <tr><td>YouTube</td><td>Shorts</td><td>Normal videos</td></tr>
+              <tr><td>Facebook</td><td>Reels &amp; Stories</td><td>The rest of Facebook</td></tr>
+              <tr><td>Snapchat</td><td>Stories &amp; Spotlight</td><td>Chats</td></tr>
+              <tr><td>TikTok</td><td>For You feed</td><td>Messages</td></tr>
+            </table></div>
+            <p>When a blocked section opens, CORE MDM presses Back and shows a short note, “&lt;section&gt; is blocked”. It may flash for a moment first. Nothing on screen is recorded or sent.</p>
+            <div class="note">When an app redesigns its screens, a block can stop working until CORE MDM is updated.</div>
+          </div>
+        </details>
+
+        <details class="glass art" id="screen-guard">
+          <summary>Turning on the screen guard</summary>
+          <div class="body">
+            <p>The screen guard is CORE MDM's accessibility service. It powers <a href="#app-parts">parts of apps</a> and <a href="#web-in-apps">web pages inside apps</a>. Android requires a person to switch it on by hand:</p>
+            <ol>
+              <li>On the phone, open CORE MDM › <b>Screen Guard</b>.</li>
+              <li>Tap <b>Open Accessibility settings</b>.</li>
+              <li>Choose <b>CORE MDM</b> and switch it on. Return to the app; it shows “Screen guard is on”.</li>
+            </ol>
+            <p>On device owner phones, CORE MDM then stops it being switched off from Settings.</p>
+          </div>
+        </details>
+
+        <details class="glass art" id="installed-apps">
+          <summary>Blocking or hiding a single app</summary>
+          <div class="body">
+            <p>The <b>Installed apps</b> list shows every app on the phone. The phone refreshes it every 30 minutes and whenever an app is installed or removed. Use <b>Search apps…</b> to find one.</p>
+            <ul>
+              <li><b>Hide</b> button: confirm, and the app disappears from the home screen. Press <b>Hidden</b> to bring it back.</li>
+              <li><b>Switch</b>: blocks (pauses) the app. Turn it off to let it open again.</li>
+            </ul>
+            <p>Tags: <b>SYSTEM</b> (part of Android; blocking these can break the phone), <b>BLOCKED BY RULE</b> (paused by a quick block; turn that off to release it), <b>HIDDEN</b>.</p>
+          </div>
+        </details>
+      </section>
+
+      <!-- ───────────────── TIME LIMITS ───────────────── -->
+      <section class="h-section" id="limits">
+        <h2>Time limits</h2>
+        <p class="lead">Give an app a daily allowance, like “Instagram: 30 minutes a day”. When time runs out, the app is paused until midnight.</p>
+
+        <details class="glass art" id="set-limit">
+          <summary>Setting a daily limit <span class="tag do">Device owner</span></summary>
+          <div class="body">
+            <ol>
+              <li>Open the <b>Time limits</b> tab.</li>
+              <li>Under <b>Add a limit</b>, find the app and type the minutes per day (0–1440). It saves when you click away.</li>
+              <li>The app moves to <b>Daily allowances</b>, showing “X of Y min used today”.</li>
+            </ol>
+            <p>Edit the number to change it, or press <b>✕</b> to remove it.</p>
+          </div>
+        </details>
+
+        <details class="glass art" id="limit-behaviour">
+          <summary>What happens when time runs out</summary>
+          <div class="body">
+            <ul>
+              <li>Android counts the time since midnight, however the app was opened.</li>
+              <li>Within a minute of running out, the app is paused and the console shows <b>PAUSED TODAY</b>.</li>
+              <li>After midnight (phone's time) it's released and the count restarts.</li>
+              <li>An app you blocked separately stays blocked.</li>
+              <li>The console's “used today” figure updates about every 30 minutes.</li>
+            </ul>
+          </div>
+        </details>
+
+        <details class="glass art" id="usage-access">
+          <summary>Turning on usage access</summary>
+          <div class="body">
+            <p>Time limits and the app usage report need Android's <b>usage access</b> permission. Android won't let an app grant this to itself, so do it once on the phone:</p>
+            <ol>
+              <li>Open CORE MDM › <b>Time Limits</b> and tap <b>Turn on</b>.</li>
+              <li>Find CORE MDM in the list and allow it.</li>
+            </ol>
+            <p>Until then, the console shows “Usage access is off on this phone”.</p>
+          </div>
+        </details>
+      </section>
+
+      <!-- ───────────────── INTERNET ───────────────── -->
+      <section class="h-section" id="internet">
+        <h2>Internet</h2>
+        <p class="lead">Control which websites the phone can reach. Use either the content filter or Private DNS, not both: the filter switches Private DNS off while it runs.</p>
+
+        <details class="glass art" id="content-filter">
+          <summary>Content filter</summary>
+          <div class="body">
+            <p>A blocker that runs on the phone itself. It checks every website the phone tries to reach against your block lists. Blocked sites show “site can't be reached”. It covers every app and browser, on Wi-Fi and mobile data, and your browsing doesn't go through any outside server.</p>
+            <h4>Turning it on</h4>
+            <ul>
+              <li><b>Device owner phones:</b> flip <b>Enable Content Filter</b> on the Internet tab; it starts with no tap on the phone. It then stays on permanently: Android restarts it at boot, the person can't switch it off, Private DNS is locked, and CORE MDM can't be uninstalled while it runs.</li>
+              <li><b>Other phones:</b> someone must approve Android's VPN prompt once on the phone.</li>
+            </ul>
+            <div class="note">Only one VPN can run, so the filter can't run alongside another VPN app or the <a href="#dummy-browser">dummy browser</a>.</div>
+          </div>
+        </details>
+
+        <details class="glass art" id="filter-basics">
+          <summary>Built-in blocklist and subdomains</summary>
+          <div class="body">
+            <p><b>Block subdomains too</b> (on by default): blocking example.com also blocks www.example.com, m.example.com and so on.</p>
+            <p><b>Built-in blocklist</b> (on by default): major social media sites, video streaming (YouTube, Netflix, Hulu, Twitch, Vimeo, Dailymotion) and major adult sites.</p>
+            <div class="note">YouTube or Netflix blocked unexpectedly? It's this list. Turn it off, or add the site to <a href="#allow-block-lists">Always allowed sites</a>.</div>
+          </div>
+        </details>
+
+        <details class="glass art" id="site-groups">
+          <summary>Site groups — what each one blocks</summary>
+          <div class="body">
+            <p>Extra lists, each <b>on</b> unless you switch it off.</p>
+            <div class="tbl"><table>
+              <tr><th>Group</th><th>What it blocks</th><th>Watch out</th></tr>
+              <tr><td>Ads</td><td>Ad servers (doubleclick, Google ads, YouTube ads)</td><td>Safe to leave on</td></tr>
+              <tr><td>Analytics &amp; tracking</td><td>About 130 tracking servers</td><td>Safe to leave on</td></tr>
+              <tr><td>Social media</td><td>Social apps' background servers</td><td>Social apps stop loading even if not paused</td></tr>
+              <tr><td>Video (YouTube)</td><td>The YouTube website</td><td>YouTube in a browser</td></tr>
+              <tr><td>GIFs &amp; images</td><td>GIF and image hosts</td><td>Images on many sites go missing</td></tr>
+              <tr><td>Spotify &amp; music images</td><td>Spotify image and some audio servers</td><td>Spotify may break</td></tr>
+              <tr><td>Google, Apple &amp; Microsoft pages</td><td>Google accounts, Play Store, Google Photos, Maps, Apple and Microsoft sites, Microsoft login</td><td><b style="color:var(--warn)">Can stop Google sign-in, Play Store and Outlook.</b> Switch off if needed.</td></tr>
+              <tr><td>Help &amp; about pages inside apps</td><td>Help pages some apps open</td><td>Some help screens won't load</td></tr>
+              <tr><td>Cloud &amp; CDN hosts</td><td>amazonaws.com, cloudflare.com and similar</td><td><b style="color:var(--warn)">Many apps use these.</b> Switch off if apps can't connect.</td></tr>
+              <tr><td>Other sites</td><td>A mix of about 90 entertainment and other sites</td><td>Check if a needed site stops working</td></tr>
+            </table></div>
+            <p><b>Extra group, off unless switched on:</b> <b>Google Maps images &amp; YouTube</b> blocks map photos, Street View, Google image hosts and YouTube videos. Gmail and Play Store images and YouTube thumbnails disappear too.</p>
+          </div>
+        </details>
+
+        <details class="glass art" id="allow-block-lists">
+          <summary>Always blocked and always allowed sites</summary>
+          <div class="body">
+            <ul>
+              <li><b>Always blocked sites:</b> type a site such as <code>example.com</code> and press <b>+ Add</b> or Enter. Press ✕ on it to remove.</li>
+              <li><b>Always allowed sites:</b> never blocked, even if a list includes them. The best way to fix one site without turning off a whole group.</li>
+            </ul>
+          </div>
+        </details>
+
+        <details class="glass art" id="filter-dns">
+          <summary>Filter DNS server and imported blocklists</summary>
+          <div class="body">
+            <p><b>Filter DNS server:</b> where allowed lookups are sent. Empty means 1.1.1.1 (Cloudflare). You can enter another, like 1.1.1.3 (Cloudflare family) or 8.8.8.8 (Google), then press <b>Save</b>.</p>
+            <p><b>Import a blocklist:</b> paste the web address of a hosts file or a one-site-per-line list and press <b>Save</b>. The phone downloads it and blocks everything in it. Clear the box and save to remove it.</p>
+          </div>
+        </details>
+
+        <details class="glass art" id="private-dns">
+          <summary>Private DNS enforcement <span class="tag do">Device owner</span></summary>
+          <div class="body">
+            <p>Forces the phone's Private DNS to a filtering service and locks the setting. Type a host and press <b>Lock DNS</b>; press <b>Clear</b> to remove it. Needs Android 9 or newer.</p>
+            <div class="tbl"><table>
+              <tr><th>Host</th><th>Blocks</th></tr>
+              <tr><td><code>family.cloudflare-dns.com</code></td><td>Malware and adult content</td></tr>
+              <tr><td><code>security.cloudflare-dns.com</code></td><td>Malware</td></tr>
+              <tr><td><code>dns.adguard.com</code></td><td>Ads and trackers</td></tr>
+              <tr><td><code>security-filter-dns.cleanbrowsing.org</code></td><td>Malware and phishing</td></tr>
+            </table></div>
+            <div class="note warn">You can't add your own sites with this. And if the content filter is on, it switches Private DNS back to Automatic. Choose one.</div>
+          </div>
+        </details>
+
+        <details class="glass art" id="web-in-apps">
+          <summary>Web pages inside apps</summary>
+          <div class="body">
+            <p>Turn on <b>Only allow the apps I choose</b>, then tick the apps allowed to show web pages inside themselves. Any other app that opens a web page has it closed. This stops links in chat apps and games from being a back door to the web.</p>
+            <p>Normal browsers aren't affected; hide them with <a href="#hide-browsers">Hide Browsers</a>. Needs the <a href="#screen-guard">screen guard</a>.</p>
+          </div>
+        </details>
+
+        <details class="glass art" id="dummy-browser">
+          <summary>Dummy browser (block all web traffic)</summary>
+          <div class="body">
+            <p>Every internet request on the phone gets an error, so apps and browsers can't reach anything. Calls and texts still work, and CORE MDM itself stays connected so you can turn it off. It switches off the content filter while on.</p>
+          </div>
+        </details>
+
+        <details class="glass art" id="kiosk">
+          <summary>Kiosk mode <span class="tag do">Device owner</span></summary>
+          <div class="body">
+            <p>Kiosk mode keeps the phone inside one app; the person can't leave or reach the home screen. Under <b>Kiosk Allowed Packages</b>, type an app's package name (such as <code>com.example.app</code>, shown in the Apps list) and press <b>+ Add</b>.</p>
+            <div class="note warn">This list only gives permission. The app itself has to start kiosk mode, so it works with apps built for it (kiosk, scanner or point-of-sale apps). For a normal phone, use blocks, hiding and the content filter instead.</div>
+          </div>
+        </details>
+      </section>
+
+      <!-- ───────────────── DEVICE ───────────────── -->
+      <section class="h-section" id="device">
+        <h2>Device</h2>
+        <p class="lead">Switches for the phone itself. All need device owner unless noted, take effect within seconds, and are re-applied after every restart.</p>
+
+        <details class="glass art" id="installing-apps">
+          <summary>Installing and removing apps</summary>
+          <div class="body">
+            <div class="tbl"><table>
+              <tr><th>Switch</th><th>What it does</th><th>Good to know</th></tr>
+              <tr><td>Block App Installation</td><td>No new apps from anywhere, including the Play Store</td><td>CORE MDM updates still install</td></tr>
+              <tr><td>Block App Uninstallation</td><td>No app can be removed</td><td>Keeps apps you need in place</td></tr>
+              <tr><td>Block Sideloading</td><td>APK files from browsers or chats can't install</td><td>Play Store still works</td></tr>
+              <tr><td>Hide Play Store</td><td>The Play Store disappears</td><td>Apps can't be installed or updated from it</td></tr>
+              <tr id="hide-browsers"><td>Hide Browsers</td><td>Hides Chrome, Samsung Internet, Firefox, Opera, Brave, Edge, DuckDuckGo, UC and Kiwi</td><td>Other browsers stay; block them on the Apps tab and turn on Block Sideloading</td></tr>
+              <tr><td>Disable Camera</td><td>All camera use blocked</td><td>Also stops video calls and QR scanning. Works without device owner.</td></tr>
+              <tr><td>Disable Screen Capture</td><td>No screenshots or screen recording</td><td>Works without device owner</td></tr>
+            </table></div>
+          </div>
+        </details>
+
+        <details class="glass art" id="installer-allowlist">
+          <summary>Only chosen apps can install apps</summary>
+          <div class="body">
+            <ol>
+              <li>Turn on <b>Only chosen apps can install apps</b>. Apps already on the phone stay.</li>
+              <li>Under <b>Apps allowed to install apps</b>, switch on each app that may install others. For the Play Store, pick <b>Google Play Store</b>. CORE MDM is always allowed.</li>
+              <li>From then on, any app that arrives another way (another store, a file manager, a browser download) is removed straight away.</li>
+            </ol>
+            <p>Updates to apps already on the phone aren't affected.</p>
+          </div>
+        </details>
+
+        <details class="glass art" id="keep-rules">
+          <summary>Keep these rules in place</summary>
+          <div class="body">
+            <p>These stop the phone's Settings app from being used to undo your rules.</p>
+            <div class="tbl"><table>
+              <tr><th>Switch</th><th>What it does</th><th>Good to know</th></tr>
+              <tr><td>Lock app settings</td><td>Can't uninstall, force-stop or clear data from Settings › Apps</td><td>Stops CORE MDM being force-stopped</td></tr>
+              <tr><td>Block all calls</td><td>No outgoing calls; dialler hidden</td><td>Emergency calls always work. Incoming calls still ring.</td></tr>
+              <tr><td>Block SMS and MMS</td><td>Can't send texts; messaging apps hidden and paused</td><td>Incoming texts still arrive</td></tr>
+              <tr><td>Block hotspot</td><td>No sharing internet by hotspot, USB or Bluetooth</td><td></td></tr>
+              <tr><td>Block email apps</td><td>Hides and pauses Gmail, Outlook, Yahoo Mail and other email apps</td><td>Email in a browser isn't affected</td></tr>
+              <tr id="remote-only"><td>Remote-only mode</td><td>The app on the phone shows only “Managed remotely”</td><td>Settings change only from the console</td></tr>
+              <tr><td>Prevent Safe Boot</td><td>Can't start in safe mode</td><td>Safe mode would switch off CORE MDM</td></tr>
+              <tr><td>Prevent Factory Reset</td><td>Reset blocked in Settings</td><td>A hardware-button reset may still work on some phones</td></tr>
+              <tr><td>Disable Developer Options &amp; ADB</td><td>USB debugging off and locked</td><td>Turn off before using the USB installer again</td></tr>
+              <tr><td>Prevent Multi-User Profiles</td><td>No new users or guests</td><td>A new user would start without rules</td></tr>
+              <tr><td>Block User Switching</td><td>Can't switch to another user</td><td></td></tr>
+              <tr><td>Lock Status Bar</td><td>Pull-down shade and quick settings disabled</td><td>Wi-Fi and airplane mode toggles unreachable</td></tr>
+            </table></div>
+          </div>
+        </details>
+
+        <details class="glass art" id="hardware">
+          <summary>Hardware</summary>
+          <div class="body">
+            <div class="tbl"><table>
+              <tr><th>Switch</th><th>What it does</th><th>Good to know</th></tr>
+              <tr><td>Lock Wi-Fi Configuration</td><td>Wi-Fi networks can't be added or changed</td><td>Known networks keep working</td></tr>
+              <tr><td>Lock Cellular Data Settings</td><td>Mobile network settings locked</td><td></td></tr>
+              <tr><td>Lock Bluetooth Settings</td><td>No new pairing</td><td>Paired devices keep working</td></tr>
+              <tr><td>Block VPN Configuration</td><td>No VPNs can be added</td><td>Stops getting around the filter</td></tr>
+              <tr><td>Block Network Reset</td><td>“Reset Wi-Fi, mobile and Bluetooth” blocked</td><td></td></tr>
+              <tr><td>Block USB File Transfer</td><td>No file transfer to a computer</td><td>Charging still works. Android 9+.</td></tr>
+              <tr><td>Disable Bluetooth Completely</td><td>Bluetooth off and locked</td><td>Earbuds, watches and cars disconnect</td></tr>
+              <tr><td>Block Outgoing Calls</td><td>No outgoing calls</td><td>Dialler stays visible; use Block all calls to hide it</td></tr>
+              <tr><td>Block Physical Media (SD Card)</td><td>SD cards and USB sticks can't be used</td><td></td></tr>
+              <tr><td>Protect MDM from Uninstall</td><td>CORE MDM can't be uninstalled</td><td>Always on while the content filter runs</td></tr>
+            </table></div>
+          </div>
+        </details>
+
+        <details class="glass art" id="pin-length">
+          <summary>Minimum PIN length</summary>
+          <div class="body">
+            <p>Choose 4, 6 or 8 digits. This requires the phone's own screen lock to be a number PIN at least that long (Android asks the person to set a new one if theirs is too short), and sets the same minimum for the CORE MDM app PIN.</p>
+          </div>
+        </details>
+      </section>
+
+      <!-- ───────────────── LOCATION ───────────────── -->
+      <section class="h-section" id="location">
+        <h2>Location &amp; schedule</h2>
+        <p class="lead">Where the phone is, what happens if it leaves an area, daily lock times, and the phone's health. Location is off until you switch it on.</p>
+
+        <details class="glass art" id="location-tracking">
+          <summary>Location tracking</summary>
+          <div class="body">
+            <p>Turn on <b>Location tracking</b> and the phone reports where it is about every 5 minutes. The console shows the position, how accurate it is, when it was taken, and a map.</p>
+            <ul>
+              <li>On device owner phones, location permission is granted automatically. Otherwise allow it on the phone (CORE MDM › Location &amp; Tracking).</li>
+              <li>The first position takes about 5 minutes; until then the console says “No location yet”.</li>
+              <li>It uses a little extra battery.</li>
+              <li>Tell the person who carries the phone that location is on.</li>
+            </ul>
+          </div>
+        </details>
+
+        <details class="glass art" id="geofence">
+          <summary>Geofence — act when the phone leaves an area</summary>
+          <div class="body">
+            <ol>
+              <li>Enter the <b>Latitude</b> and <b>Longitude</b> of the centre. Tip: long-press a spot in Google Maps to copy its coordinates.</li>
+              <li>Set the <b>Radius</b> in metres (at least 50, default 200). 150–500 m suits a home or school.</li>
+              <li>Choose <b>When it leaves</b>: <b>Lock the phone</b>, <b>Sound the alarm</b>, or <b>Show a message</b> (your text, or “This phone has left the allowed area”).</li>
+              <li>Press <b>Turn on geofence</b>. The circle appears on the map.</li>
+            </ol>
+            <ul>
+              <li>It reacts to leaving, not entering.</li>
+              <li>After it fires, it waits 10 minutes before it can fire again.</li>
+              <li>Turn on location tracking too, for the most reliable results.</li>
+            </ul>
+            <div class="note">To stop an alarm started by a geofence, press <b>Sound Alarm</b> and then <b>Stop Alarm</b>.</div>
+          </div>
+        </details>
+
+        <details class="glass art" id="screen-time">
+          <summary>Screen time and scheduled lockdown</summary>
+          <div class="body">
+            <p><b>Daily screen-time window</b> (Usable from / Locks at) and <b>Scheduled lockdown</b> (Unlock at / Lock at) both lock the phone's screen at the lock time every day.</p>
+            <div class="note warn"><b>They lock the screen once; they don't keep it locked.</b> The person can unlock it straight away with their PIN, and the “usable from” or “unlock at” time doesn't change anything. Treat these as a bedtime reminder. For a hard stop, add <a href="#limits">time limits</a>, <a href="#block-social">quick blocks</a> or the <a href="#dummy-browser">dummy browser</a>. Turn on only one of the two.</div>
+          </div>
+        </details>
+
+        <details class="glass art" id="phone-status">
+          <summary>Phone status and app usage</summary>
+          <div class="body">
+            <div class="tbl"><table>
+              <tr><th>Row</th><th>Shows</th><th>Warning when</th></tr>
+              <tr><td>Battery</td><td>Percent and charging</td><td>Red at 20% or less</td></tr>
+              <tr><td>Network</td><td>Wi-Fi or mobile, and Wi-Fi signal (−50 dBm great, −80 weak)</td><td></td></tr>
+              <tr><td>Online</td><td>Time since last check-in</td><td>After 5 minutes</td></tr>
+              <tr><td>Rules applied</td><td>When the phone last confirmed your rules</td><td>Over 24 hours</td></tr>
+              <tr><td>CORE MDM version</td><td>The app version</td><td>Unknown</td></tr>
+            </table></div>
+            <p><b>App usage (last 24 h)</b> lists the 15 most-used apps with their time. It updates every 15 minutes and needs <a href="#usage-access">usage access</a>.</p>
+          </div>
+        </details>
+      </section>
+
+      <!-- ───────────────── REMOVING ───────────────── -->
+      <section class="h-section" id="remove">
+        <h2>Removing &amp; wiping</h2>
+        <p class="lead">There are several ways to stop managing a phone. They differ in whether the rules stay on it.</p>
+
+        <details class="glass art" id="remove-options">
+          <summary>Which option do I need?</summary>
+          <div class="body">
+            <div class="tbl"><table>
+              <tr><th>Action</th><th>Where</th><th>Rules afterwards</th><th>CORE MDM afterwards</th></tr>
+              <tr><td>Wipe</td><td>Console (Danger or Commands); phone (Factory Reset Device)</td><td>Gone, with all data</td><td>Gone</td></tr>
+              <tr><td>Remove device</td><td>Console (Danger); phone (Remove from Account)</td><td>Stay</td><td>Signed out</td></tr>
+              <tr><td>Disconnect from Console</td><td>Phone (Danger Zone)</td><td>Stay</td><td>Signed out</td></tr>
+              <tr><td>Remove MDM</td><td>Phone (Danger Zone), needs the PIN</td><td>All lifted</td><td>Uninstalled</td></tr>
+            </table></div>
+          </div>
+        </details>
+
+        <details class="glass art" id="remove-device">
+          <summary>Remove a phone from my account</summary>
+          <div class="body">
+            <p>On the <b>Danger</b> tab, press <b>Remove device</b>. The phone disappears from your list, and next time it's online CORE MDM signs out. Rules already on the phone stay until someone signs in again. Use this to move a phone to another account.</p>
+            <p>Phones in an organization show “🔒 This phone belongs to &lt;org&gt;”; only its admin can remove them.</p>
+          </div>
+        </details>
+
+        <details class="glass art" id="remove-mdm">
+          <summary>Take CORE MDM off a phone completely</summary>
+          <div class="body">
+            <p>On the phone, open CORE MDM › <b>Danger Zone</b> › <b>Remove MDM</b> and enter the PIN. CORE MDM shows every hidden app again, lifts every restriction, gives up device owner and uninstalls itself. The phone's data is kept.</p>
+            <div class="note">If remote-only mode is on, turn it off in the console first so you can use the app.</div>
+          </div>
+        </details>
+      </section>
+
+      <!-- ───────────────── ORGS ───────────────── -->
+      <section class="h-section" id="orgs">
+        <h2>Organizations</h2>
+        <p class="lead">Schools, charities, communities and companies can apply one set of rules to many phones, with their own name on the lock screen. <a href="organizations.html">Learn more</a>.</p>
+
+        <details class="glass art" id="org-start">
+          <summary>Getting an organization</summary>
+          <div class="body">
+            <p>Organizations are set up by the CORE MDM team, who name an owner by email. The owner signs in at <a href="org.html">coremdm.org/org</a>. Open your organization to see five tabs: Lock screen, Rules, Phones, Join code and Admins.</p>
+          </div>
+        </details>
+
+        <details class="glass art" id="org-rules">
+          <summary>Rules: Open, Default and Locked</summary>
+          <div class="body">
+            <p>Each of 44 settings can be set for the whole organization:</p>
+            <div class="tbl"><table>
+              <tr><th>Mode</th><th>Who decides</th></tr>
+              <tr><td>Open</td><td>Each phone's own admin, such as a parent</td></tr>
+              <tr><td>Default</td><td>The organization's choice applies, but the phone's admin can change it</td></tr>
+              <tr><td>🔒 Locked</td><td>Only the organization; nobody can change it on the website or the phone</td></tr>
+            </table></div>
+            <p>Choose Default or Locked first, then set it on or off. Tip: lock only what must never change (content filter, Prevent Factory Reset, Protect MDM from Uninstall) and use Default for the rest.</p>
+          </div>
+        </details>
+
+        <details class="glass art" id="org-brand">
+          <summary>Lock screen branding</summary>
+          <div class="body">
+            <p>Set a name, a logo (shrunk to 256 px, under 200 KB) and a message such as “Property of … — if found please call …”. A preview shows the result. It appears on every member phone's CORE MDM lock screen.</p>
+          </div>
+        </details>
+
+        <details class="glass art" id="org-join">
+          <summary>Join codes and phones</summary>
+          <div class="body">
+            <p>The join code is 8 letters and digits, with no easily confused characters (no 0, O, 1, I or L). <b>Make a new code</b> stops the old one immediately; phones already in stay in.</p>
+            <p>The <b>Phones</b> tab lists each phone's name, model and last-online time, with <b>Remove from organization</b>. The organization can't see apps, location or activity.</p>
+          </div>
+        </details>
+
+        <details class="glass art" id="org-admins">
+          <summary>Adding admins</summary>
+          <div class="body">
+            <p>On the <b>Admins</b> tab, add a person by email. They sign in on the organization page with that email and can change the lock screen, rules and join code, and remove phones. Only the owner can add or remove admins.</p>
+          </div>
+        </details>
+      </section>
+
+      <!-- ───────────────── PHONE APP ───────────────── -->
+      <section class="h-section" id="phone">
+        <h2>The app on the phone</h2>
+        <p class="lead">The phone app mirrors most console settings, so you can make changes without a computer. Everything sits behind the admin PIN.</p>
+
+        <details class="glass art" id="phone-home">
+          <summary>Home screen tiles</summary>
+          <div class="body">
+            <div class="tbl"><table>
+              <tr><th>Tile</th><th>Opens</th></tr>
+              <tr><td>Device Policies</td><td>Restrictions, Private DNS presets, full lockdown</td></tr>
+              <tr><td>Network &amp; Filter</td><td>Content filter, lists, imported blocklists</td></tr>
+              <tr><td>Parental Controls</td><td>Screen time, email and SMS blocks</td></tr>
+              <tr><td>App Manager</td><td>Pause, hide or restore any app</td></tr>
+              <tr><td>Kiosk Mode</td><td>Kiosk allowed apps</td></tr>
+              <tr><td>Remote Control</td><td>Sound the alarm on any of your phones</td></tr>
+              <tr><td>Time Limits</td><td>Daily allowances; turn on usage access</td></tr>
+              <tr><td>Screen Guard</td><td>Parts of apps, web in apps; turn on the screen guard</td></tr>
+              <tr><td>Organization</td><td>Join with a code</td></tr>
+              <tr><td>Location &amp; Tracking</td><td>Permission status</td></tr>
+              <tr><td>Device Details</td><td>Battery, storage, network, Android version, IMEI</td></tr>
+            </table></div>
+            <p>Below: <b>Quick Actions</b> (Lock Now, Reboot), <b>App Settings</b> (theme, PIN, rename device) and the <b>Danger Zone</b>. The magnifier searches every setting.</p>
+          </div>
+        </details>
+
+        <details class="glass art" id="phone-only">
+          <summary>Things you can only do on the phone</summary>
+          <div class="body">
+            <ul>
+              <li><b>Private DNS presets:</b> one tap for AdGuard, Cloudflare Security, Cloudflare Family or CleanBrowsing.</li>
+              <li><b>Restore all</b> in App Manager: un-hides and un-pauses every app at once (apps blocked by a quick block stay blocked).</li>
+              <li><b>Remote Control:</b> sound or stop the alarm on any phone on your account; a ringing phone shows SOUNDING.</li>
+              <li><b>Change or remove the PIN:</b> App Settings › App PIN Lock. A removed PIN must be set again next time the app opens.</li>
+              <li><b>Theme:</b> Light, Dark or Auto.</li>
+              <li><b>Work profile:</b> if the phone can't be device owner, CORE MDM can manage a separate work profile instead, with much less control.</li>
+            </ul>
+          </div>
+        </details>
+
+        <details class="glass art" id="phone-user">
+          <summary>What the person using the phone sees</summary>
+          <div class="body">
+            <ul>
+              <li>A permanent notification, “Remote monitoring active”, while CORE MDM runs. Management is never hidden.</li>
+              <li>The PIN screen whenever the app opens, with the organization's branding if the phone joined one.</li>
+              <li>“Managed remotely” when remote-only mode is on.</li>
+              <li>Full-screen messages you send.</li>
+              <li>Paused apps greyed out, hidden apps gone, and a short “… is blocked” note when a section closes.</li>
+            </ul>
+          </div>
+        </details>
+
+        <details class="glass art" id="permissions">
+          <summary>Why the app needs its permissions</summary>
+          <div class="body">
+            <div class="tbl"><table>
+              <tr><th>Permission</th><th>Used for</th></tr>
+              <tr><td>Device admin / owner</td><td>Enforcing rules, lock, wipe, reboot</td></tr>
+              <tr><td>Accessibility</td><td>The screen guard; it only checks which screen is open</td></tr>
+              <tr><td>VPN</td><td>The content filter, which runs on the phone</td></tr>
+              <tr><td>Usage access</td><td>Time limits and the usage report</td></tr>
+              <tr><td>Location</td><td>Tracking and geofence, only when you turn them on</td></tr>
+              <tr><td>Notifications</td><td>The service notice, messages, update alerts</td></tr>
+              <tr><td>Phone state</td><td>Showing IMEI and serial in the console</td></tr>
+              <tr><td>App list</td><td>Showing installed apps in the console</td></tr>
+              <tr><td>Install apps</td><td>Updating CORE MDM itself</td></tr>
+            </table></div>
+          </div>
+        </details>
+      </section>
+
+      <!-- ───────────────── TROUBLESHOOTING ───────────────── -->
+      <section class="h-section" id="trouble">
+        <h2>Troubleshooting</h2>
+        <p class="lead">Most problems come from an account left on the phone during install, different accounts on phone and console, a phone that's offline, or a permission not yet turned on at the phone.</p>
+
+        <details class="glass art" id="t-install">
+          <summary>Installing</summary>
+          <div class="body">
+            <div class="tbl"><table>
+              <tr><th>Problem</th><th>Fix</th></tr>
+              <tr><td>“Set device owner” fails or says accounts exist</td><td>Remove every account in Settings › Accounts, or factory reset and skip Google sign-in</td></tr>
+              <tr><td>Browser can't connect to USB</td><td>Use Chrome or Edge on a computer</td></tr>
+              <tr><td>Phone doesn't show in the USB popup</td><td>Check USB debugging is on, run <code>adb kill-server</code>, try another cable; Samsung on Windows needs its USB driver</td></tr>
+              <tr><td>No “Allow USB debugging?” prompt</td><td>Unlock the phone, unplug and replug</td></tr>
+              <tr><td>Tapping Welcome 6 times does nothing</td><td>That phone doesn't support QR; use USB</td></tr>
+              <tr><td>QR setup can't download</td><td>Open the installer from coremdm.org and check the Wi-Fi details</td></tr>
+              <tr><td>An old version won't update</td><td>Versions before 0.3.1 must be uninstalled once first</td></tr>
+            </table></div>
+          </div>
+        </details>
+
+        <details class="glass art" id="t-console">
+          <summary>The console and connection</summary>
+          <div class="body">
+            <div class="tbl"><table>
+              <tr><th>Problem</th><th>Fix</th></tr>
+              <tr><td>My phone isn't in the console</td><td>Sign in with the same account as the phone. Used Google on the phone? Set a password with Forgot password?</td></tr>
+              <tr><td>Phone shows OFFLINE</td><td>No check-in for 5 minutes. Check its internet and that CORE MDM's notification is showing. Changes apply when it reconnects.</td></tr>
+              <tr><td>Command stuck on pending</td><td>The phone is offline; wait, or tap to cancel</td></tr>
+              <tr><td>“No app list yet”</td><td>Open CORE MDM on the phone while online</td></tr>
+              <tr><td>“Rules applied” is amber</td><td>The phone has been offline for over a day</td></tr>
+              <tr><td>A switch is greyed out with 🔒</td><td>The organization locked it; ask its admin</td></tr>
+              <tr><td>Sign in button does nothing</td><td>Complete the check above the button first</td></tr>
+            </table></div>
+          </div>
+        </details>
+
+        <details class="glass art" id="t-features">
+          <summary>A feature isn't working</summary>
+          <div class="body">
+            <div class="tbl"><table>
+              <tr><th>Problem</th><th>Fix</th></tr>
+              <tr><td>“Screen guard is off”</td><td><a href="#screen-guard">Turn on the screen guard</a> on the phone</td></tr>
+              <tr><td>“Usage access is off”</td><td><a href="#usage-access">Turn on usage access</a> on the phone</td></tr>
+              <tr><td>Content filter won't start</td><td>Without device owner, approve the VPN prompt on the phone</td></tr>
+              <tr><td>Many settings do nothing</td><td>The app isn't device owner; check the top of its home screen</td></tr>
+              <tr><td>A blocked section still shows</td><td>The app changed its design; update CORE MDM</td></tr>
+              <tr><td>No location on the map</td><td>Turn on Location tracking and wait about 5 minutes</td></tr>
+              <tr><td>Google Sign-In fails in the app</td><td>Use email and password, or install the official release</td></tr>
+            </table></div>
+          </div>
+        </details>
+
+        <details class="glass art" id="t-surprises">
+          <summary>Common surprises</summary>
+          <div class="body">
+            <div class="tbl"><table>
+              <tr><th>What you see</th><th>Why, and the fix</th></tr>
+              <tr><td>Google sign-in, Play Store or Outlook fails with the filter on</td><td>The <i>Google, Apple &amp; Microsoft pages</i> group blocks them. Switch it off.</td></tr>
+              <tr><td>Several apps can't connect with the filter on</td><td>The <i>Cloud &amp; CDN hosts</i> group blocks servers many apps use. Switch it off.</td></tr>
+              <tr><td>YouTube or Netflix blocked</td><td>They're in the built-in blocklist. Turn it off or allow the site.</td></tr>
+              <tr><td>WhatsApp blocked but whatsapp.com opens</td><td>Website blocking needs the content filter on.</td></tr>
+              <tr><td>Phone usable after bedtime</td><td>Schedules lock the screen once; the PIN unlocks it. Add time limits or blocks.</td></tr>
+              <tr><td>Locked Private DNS resets</td><td>The content filter switches it off. Use one or the other.</td></tr>
+              <tr><td>Geofence alarm won't stop</td><td>Press Sound Alarm, then Stop Alarm.</td></tr>
+              <tr><td>Kiosk never starts</td><td>The app itself must start kiosk mode.</td></tr>
+              <tr><td>Full lockdown won't turn off</td><td>Turn each matching Device switch on, then off.</td></tr>
+              <tr><td>A new browser got around Hide Browsers</td><td>Block it on the Apps tab and turn on Block Sideloading.</td></tr>
+            </table></div>
+          </div>
+        </details>
+      </section>
+
+      <!-- ───────────────── FAQ ───────────────── -->
+      <section class="h-section" id="faq">
+        <h2>Questions</h2>
+        <p class="lead">More answers on the <a href="faq.html">FAQ page</a>.</p>
+
+        <details class="glass art"><summary>Which phones work?</summary><div class="body"><p>Any Android phone from any brand running Android 8.0 or newer, including Samsung, Pixel, Motorola and Xiaomi.</p></div></details>
+        <details class="glass art"><summary>Can the person remove CORE MDM?</summary><div class="body"><p>Not if you block it. As device owner, CORE MDM can block uninstalling, factory reset, safe mode and USB debugging. You remove it with <a href="#remove-mdm">Remove MDM</a> in the app.</p></div></details>
+        <details class="glass art"><summary>I forgot the app PIN</summary><div class="body"><p>There's no PIN recovery. The console keeps working without the PIN, so manage the phone from there.</p></div></details>
+        <details class="glass art"><summary>Does the phone need internet?</summary><div class="body"><p>Only to receive changes. Rules already applied keep working offline, and commands wait until it reconnects.</p></div></details>
+        <details class="glass art"><summary>Who can see my phones?</summary><div class="body"><p>Only the account signed in on them. If a phone joins an organization, its admins see the phone's name, model and last-online time.</p></div></details>
+        <details class="glass art"><summary>Does CORE MDM read messages or browsing?</summary><div class="body"><p>No. It manages what a phone can do. The filter checks site names on the phone and keeps no history. Location is collected only when you turn on tracking or a geofence. See the <a href="privacy.html">Privacy Policy</a>.</p></div></details>
+        <details class="glass art"><summary>How does CORE MDM update?</summary><div class="body"><p>The app checks for new versions about every 6 hours and installs them itself. It only installs a newer version of the same app signed by the same developer.</p></div></details>
+      </section>
+
+      <!-- ───────────────── NEEDS ───────────────── -->
+      <section class="h-section" id="needs">
+        <h2>What each feature needs</h2>
+        <p class="lead">A quick check before you rely on a feature.</p>
+
+        <details class="glass art" id="needs-table">
+          <summary>Requirements by feature</summary>
+          <div class="body">
+            <div class="tbl"><table>
+              <tr><th>Feature</th><th>Device owner</th><th>Turn on at the phone</th></tr>
+              <tr><td>Alarm, lock, wipe, messages</td><td>No</td><td>—</td></tr>
+              <tr><td>Reboot, full lockdown</td><td>Yes</td><td>—</td></tr>
+              <tr><td>Quick blocks, block or hide apps</td><td>Yes</td><td>— (websites need the content filter)</td></tr>
+              <tr><td>Parts of apps, web in apps</td><td>Yes</td><td>Screen guard</td></tr>
+              <tr><td>Time limits, usage report</td><td>Yes</td><td>Usage access</td></tr>
+              <tr><td>Content filter</td><td>Starts remotely only with it</td><td>Otherwise approve the VPN prompt</td></tr>
+              <tr><td>Private DNS</td><td>Yes, Android 9+</td><td>—</td></tr>
+              <tr><td>Device tab switches</td><td>Yes (camera and screenshots without)</td><td>—</td></tr>
+              <tr><td>Kiosk</td><td>Yes</td><td>The kiosk app must start it</td></tr>
+              <tr><td>Location, geofence</td><td>No</td><td>Location permission (automatic with device owner)</td></tr>
+              <tr><td>Screen time, scheduled lockdown</td><td>No</td><td>A screen lock</td></tr>
+            </table></div>
+          </div>
+        </details>
+
+        <details class="glass art" id="glossary">
+          <summary>Glossary</summary>
+          <div class="body">
+            <div class="tbl"><table>
+              <tr><th>Term</th><th>Meaning</th></tr>
+              <tr><td>Device owner</td><td>Android's highest management level, needed for most rules</td></tr>
+              <tr><td>Device admin</td><td>A lower level: lock, wipe and basic commands</td></tr>
+              <tr><td>Console</td><td>The web page where you manage phones</td></tr>
+              <tr><td>Block (pause)</td><td>The app is visible but won't open</td></tr>
+              <tr><td>Hide</td><td>The app is removed from the home screen</td></tr>
+              <tr><td>Screen guard</td><td>CORE MDM's accessibility service that closes blocked sections</td></tr>
+              <tr><td>Content filter</td><td>The on-phone website blocker</td></tr>
+              <tr><td>Private DNS</td><td>Android's encrypted website lookup setting</td></tr>
+              <tr><td>Kiosk</td><td>A mode that keeps the phone in one app</td></tr>
+              <tr><td>Geofence</td><td>A circle on the map; leaving it triggers an action</td></tr>
+              <tr><td>Remote-only mode</td><td>The phone app is locked; changes come only from the console</td></tr>
+              <tr><td>Organization</td><td>A group of phones sharing rules and branding</td></tr>
+            </table></div>
+          </div>
+        </details>
+      </section>
+
+      <section class="glass manage" style="margin-top:12px">
+        <div class="ico big-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17.5v.01"/></svg></div>
+        <div class="manage-text"><h3>Still stuck?</h3><p>Email us at <a href="mailto:support@coremdm.org">support@coremdm.org</a> and we'll help.</p></div>
+        <a class="btn primary" href="mailto:support@coremdm.org">Email support →</a>
+      </section>
+    </div>
+  </div>
+
+  <footer class="muted foot">
+  <span><img src="logo-mark.png" alt="" width="18" height="22"> CORE MDM <small>© 2026 CORE MDM</small></span>
+  <span class="foot-links"><a href="features.html">Features</a><a href="demo.html">Try the app</a><a href="faq.html">FAQ</a><a href="help.html">Help</a><a href="about.html">About</a><a href="organizations.html">Organizations</a><a href="install.html">Install</a><a href="console.html">Manage</a><a href="https://github.com/yybam/coremdm" target="_blank" rel="noopener">GitHub</a><a href="terms.html">Terms</a><a href="privacy.html">Privacy</a><a href="consent.html">Consent</a></span>
+  </footer>
+</main>
+
+<script>
+(function () {
+  const q = document.getElementById('q');
+  const box = document.getElementById('search-box');
+  const status = document.getElementById('search-status');
+  const noResults = document.getElementById('no-results');
+  const sections = [...document.querySelectorAll('.h-section')];
+  const arts = [...document.querySelectorAll('.art')];
+  const toggleAll = document.getElementById('toggle-all');
+  const topics = document.getElementById('topics');
+
+  // Keep each article's original HTML so highlights can be removed cleanly.
+  arts.forEach(a => { a._html = a.innerHTML; a._text = a.textContent.toLowerCase(); });
+
+  function highlight(el, words) {
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    const nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    const re = new RegExp('(' + words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')', 'gi');
+    nodes.forEach(n => {
+      if (!re.test(n.nodeValue)) return;
+      re.lastIndex = 0;
+      const span = document.createElement('span');
+      span.innerHTML = n.nodeValue.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])).replace(re, '<mark>$1</mark>');
+      n.replaceWith(...span.childNodes);
+    });
+  }
+
+  function search() {
+    const raw = q.value.trim().toLowerCase();
+    box.classList.toggle('has-text', raw.length > 0);
+    arts.forEach(a => { a.innerHTML = a._html; });
+    if (!raw) {
+      arts.forEach(a => { a.classList.remove('hidden'); a.open = false; });
+      sections.forEach(s => s.classList.remove('hidden'));
+      topics.style.display = '';
+      noResults.classList.remove('show');
+      status.textContent = '';
+      return;
+    }
+    const words = raw.split(/\s+/).filter(Boolean);
+    let count = 0;
+    arts.forEach(a => {
+      const hit = words.every(w => a._text.includes(w));
+      a.classList.toggle('hidden', !hit);
+      a.open = hit;
+      if (hit) { count++; highlight(a, words); }
+    });
+    sections.forEach(s => s.classList.toggle('hidden', !s.querySelector('.art:not(.hidden)')));
+    topics.style.display = 'none';
+    noResults.classList.toggle('show', count === 0);
+    status.textContent = count ? `${count} result${count > 1 ? 's' : ''}` : '';
+  }
+
+  let t;
+  q.addEventListener('input', () => { clearTimeout(t); t = setTimeout(search, 120); });
+  document.getElementById('q-clear').addEventListener('click', () => { q.value = ''; search(); q.focus(); });
+  document.addEventListener('keydown', e => {
+    if (e.key === '/' && document.activeElement !== q) { e.preventDefault(); q.focus(); }
+    if (e.key === 'Escape' && document.activeElement === q) { q.value = ''; search(); }
+  });
+
+  toggleAll.addEventListener('click', () => {
+    const open = toggleAll.textContent === 'Expand all';
+    arts.forEach(a => { if (!a.classList.contains('hidden')) a.open = open; });
+    toggleAll.textContent = open ? 'Collapse all' : 'Expand all';
+  });
+
+  // Open an article when its link is followed (#geofence), or the first of a section (#apps).
+  function openHash() {
+    const id = decodeURIComponent(location.hash.slice(1));
+    if (!id) return;
+    const el = document.getElementById(id);
+    if (!el) return;
+    const art = el.closest('.art');
+    if (art){ art.open = true; setTimeout(() => art.scrollIntoView({ block: 'start' }), 0); }
+  }
+  window.addEventListener('hashchange', openHash);
+  openHash();
+
+  // Highlight the current section in the contents list.
+  const tocLinks = [...document.querySelectorAll('.help-toc a')];
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(entries => {
+      entries.forEach(en => {
+        if (!en.isIntersecting) return;
+        tocLinks.forEach(l => l.classList.toggle('current', l.getAttribute('href') === '#' + en.target.id));
+      });
+    }, { rootMargin: '-30% 0px -60% 0px' });
+    sections.forEach(s => io.observe(s));
+  }
+})();
+</script>
+</body>
+</html>

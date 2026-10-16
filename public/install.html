@@ -129,6 +129,11 @@
       <li>The phone connects to Wi-Fi, downloads CORE MDM and sets it as device owner. This takes a minute or two.</li>
       <li>Accept the prompts saying the phone will be managed. Finish setup, open CORE MDM and sign in.</li>
     </ol>
+    <div class="note">
+      <p><b>You may need to finish it off with ADB.</b> A QR setup can't give CORE MDM one permission that only ADB can grant. Without it, some phones' battery saver can pause CORE MDM and commands stop arriving. To add it, turn on <b>USB debugging</b> (<i>Settings › About phone</i>, tap <b>Build number</b> 7 times, then <i>Developer options › USB debugging</i>), connect the phone to a computer with ADB, and run:</p>
+      <div class="cmd"><code>adb shell pm grant com.core.mdm android.permission.WRITE_SECURE_SETTINGS</code><button type="button" class="copy" data-copy="adb shell pm grant com.core.mdm android.permission.WRITE_SECURE_SETTINGS">Copy</button></div>
+      <p class="muted cmd-note">It prints nothing when it works. On Xiaomi / Redmi / POCO, also turn on <i>USB debugging (Security settings)</i>. See the <a href="#adb">Manual (ADB)</a> method for help with ADB.</p>
+    </div>
     <p class="muted agree">By installing, you confirm you own this phone or have permission to manage it, that you take full responsibility for it (we are not responsible for any problem, including ones caused by the app), and you agree to the <a href="terms.html">Terms of Service</a> and <a href="privacy.html">Privacy Policy</a>.</p>
     <div class="row"><a class="btn primary" href="console.html">Open the console →</a></div>
   </section>

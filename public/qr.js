@@ -59,6 +59,11 @@ document.querySelectorAll('input[name="method"]').forEach((r) => r.addEventListe
 }));
 const hashMethod = location.hash.slice(1);
 showMethod(METHODS.includes(hashMethod) ? hashMethod : "usb");
+// In-page links like <a href="#adb"> switch method too
+window.addEventListener("hashchange", () => {
+  const m = location.hash.slice(1);
+  if (METHODS.includes(m)) { showMethod(m); window.scrollTo({ top: 0, behavior: "smooth" }); }
+});
 
 // ---------- Copy buttons (manual ADB commands) ----------
 document.querySelectorAll("button.copy").forEach((b) => b.addEventListener("click", async () => {

@@ -340,3 +340,5 @@ main.wide { max-width: 1120px; padding-top: 40px; }
 .sub-h { margin: 22px 0 0; font-size: 1rem; }
 .troubles li { margin-bottom: 12px; }
 .troubles .cmd { margin-top: 6px; }
+.note p { margin: 0 0 8px; }
+.note .cmd { margin: 4px 0; }

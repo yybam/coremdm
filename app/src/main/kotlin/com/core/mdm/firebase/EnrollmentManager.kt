@@ -100,6 +100,10 @@ object EnrollmentManager {
             "deviceUid"    to uid,
             "lastSeen"     to FieldValue.serverTimestamp(),
         )
+        com.core.mdm.security.TermsAcceptance.last(context)?.let { (at, version) ->
+            metadata["termsAcceptedAt"]      = com.google.firebase.Timestamp(java.util.Date(at))
+            metadata["termsAcceptedVersion"] = version
+        }
         getImei(context)?.let    { metadata["imei"]     = it }
         getSerial(context)?.let  { metadata["serial"]   = it }
         fcmToken?.let            { metadata["fcmToken"] = it }

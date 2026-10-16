@@ -450,3 +450,11 @@ main.console-main { padding-top: 32px; }
 .ts-slot { display: flex; justify-content: center; min-height: 65px; margin: 6px 0 10px; }
 #btn-login:disabled, #btn-reset-send:disabled { opacity: .45; cursor: default; }
 #btn-login:disabled:hover { background: var(--grad-btn); }
+
+/* Required responsibility statement on sign-in forms */
+.consent { display: flex; gap: 10px; align-items: flex-start; text-align: left; margin: 10px 0 4px;
+  padding: 12px 13px; border-radius: 13px; background: var(--field, rgba(0,0,0,.28)); border: 1px solid var(--line, rgba(255,255,255,.12));
+  font-size: .78rem; line-height: 1.45; color: var(--text, #eef1f8); cursor: pointer; }
+.consent:has(.consent-box:checked) { border-color: rgba(46, 154, 230, .6); background: rgba(46, 154, 230, .08); }
+.consent .consent-box { flex-shrink: 0; width: 17px; height: 17px; margin-top: 2px; accent-color: #2e9ae6; cursor: pointer; }
+.consent a { color: var(--cyan, #7fd0f5); }

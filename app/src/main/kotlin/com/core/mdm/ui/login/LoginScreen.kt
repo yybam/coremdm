@@ -3,6 +3,9 @@ package com.core.mdm.ui.login
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -30,6 +33,7 @@ import androidx.credentials.exceptions.GetCredentialException
 import androidx.credentials.exceptions.NoCredentialException
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.core.mdm.security.TermsAcceptance
 import com.core.mdm.ui.theme.*
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
@@ -51,6 +55,15 @@ fun LoginScreen(vm: LoginViewModel = viewModel()) {
     var passwordVisible by remember { mutableStateOf(false) }
     var isSignUp by remember { mutableStateOf(false) }
     var showResetDialog by remember { mutableStateOf(false) }
+    // Must be ticked on every sign-in — see TermsAcceptance.
+    var accepted by remember { mutableStateOf(false) }
+    val openUrl = { url: String ->
+        runCatching {
+            context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))
+                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+        }
+        Unit
+    }
 
     Box(
         modifier = Modifier
@@ -103,6 +116,8 @@ fun LoginScreen(vm: LoginViewModel = viewModel()) {
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = {
                     focusManager.clearFocus()
+                    if (!accepted) return@KeyboardActions
+                    TermsAcceptance.record(context)
                     if (isSignUp) vm.signUp(email, password) else vm.signIn(email, password)
                 }),
                 leadingIcon  = { Icon(Icons.Outlined.Lock, null, tint = c.textSecondary) },
@@ -118,6 +133,34 @@ fun LoginScreen(vm: LoginViewModel = viewModel()) {
                 shape = RoundedCornerShape(12.dp)
             )
 
+            // ── Responsibility statement (required) ──────────────────────────
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(if (accepted) c.cyan.copy(alpha = 0.08f) else c.card)
+                    .border(1.dp, if (accepted) c.cyan.copy(alpha = 0.5f) else c.cardBorder, RoundedCornerShape(12.dp))
+                    .toggleable(value = accepted, role = androidx.compose.ui.semantics.Role.Checkbox,
+                        onValueChange = { accepted = it })
+                    .padding(start = 4.dp, end = 12.dp, top = 6.dp, bottom = 8.dp),
+                verticalAlignment = Alignment.Top
+            ) {
+                Checkbox(
+                    checked = accepted,
+                    onCheckedChange = null,
+                    colors = CheckboxDefaults.colors(checkedColor = c.cyan, uncheckedColor = c.textSecondary)
+                )
+                Column(Modifier.padding(top = 12.dp)) {
+                    Text(TermsAcceptance.STATEMENT, color = c.textPrimary, fontSize = 12.sp, lineHeight = 16.sp)
+                    Row {
+                        Text("Terms of Service", color = c.cyan, fontSize = 12.sp,
+                            modifier = Modifier.clickable { openUrl(TermsAcceptance.TERMS_URL) }.padding(top = 4.dp, end = 14.dp))
+                        Text("Privacy Policy", color = c.cyan, fontSize = 12.sp,
+                            modifier = Modifier.clickable { openUrl(TermsAcceptance.PRIVACY_URL) }.padding(top = 4.dp))
+                    }
+                }
+            }
+
             AnimatedVisibility(visible = state.error != null) {
                 Text(state.error ?: "", color = c.red, fontSize = 12.sp, modifier = Modifier.fillMaxWidth())
             }
@@ -125,10 +168,11 @@ fun LoginScreen(vm: LoginViewModel = viewModel()) {
             GradientButton(
                 onClick = {
                     focusManager.clearFocus()
+                    TermsAcceptance.record(context)
                     if (isSignUp) vm.signUp(email, password) else vm.signIn(email, password)
                 },
                 modifier = Modifier.fillMaxWidth().height(52.dp),
-                enabled = !state.isLoading && email.isNotBlank() && password.isNotBlank()
+                enabled = !state.isLoading && accepted && email.isNotBlank() && password.isNotBlank()
             ) {
                 if (state.isLoading) {
                     CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
@@ -151,6 +195,7 @@ fun LoginScreen(vm: LoginViewModel = viewModel()) {
 
             OutlinedButton(
                 onClick = {
+                    TermsAcceptance.record(context)
                     scope.launch {
                         val credentialManager = CredentialManager.create(context)
 
@@ -199,7 +244,7 @@ fun LoginScreen(vm: LoginViewModel = viewModel()) {
                 },
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape = RoundedCornerShape(12.dp),
-                enabled = !state.isLoading,
+                enabled = !state.isLoading && accepted,
                 border = androidx.compose.foundation.BorderStroke(1.dp, c.cardBorder),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = c.textPrimary)
             ) {

@@ -125,7 +125,8 @@ service cloud.firestore {
                                     'usageStats', 'usageStatsUpdatedAt',
                                     'lastInstalledVersion', 'lastInstallSuccess',
                                     'lastInstallAt', 'lastInstallError',
-                                    'policyAcknowledgedAt'])
+                                    'policyAcknowledgedAt',
+                                    'termsAcceptedAt', 'termsAcceptedVersion'])
                         && (
                           !request.resource.data.diff(resource.data).affectedKeys()
                              .hasAll(['deviceUid'])

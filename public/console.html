@@ -47,13 +47,13 @@
       <label for="inp-pass">Password</label>
       <input type="password" id="inp-pass" placeholder="••••••••" autocomplete="current-password">
     </div>
+    <div id="consent-login"></div>
     <div id="ts-login" class="ts-slot"></div>
     <div id="login-msg"></div>
     <button id="btn-login" class="hover:scale-[1.02] active:scale-95">Sign in</button>
     <div class="login-footer">
       <button class="link-btn" id="btn-forgot">Forgot password?</button>
     </div>
-    <p class="login-legal">By signing in you agree to the <a href="terms.html">Terms of Service</a> and <a href="privacy.html">Privacy Policy</a>.</p>
   </div>
   <div id="reset-panel" class="animate-slideUp">
     <h3>Reset password</h3>
@@ -183,7 +183,7 @@ import { getFirestore, collection, query, where, orderBy, limit,
          onSnapshot, doc, updateDoc, deleteDoc, getDoc, getDocs,
          addDoc, serverTimestamp, Timestamp, arrayUnion, arrayRemove }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-import { guardForm } from './turnstile.js';
+import { guardForm, mountConsent, TERMS_VERSION } from './turnstile.js';
 import { APP_POLICIES, SYS_POLICIES, HW_POLICIES, BLOCK_POLICIES, CONTROL_POLICIES, NETWORK_POLICIES, SECTIONS,
          SEARCH_KEYWORDS, orgRule, sectionKey, effectivePolicy, effectiveSection, FILTER_GROUPS, FILTER_OPT_IN_GROUPS } from './policies.js';
 
@@ -397,8 +397,10 @@ function toast(msg, kind = '') {
 
 // ── Auth flow ─────────────────────────────────────────────────
 // Cloudflare Turnstile: sign-in and reset stay disabled until the human check passes.
+// Responsibility statement: must be ticked on every sign-in.
+const loginConsent = mountConsent('consent-login');
 const loginGuard = guardForm('ts-login', ['btn-login'],
-  { onError: m => { document.getElementById('login-msg').textContent = m; } });
+  { consent: loginConsent, onError: m => { document.getElementById('login-msg').textContent = m; } });
 const resetGuard = guardForm('ts-reset', ['btn-reset-send'],
   { onError: m => { document.getElementById('reset-msg').textContent = m; } });
 
@@ -407,10 +409,11 @@ document.getElementById('btn-login').addEventListener('click', async () => {
   const pass  = document.getElementById('inp-pass').value;
   const msgEl = document.getElementById('login-msg');
   msgEl.textContent = '';
-  if (!loginGuard.passed()) { msgEl.textContent = 'Complete the check above first.'; return; }
+  if (!loginGuard.passed()) { msgEl.textContent = 'Tick the responsibility statement and complete the check first.'; return; }
   if (!email || !pass) { msgEl.textContent = 'Enter email and password.'; return; }
   try {
     await signInWithEmailAndPassword(auth, email, pass);
+    logAudit('ACCEPTED_TERMS', null, `Accepted the responsibility statement (v${TERMS_VERSION}) at sign-in`);
   } catch(e) {
     msgEl.textContent = (e.code==='auth/invalid-credential'||e.code==='auth/wrong-password')
       ? 'Incorrect email or password.' : e.message;

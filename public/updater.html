@@ -271,6 +271,13 @@ body{
 .sel-hint{font-size:12px;color:var(--textSec);margin-bottom:12px}
 .sel-hint span{color:var(--cyan);font-weight:700}
 .btn-ghost:disabled{opacity:.45;cursor:default}
+/* Required responsibility statement on sign-in forms */
+.consent { display: flex; gap: 10px; align-items: flex-start; text-align: left; margin: 10px 0 4px;
+  padding: 12px 13px; border-radius: 13px; background: var(--field, rgba(0,0,0,.28)); border: 1px solid var(--line, rgba(255,255,255,.12));
+  font-size: .78rem; line-height: 1.45; color: var(--text, #eef1f8); cursor: pointer; }
+.consent:has(.consent-box:checked) { border-color: rgba(46, 154, 230, .6); background: rgba(46, 154, 230, .08); }
+.consent .consent-box { flex-shrink: 0; width: 17px; height: 17px; margin-top: 2px; accent-color: #2e9ae6; cursor: pointer; }
+.consent a { color: var(--cyan, #7fd0f5); }
 .ts-slot{display:flex;justify-content:center;min-height:65px;margin:4px 0 10px}
 </style>
 </head>
@@ -292,6 +299,7 @@ body{
       <label>PASSWORD</label>
       <input type="password" id="auth-pass" placeholder="••••••••" autocomplete="current-password" />
     </div>
+    <div id="consent-login"></div>
     <div id="ts-login" class="ts-slot"></div>
     <p class="err" id="auth-err"></p>
     <button class="btn-primary" id="signin-btn">Sign In</button>
@@ -395,7 +403,7 @@ body{
 </div>
 
 <script type="module">
-import { guardForm } from './turnstile.js';
+import { guardForm, mountConsent } from './turnstile.js';
 import { initializeApp }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail,
@@ -445,12 +453,15 @@ function log(msg, level = '') {
 // Cloudflare Turnstile: sign-in and reset stay disabled until the human check passes.
 const authGuard = guardForm('ts-login', ['signin-btn', 'reset-btn'],
   { onError: m => { document.getElementById('auth-err').textContent = m; } });
+// Responsibility statement: must be ticked on every sign-in (not needed for a password reset).
+const signinConsent = mountConsent('consent-login');
 
 document.getElementById('signin-btn').addEventListener('click', async () => {
   const email = document.getElementById('auth-email').value.trim();
   const pass  = document.getElementById('auth-pass').value;
   const errEl = document.getElementById('auth-err');
   errEl.textContent = '';
+  if (!signinConsent.checked) { errEl.textContent = 'Tick the responsibility statement first.'; return; }
   if (!authGuard.passed()) { errEl.textContent = 'Complete the check above first.'; return; }
   const btn = document.getElementById('signin-btn');
   btn.disabled = true; btn.textContent = 'Signing in…';

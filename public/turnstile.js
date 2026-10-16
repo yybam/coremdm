@@ -21,26 +21,53 @@ function loadApi() {
   return apiReady;
 }
 
+// ── Responsibility statement, required on every sign-in (same wording as the app's
+//    TermsAcceptance.STATEMENT — keep the two in step, and bump the version together). ──
+export const TERMS_VERSION = '2026-10-16';
+
+/** Inserts the required responsibility checkbox into `container`; returns the checkbox. */
+export function mountConsent(container) {
+  const el = typeof container === 'string' ? document.getElementById(container) : container;
+  el.innerHTML = `<label class="consent">
+    <input type="checkbox" class="consent-box">
+    <span>I own the phones I manage with CORE MDM or have permission to manage them, and I take
+      <b>full responsibility</b> for them. CORE MDM is provided as is: its makers aren’t responsible for
+      any problem, loss or damage — <b>including problems caused by the app itself</b>. I agree to the
+      <a href="terms.html" target="_blank" rel="noopener">Terms of Service</a> and
+      <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</span>
+  </label>`;
+  return el.querySelector('.consent-box');
+}
+
 /**
- * Renders a Turnstile widget into `container` and keeps `buttons` disabled until it passes.
+ * Renders a Turnstile widget into `container` and keeps `buttons` disabled until it passes
+ * (and, with `consent`, until that checkbox is ticked).
  * Returns { passed(), reset() }. Call reset() after every attempt (a token is single-use, and a
  * fresh check per try slows down password guessing).
  */
-export function guardForm(container, buttons, { onError } = {}) {
+export function guardForm(container, buttons, { onError, consent } = {}) {
   const el = typeof container === 'string' ? document.getElementById(container) : container;
   const btns = buttons.map(b => typeof b === 'string' ? document.getElementById(b) : b).filter(Boolean);
   let token = null;
   let widgetId = null;
-  const setEnabled = on => btns.forEach(b => { b.disabled = !on; b.title = on ? '' : 'Complete the check first'; });
-  setEnabled(false);
+  const ok = () => !!token && (!consent || consent.checked);
+  const refresh = () => {
+    const on = ok();
+    btns.forEach(b => {
+      b.disabled = !on;
+      b.title = on ? '' : (consent && !consent.checked ? 'Tick the responsibility statement first' : 'Complete the check first');
+    });
+  };
+  consent?.addEventListener('change', refresh);
+  refresh();
 
   loadApi().then(ts => {
     widgetId = ts.render(el, {
       sitekey: TURNSTILE_SITE_KEY,
       theme: 'dark',
-      callback: t => { token = t; setEnabled(true); },
-      'expired-callback': () => { token = null; setEnabled(false); },
-      'error-callback': () => { token = null; setEnabled(false); },
+      callback: t => { token = t; refresh(); },
+      'expired-callback': () => { token = null; refresh(); },
+      'error-callback': () => { token = null; refresh(); },
     });
   }).catch(err => {
     // Blocked by an extension or offline: say so instead of leaving a dead button.
@@ -49,10 +76,10 @@ export function guardForm(container, buttons, { onError } = {}) {
   });
 
   return {
-    passed: () => !!token,
+    passed: ok,
     reset() {
       token = null;
-      setEnabled(false);
+      refresh();
       if (widgetId !== null && window.turnstile) window.turnstile.reset(widgetId);
     },
   };

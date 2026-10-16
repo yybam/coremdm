@@ -97,9 +97,16 @@ async function disconnect() {
   refreshButtons();
 }
 
+// The deploy workflows add coremdm.apk to Firebase Hosting only; a copy of the site served
+// elsewhere (coremdm.org via Cloudflare Pages) falls back to the Firebase one (CORS-enabled).
+const APK_FALLBACK = "https://coremdm.web.app/coremdm.apk";
 async function getApk() {
   log(`Loading ${BUNDLED_APK}...`);
-  const res = await fetch(BUNDLED_APK);
+  let res = await fetch(BUNDLED_APK).catch(() => null);
+  if (!res || !res.ok) {
+    log(`Not on this site — loading ${APK_FALLBACK}...`);
+    res = await fetch(APK_FALLBACK);
+  }
   if (!res.ok) throw new Error(`Couldn't load ${BUNDLED_APK} (HTTP ${res.status}).`);
   const blob = await res.blob();
   return { name: BUNDLED_APK, size: blob.size, stream: blob.stream() };

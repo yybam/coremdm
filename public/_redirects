@@ -1,0 +1,3 @@
+# Cloudflare Pages (coremdm.org). Firebase Hosting uses firebase.json instead.
+/manage       /console  301
+/manage.html  /console  301

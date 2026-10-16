@@ -1,4 +1,4 @@
-﻿package com.core.mdm.ui.dashboard
+package com.core.mdm.ui.dashboard
 
 import android.app.Application
 import android.os.UserManager
@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.core.mdm.org.OrgState
+import com.core.mdm.firebase.RemotePolicies
 
 data class DashboardUiState(
     val isLoading: Boolean = true,
@@ -136,44 +138,45 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
     // ── Anti-bypass ───────────────────────────────────────────────────────────
 
-    fun setSafeBootBlocked(v: Boolean) = toggleRestriction(
+    fun setSafeBootBlocked(v: Boolean) = if (lockedByOrg("safeBootBlocked")) Unit else toggleRestriction("safeBootBlocked",
         UserManager.DISALLOW_SAFE_BOOT, v,
         { copy(safeBootBlocked = v) }, { copy(safeBootBlocked = !v) })
 
-    fun setFactoryResetBlocked(v: Boolean) = toggleRestriction(
+    fun setFactoryResetBlocked(v: Boolean) = if (lockedByOrg("factoryResetBlocked")) Unit else toggleRestriction("factoryResetBlocked",
         UserManager.DISALLOW_FACTORY_RESET, v,
         { copy(factoryResetBlocked = v) }, { copy(factoryResetBlocked = !v) })
 
-    fun setDebuggingBlocked(v: Boolean) = toggleRestriction(
+    fun setDebuggingBlocked(v: Boolean) = if (lockedByOrg("debuggingBlocked")) Unit else toggleRestriction("debuggingBlocked",
         UserManager.DISALLOW_DEBUGGING_FEATURES, v,
         { copy(debuggingBlocked = v) }, { copy(debuggingBlocked = !v) })
 
-    fun setAddUserBlocked(v: Boolean) = toggleRestriction(
+    fun setAddUserBlocked(v: Boolean) = if (lockedByOrg("addUserBlocked")) Unit else toggleRestriction("addUserBlocked",
         UserManager.DISALLOW_ADD_USER, v,
         { copy(addUserBlocked = v) }, { copy(addUserBlocked = !v) })
 
-    fun setUserSwitchBlocked(v: Boolean) = toggleRestriction(
+    fun setUserSwitchBlocked(v: Boolean) = if (lockedByOrg("userSwitchBlocked")) Unit else toggleRestriction("userSwitchBlocked",
         UserManager.DISALLOW_USER_SWITCH, v,
         { copy(userSwitchBlocked = v) }, { copy(userSwitchBlocked = !v) })
 
     // ── App restrictions ──────────────────────────────────────────────────────
 
-    fun setInstallAppsBlocked(v: Boolean) = toggleRestriction(
+    fun setInstallAppsBlocked(v: Boolean) = if (lockedByOrg("installAppsBlocked")) Unit else toggleRestriction("installAppsBlocked",
         UserManager.DISALLOW_INSTALL_APPS, v,
         { copy(installAppsBlocked = v) }, { copy(installAppsBlocked = !v) })
 
-    fun setUninstallAppsBlocked(v: Boolean) = toggleRestriction(
+    fun setUninstallAppsBlocked(v: Boolean) = if (lockedByOrg("uninstallAppsBlocked")) Unit else toggleRestriction("uninstallAppsBlocked",
         UserManager.DISALLOW_UNINSTALL_APPS, v,
         { copy(uninstallAppsBlocked = v) }, { copy(uninstallAppsBlocked = !v) })
 
-    fun setUnknownSourcesBlocked(v: Boolean) = toggleRestriction(
+    fun setUnknownSourcesBlocked(v: Boolean) = if (lockedByOrg("unknownSourcesBlocked")) Unit else toggleRestriction("unknownSourcesBlocked",
         UserManager.DISALLOW_INSTALL_UNKNOWN_SOURCES, v,
         { copy(unknownSourcesBlocked = v) }, { copy(unknownSourcesBlocked = !v) })
 
     fun setPlayStoreHidden(v: Boolean) {
+        if (lockedByOrg("playStoreHidden")) return
         _uiState.update { it.copy(playStoreHidden = v) }
         viewModelScope.launch {
-            val ok = repo.setPlayStoreHidden(v)
+            val ok = repo.setPlayStoreHidden(v).also { if (it) record("playStoreHidden", v) }
             if (ok) toast(if (v) "Play Store hidden" else "Play Store visible")
             else { _uiState.update { it.copy(playStoreHidden = !v) }; toast("Failed — requires Device Owner") }
         }
@@ -182,54 +185,60 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     // ── Extended hardware restrictions ────────────────────────────────────────
 
     fun setUsbTransferBlocked(v: Boolean) {
+        if (lockedByOrg("usbTransferBlocked")) return
         _uiState.update { it.copy(usbTransferBlocked = v) }
         viewModelScope.launch {
-            val ok = repo.setUsbTransferBlocked(v)
+            val ok = repo.setUsbTransferBlocked(v).also { if (it) record("usbTransferBlocked", v) }
             if (ok) toast(if (v) "USB file transfer blocked" else "USB file transfer allowed")
             else { _uiState.update { it.copy(usbTransferBlocked = !v) }; toast("Failed — requires Device Admin on Android 9+") }
         }
     }
 
     fun setBluetoothDisabled(v: Boolean) {
+        if (lockedByOrg("bluetoothDisabled")) return
         _uiState.update { it.copy(bluetoothDisabled = v) }
         viewModelScope.launch {
-            val ok = repo.setBluetoothDisabled(v)
+            val ok = repo.setBluetoothDisabled(v).also { if (it) record("bluetoothDisabled", v) }
             if (ok) toast(if (v) "Bluetooth disabled" else "Bluetooth enabled")
             else { _uiState.update { it.copy(bluetoothDisabled = !v) }; toast("Failed — ensure Device Admin is active") }
         }
     }
 
     fun setOutgoingCallsBlocked(v: Boolean) {
+        if (lockedByOrg("outgoingCallsBlocked")) return
         _uiState.update { it.copy(outgoingCallsBlocked = v) }
         viewModelScope.launch {
-            val ok = repo.setOutgoingCallsBlocked(v)
+            val ok = repo.setOutgoingCallsBlocked(v).also { if (it) record("outgoingCallsBlocked", v) }
             if (ok) toast(if (v) "Outgoing calls blocked" else "Outgoing calls allowed")
             else { _uiState.update { it.copy(outgoingCallsBlocked = !v) }; toast("Failed — ensure Device Admin is active") }
         }
     }
 
     fun setPhysicalMediaBlocked(v: Boolean) {
+        if (lockedByOrg("physicalMediaBlocked")) return
         _uiState.update { it.copy(physicalMediaBlocked = v) }
         viewModelScope.launch {
-            val ok = repo.setPhysicalMediaBlocked(v)
+            val ok = repo.setPhysicalMediaBlocked(v).also { if (it) record("physicalMediaBlocked", v) }
             if (ok) toast(if (v) "Physical media blocked" else "Physical media allowed")
             else { _uiState.update { it.copy(physicalMediaBlocked = !v) }; toast("Failed — ensure Device Admin is active") }
         }
     }
 
     fun setMdmUninstallProtected(v: Boolean) {
+        if (lockedByOrg("mdmUninstallProtected")) return
         _uiState.update { it.copy(mdmUninstallProtected = v) }
         viewModelScope.launch {
-            val ok = repo.setMdmUninstallProtected(v)
+            val ok = repo.setMdmUninstallProtected(v).also { if (it) record("mdmUninstallProtected", v) }
             if (ok) toast(if (v) "MDM uninstall blocked" else "MDM uninstall allowed")
             else { _uiState.update { it.copy(mdmUninstallProtected = !v) }; toast("Failed — requires Device Owner") }
         }
     }
 
     fun setBrowsersHidden(v: Boolean) {
+        if (lockedByOrg("browsersHidden")) return
         _uiState.update { it.copy(browsersHidden = v) }
         viewModelScope.launch {
-            val ok = repo.setBrowsersHidden(v)
+            val ok = repo.setBrowsersHidden(v).also { if (it) record("browsersHidden", v) }
             if (ok) toast(if (v) "Browsers hidden" else "Browsers visible")
             else { _uiState.update { it.copy(browsersHidden = !v) }; toast("Failed — requires Device Owner") }
         }
@@ -238,47 +247,52 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     // ── Hardware ──────────────────────────────────────────────────────────────
 
     fun setCameraDisabled(v: Boolean) {
+        if (lockedByOrg("cameraDisabled")) return
         _uiState.update { it.copy(cameraDisabled = v) }
         viewModelScope.launch {
             repo.setCameraDisabled(v)
+            record("cameraDisabled", v)
             toast(if (v) "Camera disabled" else "Camera enabled")
         }
     }
 
     fun setScreenCaptureDisabled(v: Boolean) {
+        if (lockedByOrg("screenCaptureDisabled")) return
         _uiState.update { it.copy(screenCaptureDisabled = v) }
         viewModelScope.launch {
             repo.setScreenCaptureDisabled(v)
+            record("screenCaptureDisabled", v)
             toast(if (v) "Screen capture disabled" else "Screen capture enabled")
         }
     }
 
     // ── Settings / hardware control ───────────────────────────────────────────
 
-    fun setWifiConfigBlocked(v: Boolean) = toggleRestriction(
+    fun setWifiConfigBlocked(v: Boolean) = if (lockedByOrg("wifiConfigBlocked")) Unit else toggleRestriction("wifiConfigBlocked",
         UserManager.DISALLOW_CONFIG_WIFI, v,
         { copy(wifiConfigBlocked = v) }, { copy(wifiConfigBlocked = !v) })
 
-    fun setMobileNetworksBlocked(v: Boolean) = toggleRestriction(
+    fun setMobileNetworksBlocked(v: Boolean) = if (lockedByOrg("mobileNetworksBlocked")) Unit else toggleRestriction("mobileNetworksBlocked",
         UserManager.DISALLOW_CONFIG_MOBILE_NETWORKS, v,
         { copy(mobileNetworksBlocked = v) }, { copy(mobileNetworksBlocked = !v) })
 
-    fun setBluetoothConfigBlocked(v: Boolean) = toggleRestriction(
+    fun setBluetoothConfigBlocked(v: Boolean) = if (lockedByOrg("bluetoothConfigBlocked")) Unit else toggleRestriction("bluetoothConfigBlocked",
         UserManager.DISALLOW_CONFIG_BLUETOOTH, v,
         { copy(bluetoothConfigBlocked = v) }, { copy(bluetoothConfigBlocked = !v) })
 
-    fun setVpnBlocked(v: Boolean) = toggleRestriction(
+    fun setVpnBlocked(v: Boolean) = if (lockedByOrg("vpnBlocked")) Unit else toggleRestriction("vpnBlocked",
         UserManager.DISALLOW_CONFIG_VPN, v,
         { copy(vpnBlocked = v) }, { copy(vpnBlocked = !v) })
 
-    fun setNetworkResetBlocked(v: Boolean) = toggleRestriction(
+    fun setNetworkResetBlocked(v: Boolean) = if (lockedByOrg("networkResetBlocked")) Unit else toggleRestriction("networkResetBlocked",
         UserManager.DISALLOW_NETWORK_RESET, v,
         { copy(networkResetBlocked = v) }, { copy(networkResetBlocked = !v) })
 
     fun setStatusBarDisabled(v: Boolean) {
+        if (lockedByOrg("statusBarDisabled")) return
         _uiState.update { it.copy(statusBarDisabled = v) }
         viewModelScope.launch {
-            val ok = repo.setStatusBarDisabled(v)
+            val ok = repo.setStatusBarDisabled(v).also { if (it) record("statusBarDisabled", v) }
             if (ok) toast(if (v) "Status bar locked" else "Status bar unlocked")
             else { _uiState.update { it.copy(statusBarDisabled = !v) }; toast("Failed — requires Device Owner on Android 6+") }
         }
@@ -289,6 +303,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     fun enforcePrivateDns(host: String) {
         viewModelScope.launch {
             val ok = repo.setPrivateDns(host)
+            if (ok) record("privateDnsHost", host)
             _uiState.update { it.copy(privateDnsRestricted = ok, privateDnsHost = if (ok) host else it.privateDnsHost) }
             toast(if (ok) "DNS locked to $host" else "DNS enforcement failed — requires Android 10+ Device Owner")
         }
@@ -297,6 +312,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     fun clearPrivateDns() {
         viewModelScope.launch {
             repo.clearPrivateDns()
+            record("privateDnsHost", "")
             _uiState.update { it.copy(privateDnsRestricted = false, privateDnsHost = "") }
             toast("Private DNS reset to automatic")
         }
@@ -334,8 +350,46 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             ).forEach { repo.setRestriction(it, true) }
             repo.setStatusBarDisabled(true)
             repo.setScreenCaptureDisabled(true)
+            listOf(
+                "safeBootBlocked", "factoryResetBlocked", "debuggingBlocked", "addUserBlocked",
+                "installAppsBlocked", "unknownSourcesBlocked", "uninstallAppsBlocked",
+                "wifiConfigBlocked", "bluetoothConfigBlocked", "mobileNetworksBlocked",
+                "statusBarDisabled", "screenCaptureDisabled",
+            ).forEach { record(it, true) }
             loadState()
             toast("Full lockdown applied")
+        }
+    }
+
+    /**
+     * Flips one restriction by its catalog key. Lets the search screen toggle any setting
+     * without duplicating the per-setting wiring the dashboard already has.
+     */
+    fun setByKey(key: String, value: Boolean) {
+        when (key) {
+            "installAppsBlocked"     -> setInstallAppsBlocked(value)
+            "uninstallAppsBlocked"   -> setUninstallAppsBlocked(value)
+            "unknownSourcesBlocked"  -> setUnknownSourcesBlocked(value)
+            "playStoreHidden"        -> setPlayStoreHidden(value)
+            "browsersHidden"         -> setBrowsersHidden(value)
+            "safeBootBlocked"        -> setSafeBootBlocked(value)
+            "factoryResetBlocked"    -> setFactoryResetBlocked(value)
+            "debuggingBlocked"       -> setDebuggingBlocked(value)
+            "addUserBlocked"         -> setAddUserBlocked(value)
+            "userSwitchBlocked"      -> setUserSwitchBlocked(value)
+            "screenCaptureDisabled"  -> setScreenCaptureDisabled(value)
+            "cameraDisabled"         -> setCameraDisabled(value)
+            "wifiConfigBlocked"      -> setWifiConfigBlocked(value)
+            "mobileNetworksBlocked"  -> setMobileNetworksBlocked(value)
+            "bluetoothConfigBlocked" -> setBluetoothConfigBlocked(value)
+            "vpnBlocked"             -> setVpnBlocked(value)
+            "statusBarDisabled"      -> setStatusBarDisabled(value)
+            "networkResetBlocked"    -> setNetworkResetBlocked(value)
+            "usbTransferBlocked"     -> setUsbTransferBlocked(value)
+            "bluetoothDisabled"      -> setBluetoothDisabled(value)
+            "outgoingCallsBlocked"   -> setOutgoingCallsBlocked(value)
+            "physicalMediaBlocked"   -> setPhysicalMediaBlocked(value)
+            "mdmUninstallProtected"  -> setMdmUninstallProtected(value)
         }
     }
 
@@ -345,7 +399,15 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
     // ── Private helpers ───────────────────────────────────────────────────────
 
+    /** Settings the phone's organization has locked can't be changed on the phone. */
+    private fun lockedByOrg(key: String): Boolean {
+        if (!OrgState.isLocked(key)) return false
+        toast(OrgState.lockedMessage())
+        return true
+    }
+
     private fun toggleRestriction(
+        policyKey: String,
         key: String,
         enabled: Boolean,
         optimisticUpdate: DashboardUiState.() -> DashboardUiState,
@@ -354,6 +416,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         _uiState.update { it.optimisticUpdate() }
         viewModelScope.launch {
             if (repo.setRestriction(key, enabled)) {
+                record(policyKey, enabled)
                 toast(formatRestrictionToast(key, enabled))
             } else {
                 _uiState.update { it.rollback() }
@@ -361,6 +424,9 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             }
         }
     }
+
+    /** Saves a change made here to the device's Firestore document, so the website matches. */
+    private fun record(key: String, value: Any) = RemotePolicies.record(getApplication(), key, value)
 
     private fun toast(message: String) {
         _uiState.update { it.copy(snackbarMessage = message) }

@@ -17,7 +17,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.core.mdm.ui.dashboard.PolicyCard
-import com.core.mdm.ui.theme.LocalAppColors
+import com.core.mdm.ui.theme.*
+import androidx.compose.ui.graphics.Color
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,7 +51,8 @@ fun LocationScreen(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = c.navyLight),
             )
         },
-        containerColor = c.navy,
+        containerColor = Color.Transparent,
+        modifier = Modifier.siteBackground(),
         contentWindowInsets = WindowInsets.safeDrawing,
     ) { padding ->
         Column(

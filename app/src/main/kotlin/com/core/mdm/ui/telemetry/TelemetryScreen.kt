@@ -1,4 +1,4 @@
-﻿package com.core.mdm.ui.telemetry
+package com.core.mdm.ui.telemetry
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -11,6 +11,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -19,7 +20,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.core.mdm.telemetry.DeviceMetrics
 import com.core.mdm.ui.dashboard.PolicyCard
-import com.core.mdm.ui.theme.LocalAppColors
+import com.core.mdm.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -33,6 +34,7 @@ fun TelemetryScreen(
     val c = LocalAppColors.current
 
     Scaffold(
+        modifier = Modifier.siteBackground(),
         topBar = {
             TopAppBar(
                 title = {
@@ -56,7 +58,7 @@ fun TelemetryScreen(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = c.navyLight)
             )
         },
-        containerColor = c.navy
+        containerColor = Color.Transparent
     ) { padding ->
         // A plain scrollable Column, not a LazyColumn — same reason as DashboardScreen: a fixed
         // handful of cards that LazyColumn re-composed every time one scrolled back into view.

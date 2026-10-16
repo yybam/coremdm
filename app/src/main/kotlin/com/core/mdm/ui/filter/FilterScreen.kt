@@ -1,4 +1,4 @@
-﻿package com.core.mdm.ui.filter
+package com.core.mdm.ui.filter
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -56,6 +56,7 @@ fun FilterScreen(
     }
 
     Scaffold(
+        modifier = Modifier.siteBackground(),
         topBar = {
             TopAppBar(
                 title = {
@@ -80,11 +81,11 @@ fun FilterScreen(
         snackbarHost = {
             SnackbarHost(snackbarHost) { data ->
                 Snackbar(modifier = Modifier.padding(12.dp),
-                    containerColor = LocalAppColors.current.card, contentColor = LocalAppColors.current.textPrimary,
+                    containerColor = LocalAppColors.current.panel, contentColor = LocalAppColors.current.textPrimary,
                     snackbarData = data)
             }
         },
-        containerColor = LocalAppColors.current.navy,
+        containerColor = Color.Transparent,
         // Edge-to-edge stops the window from shrinking for the keyboard, so pad for it here —
         // otherwise it covers the bottom of the scroll area and focused fields can't scroll into view.
         contentWindowInsets = WindowInsets.safeDrawing
@@ -122,17 +123,15 @@ fun FilterScreen(
                         Text("Instagram, TikTok, YouTube, adult sites + more",
                             color = LocalAppColors.current.textSecondary, fontSize = 11.sp)
                     }
-                    Switch(
+                    GlassSwitch(
                         checked = state.useDefaultBlocklist,
-                        onCheckedChange = viewModel::setUseDefaultBlocklist,
-                        colors = SwitchDefaults.colors(
-                            checkedTrackColor   = LocalAppColors.current.green,
-                            uncheckedTrackColor = LocalAppColors.current.navy,
-                            uncheckedBorderColor = LocalAppColors.current.cardBorder
-                        )
+                        onCheckedChange = viewModel::setUseDefaultBlocklist
                     )
                 }
             }
+
+            // ── Blocklist groups (bundled hosts-file lists) ───────────────────
+            BlocklistGroupsCard()
 
             // ── Custom blocked domains ────────────────────────────────────────
             DomainListCard(
@@ -274,13 +273,13 @@ fun FilterScreen(
 
 @Composable
 private fun FilterToggleCard(isRunning: Boolean, onToggle: () -> Unit) {
-    val bg     = if (isRunning) Color(0xFF0A1F0A) else Color(0xFF1A1A1A)
+    val bg     = if (isRunning) LocalAppColors.current.green.copy(alpha = 0.08f) else LocalAppColors.current.card
     val border = if (isRunning) LocalAppColors.current.green.copy(alpha = 0.5f) else LocalAppColors.current.cardBorder
     val color  = if (isRunning) LocalAppColors.current.green else LocalAppColors.current.textSecondary
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape    = RoundedCornerShape(16.dp),
+        shape    = GlassShape,
         colors   = CardDefaults.cardColors(containerColor = bg),
         border   = androidx.compose.foundation.BorderStroke(1.dp, border)
     ) {
@@ -308,14 +307,9 @@ private fun FilterToggleCard(isRunning: Boolean, onToggle: () -> Unit) {
                     color = LocalAppColors.current.textSecondary, fontSize = 12.sp
                 )
             }
-            Switch(
+            GlassSwitch(
                 checked = isRunning,
-                onCheckedChange = { onToggle() },
-                colors = SwitchDefaults.colors(
-                    checkedTrackColor    = LocalAppColors.current.green,
-                    uncheckedTrackColor  = LocalAppColors.current.navy,
-                    uncheckedBorderColor = LocalAppColors.current.cardBorder
-                )
+                onCheckedChange = { onToggle() }
             )
         }
     }
@@ -325,13 +319,13 @@ private fun FilterToggleCard(isRunning: Boolean, onToggle: () -> Unit) {
 
 @Composable
 private fun DummyBrowserToggleCard(isEnabled: Boolean, onToggle: () -> Unit) {
-    val bg     = if (isEnabled) Color(0xFF1A0A0A) else Color(0xFF1A1A1A)
+    val bg     = if (isEnabled) LocalAppColors.current.red.copy(alpha = 0.08f) else LocalAppColors.current.card
     val border = if (isEnabled) LocalAppColors.current.red.copy(alpha = 0.5f) else LocalAppColors.current.cardBorder
     val color  = if (isEnabled) LocalAppColors.current.red else LocalAppColors.current.textSecondary
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape    = RoundedCornerShape(16.dp),
+        shape    = GlassShape,
         colors   = CardDefaults.cardColors(containerColor = bg),
         border   = androidx.compose.foundation.BorderStroke(1.dp, border)
     ) {
@@ -359,14 +353,9 @@ private fun DummyBrowserToggleCard(isEnabled: Boolean, onToggle: () -> Unit) {
                     color = LocalAppColors.current.textSecondary, fontSize = 12.sp
                 )
             }
-            Switch(
+            GlassSwitch(
                 checked = isEnabled,
-                onCheckedChange = { onToggle() },
-                colors = SwitchDefaults.colors(
-                    checkedTrackColor    = LocalAppColors.current.red,
-                    uncheckedTrackColor  = LocalAppColors.current.navy,
-                    uncheckedBorderColor = LocalAppColors.current.cardBorder
-                )
+                onCheckedChange = { onToggle() }
             )
         }
     }

@@ -14,10 +14,23 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <!-- PrivateDnsGuard reads each network's Private DNS state to spot lookups bypassing the filter. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!--
+      Protected permission: can't be granted from the Settings UI, so it's given once per device
+      over ADB during setup, alongside Device Owner:
+        adb shell pm grant com.core.mdm android.permission.WRITE_SECURE_SETTINGS
+      Used by SecureSettings to stop OEM power saving from suspending MdmCommandService. Every
+      write is guarded, so a phone without the grant still works — it just can't apply these.
+    -->
+    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS"
+        tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <!-- Usage stats for the console and daily app time limits. Granted by the admin in
+         Settings > Special access > Usage access; AppTimeLimits no-ops until then. -->
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
         tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
@@ -27,6 +40,7 @@
         android:name=".MdmApplication"
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:label="@string/app_name"
         android:theme="@style/Theme.CoreMDM">
 
@@ -38,6 +52,54 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!--
+          Registers CORE MDM as a browser. On a phone with no other browser, Android sends web
+          links here instead of to a stock browser the admin can't control — the screen explains
+          the block rather than loading the page. The filters are exactly what Android requires
+          for an app to qualify as a browser: http/https VIEW + BROWSABLE with no host.
+        -->
+        <activity
+            android:name=".browser.BlockedLinkActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:taskAffinity=".browser"
+            android:label="@string/browser_label">
+            <intent-filter android:priority="0">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.WEB_SEARCH" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <!-- QR-code setup from the website installer. Android 12+ won't finish setup without these. -->
+        <activity
+            android:name=".provisioning.ProvisioningModeActivity"
+            android:exported="true"
+            android:permission="android.permission.BIND_DEVICE_ADMIN"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.app.action.GET_PROVISIONING_MODE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".provisioning.PolicyComplianceActivity"
+            android:exported="true"
+            android:permission="android.permission.BIND_DEVICE_ADMIN"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.app.action.ADMIN_POLICY_COMPLIANCE" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 
@@ -133,6 +195,24 @@
             <intent-filter>
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
+        </service>
+
+        <!--
+          Screen guard — enforces the in-app section blocks (WhatsApp Status/Channels, Reels,
+          Shorts…) and the per-app WebView allow-list, which Android's MDM API can't express.
+          Turned on by the admin during setup, before sign-in.
+        -->
+        <service
+            android:name=".content.ScreenGuardService"
+            android:label="@string/screen_guard_label"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/screen_guard_config" />
         </service>
 
         <service

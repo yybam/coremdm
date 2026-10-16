@@ -4,8 +4,10 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
@@ -15,16 +17,29 @@ import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.ktx.Firebase
 import com.core.mdm.R
+import com.core.mdm.content.GuardPolicy
 import com.core.mdm.firebase.DeviceRegistry
+import com.core.mdm.firebase.DeviceRemoval
 import com.core.mdm.firebase.EnrollmentManager
+import com.core.mdm.firebase.LocalSettingsSync
+import com.core.mdm.firebase.RemotePolicies
+import com.core.mdm.policy.AppBlocker
+import com.core.mdm.policy.AppInventory
 import com.core.mdm.policy.AppPolicyManager
+import com.core.mdm.policy.AppTimeLimits
 import com.core.mdm.policy.DevicePolicyHelper
 import com.core.mdm.policy.GeofenceManager
+import com.core.mdm.policy.InstallGuard
 import com.core.mdm.policy.PolicyEvents
+import com.core.mdm.policy.RemoteModeState
 import com.core.mdm.policy.ScheduledLockdownManager
+import com.core.mdm.policy.SecureSettings
 import com.core.mdm.installer.SelfUpdateService
 import com.core.mdm.remote.AlarmController
 import com.core.mdm.ui.message.MessageAlertActivity
+import com.core.mdm.update.AppUpdater
+import com.core.mdm.vpn.DnsVpnService
+import com.core.mdm.vpn.FilterSettings
 import com.core.mdm.ws.WsCommandClient
 import com.core.mdm.remote.UpdateNotifier
 import kotlinx.coroutines.CoroutineScope
@@ -41,12 +56,11 @@ class MdmCommandService : Service() {
     private var commandListener: ListenerRegistration? = null
     private var queueListener: ListenerRegistration? = null
     private var authStateListener: FirebaseAuth.AuthStateListener? = null
+    private var packageReceiver: BroadcastReceiver? = null
     private var lastAlarmActive: Boolean? = null
     private var lastAppliedPolicies: Map<String, Any>? = null
-    // Previous per-app enforcement, so a package removed from the web list gets un-blocked.
+    // Previous per-app hide list, so a package removed from the web list gets un-hidden.
     private var lastBlockedApps: Set<String> = emptySet()
-    private var lastSuspendedApps: Set<String> = emptySet()
-    private var lastSocialBlocked: Boolean? = null
 
     private val appPolicy by lazy {
         AppPolicyManager(applicationContext, DevicePolicyHelper.getInstance(applicationContext))
@@ -58,6 +72,13 @@ class MdmCommandService : Service() {
         startForeground(NOTIF_ID, buildNotification())
 
         val helper = DevicePolicyHelper.getInstance(applicationContext)
+        RemoteModeState.init(applicationContext)
+        RemotePolicies.init(applicationContext)
+        GuardPolicy.init(applicationContext)
+        // OEM power saving suspends background services, which is what stops this one from
+        // receiving commands. Needs the one-time WRITE_SECURE_SETTINGS grant; no-ops without it.
+        SecureSettings.applyServiceKeepAlive(applicationContext)
+        registerPackageReceiver()
 
         // Firebase Auth restores its session asynchronously on startup.
         // We must wait for auth to be ready before querying currentUser,
@@ -76,17 +97,31 @@ class MdmCommandService : Service() {
         WsCommandClient.start(applicationContext)
 
         serviceScope.launch {
+            var ticks = 0
             while (isActive) {
                 delay(60_000L)
                 DeviceRegistry.updateLastSeen(applicationContext)
                 writeDeviceStatus()
+                // Daily app allowances are checked every minute so an app is paused within a
+                // minute of running out, and released again after midnight.
+                AppTimeLimits.enforce(applicationContext, lastAppliedPolicies.orEmpty())
                 // If enrollment failed or a listener was dropped by an error, keep
                 // retrying — otherwise web console commands would silently stop arriving.
                 if ((commandListener == null || queueListener == null) &&
                         Firebase.auth.currentUser != null) {
                     launch(Dispatchers.Main) { connectCommandListener(helper) }
                 }
+                // Every 30 min: refresh the app list for the website and check GitHub for a
+                // CORE MDM update (the updater itself only hits the network every 6 h).
+                if (++ticks % 30 == 0) {
+                    reportDeviceInfo()
+                    AppUpdater.checkAndInstall(applicationContext)
+                }
             }
+        }
+        serviceScope.launch {
+            delay(90_000L)   // let enrollment settle, then check for an update once per start
+            AppUpdater.checkAndInstall(applicationContext)
         }
 
         // Collect usage stats less frequently — once every 15 minutes is plenty.
@@ -105,8 +140,8 @@ class MdmCommandService : Service() {
         // the watchCommands listener — the read rule requires deviceUid == auth.uid.
         EnrollmentManager.enroll(applicationContext) {
             DeviceRegistry.updateLastSeen(applicationContext) // immediate; don't wait for first 60s tick
-            // Refresh the installed-app inventory shown in the web console.
-            serviceScope.launch { DeviceRegistry.updateInstalledApps(applicationContext) }
+            // Refresh the installed-app inventory and version shown in the web console.
+            serviceScope.launch { reportDeviceInfo() }
             if (queueListener == null) {
                 queueListener = DeviceRegistry.watchCommandQueue(
                     context = applicationContext,
@@ -147,10 +182,11 @@ class MdmCommandService : Service() {
                         Log.d(TAG, "Full lockdown command")
                         serviceScope.launch(Dispatchers.Main) { applyFullLockdown(helper) }
                     },
+                    onDeviceRemoved = { DeviceRemoval.handle(applicationContext) },
                     onPoliciesChange = { policies ->
-                        // DeviceRegistry no longer deduplicates policy snapshots so we can
-                        // catch reconnect re-deliveries; deduplicate here where the full
-                        // applied-state context lives.
+                        // The snapshot listener also fires for this service's own
+                        // lastSeen writes every 60s — only re-apply (and only tell the
+                        // UI to re-read) when the policy set actually changed.
                         if (policies != lastAppliedPolicies) {
                             lastAppliedPolicies = policies
                             serviceScope.launch(Dispatchers.Main) {
@@ -192,6 +228,9 @@ class MdmCommandService : Service() {
                     version = (data["version"] as? String) ?: "",
                 )
             }
+            "check_update" -> serviceScope.launch {
+                AppUpdater.checkAndInstall(applicationContext, force = true)
+            }
             "show_message" -> {
                 val title = (data["title"] as? String) ?: "Message from Administrator"
                 val text  = (data["text"]  as? String) ?: ""
@@ -217,6 +256,7 @@ class MdmCommandService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int) = START_STICKY
 
     override fun onDestroy() {
+        packageReceiver?.let { runCatching { unregisterReceiver(it) } }
         authStateListener?.let { Firebase.auth.removeAuthStateListener(it) }
         commandListener?.remove()
         commandListener = null
@@ -279,7 +319,15 @@ class MdmCommandService : Service() {
         (policies["bluetoothDisabled"]      as? Boolean)?.let { helper.setBluetoothDisabled(it) }
         (policies["outgoingCallsBlocked"]   as? Boolean)?.let { helper.setOutgoingCallsBlocked(it) }
         (policies["physicalMediaBlocked"]   as? Boolean)?.let { helper.setPhysicalMediaBlocked(it) }
-        (policies["mdmUninstallProtected"]  as? Boolean)?.let { helper.setSelfUninstallBlocked(it) }
+        // While the DNS filter is on, uninstall stays blocked (FilterLockdown) whatever the console says.
+        (policies["mdmUninstallProtected"]  as? Boolean)?.let {
+            if (it || !FilterSettings.getInstance(applicationContext).enabled) {
+                helper.setSelfUninstallBlocked(it)
+            }
+        }
+        (policies["appsControlBlocked"]     as? Boolean)?.let { helper.setAppsControlBlocked(it) }
+        (policies["allCallsBlocked"]        as? Boolean)?.let { helper.setAllCallsBlocked(it) }
+        (policies["hotspotBlocked"]         as? Boolean)?.let { helper.setTetheringBlocked(it) }
         // Private DNS
         (policies["privateDnsHost"] as? String)?.let { host ->
             if (host.isNotEmpty()) helper.setPrivateDnsHostname(host) else helper.clearPrivateDns()
@@ -297,27 +345,38 @@ class MdmCommandService : Service() {
                 Log.w(TAG, "Dummy browser toggle: ${e.message}")
             }
         }
-        // Content filter VPN. On a Device Owner device, register ourselves as the always-on
-        // VPN — this pre-authorizes the tunnel (no on-device consent tap) and the system
-        // starts the service for us, so the console toggle works on its own. When turning
-        // off, also send STOP to tear the tunnel down immediately. On non-Device-Owner
-        // devices, fall back to starting the service directly (still needs manual consent).
+        // Content filter VPN. On a Device Owner device, registering ourselves as the always-on
+        // VPN (FilterLockdown) pre-authorizes the tunnel — no on-device consent tap — so the
+        // console toggle works on its own. Without Device Owner the service still needs the
+        // one-time VPN consent from the app.
         (policies["filterRunning"] as? Boolean)?.let { running ->
-            val handled = helper.setContentFilterVpnEnabled(running)
-            try {
-                if (!handled) {
-                    val intent = Intent(applicationContext, com.core.mdm.vpn.DnsVpnService::class.java)
-                        .setAction(if (running) com.core.mdm.vpn.DnsVpnService.ACTION_START else com.core.mdm.vpn.DnsVpnService.ACTION_STOP)
-                    applicationContext.startService(intent)
-                } else if (!running) {
-                    applicationContext.startService(
-                        Intent(applicationContext, com.core.mdm.vpn.DnsVpnService::class.java)
-                            .setAction(com.core.mdm.vpn.DnsVpnService.ACTION_STOP))
+            if (running != FilterSettings.getInstance(applicationContext).enabled ||
+                    running != DnsVpnService.isRunning.value) {
+                helper.setContentFilterVpnEnabled(running)
+                try {
+                    val intent = Intent(applicationContext, DnsVpnService::class.java)
+                        .setAction(if (running) DnsVpnService.ACTION_START else DnsVpnService.ACTION_STOP)
+                    if (running && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        applicationContext.startForegroundService(intent)
+                    } else {
+                        applicationContext.startService(intent)
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Filter toggle: ${e.message}")
                 }
-            } catch (e: Exception) {
-                Log.w(TAG, "Filter toggle: ${e.message}")
             }
         }
+        // App blocking (WhatsApp, social media, AI chats, individually blocked apps), screen
+        // guard (in-app sections, WebView allow-list), daily time limits, installer allow-list.
+        AppBlocker.apply(applicationContext, policies)
+        GuardPolicy.apply(applicationContext, policies)
+        AppTimeLimits.enforce(applicationContext, policies)
+        InstallGuard.apply(applicationContext, policies)
+        // Content filter details and hidden apps set from the website
+        LocalSettingsSync.apply(applicationContext, policies)
+        (policies["webviewDisabled"] as? Boolean)?.let { helper.setWebViewDisabled(it) }
+        RemoteModeState.set(applicationContext, policies["remoteOnly"] as? Boolean ?: false)
+        serviceScope.launch { reportDeviceInfo() }
         // Kiosk packages
         (policies["kioskPackages"] as? List<*>)?.let { list ->
             val pkgs = list.filterIsInstance<String>().toTypedArray()
@@ -344,38 +403,14 @@ class MdmCommandService : Service() {
                     .setRequiredMinLength(len)
             }
         }
-        // Block social media: suspend a preset list of social/chat apps in one toggle.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            (policies["socialMediaBlocked"] as? Boolean)?.let { blocked ->
-                if (blocked != lastSocialBlocked) {
-                    lastSocialBlocked = blocked
-                    val present = SOCIAL_PACKAGES.filter { isInstalled(it) }.toTypedArray()
-                    if (present.isNotEmpty()) {
-                        if (blocked) appPolicy.suspendPackages(present)
-                        else appPolicy.unsuspendPackages(present)
-                    }
-                }
-            }
-        }
         // Per-app HIDE list from the Installed Apps tab (removed from the launcher): hide the
-        // listed packages, and un-hide any dropped from the list since last time.
+        // listed packages, and un-hide any dropped from the list since last time. (Per-app
+        // *suspend* — "blockedPackages" / "suspendedApps" — is handled by AppBlocker above.)
         (policies["blockedApps"] as? List<*>)?.let { list ->
             val desired = list.filterIsInstance<String>().toSet()
             (lastBlockedApps - desired).forEach { appPolicy.unhidePackage(it) }
             desired.forEach { if (isInstalled(it)) appPolicy.hidePackage(it) }
             lastBlockedApps = desired
-        }
-        // Per-app BLOCK list (suspended — visible but can't open): suspend the listed packages,
-        // and un-suspend any dropped from the list.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            (policies["suspendedApps"] as? List<*>)?.let { list ->
-                val desired = list.filterIsInstance<String>().toSet()
-                val toUnsuspend = (lastSuspendedApps - desired).filter { isInstalled(it) }
-                if (toUnsuspend.isNotEmpty()) appPolicy.unsuspendPackages(toUnsuspend.toTypedArray())
-                val toSuspend = desired.filter { isInstalled(it) }
-                if (toSuspend.isNotEmpty()) appPolicy.suspendPackages(toSuspend.toTypedArray())
-                lastSuspendedApps = desired
-            }
         }
         // ── Parental controls ─────────────────────────────────────────────────
         (policies["emailBlocked"] as? Boolean)?.let { helper.setEmailAppsHidden(it) }
@@ -405,7 +440,6 @@ class MdmCommandService : Service() {
         }
 
         // Geofencing
-        @Suppress("UNCHECKED_CAST")
         (policies["geofence"] as? Map<String, Any>)?.let { gf ->
             val enabled = gf["enabled"] as? Boolean ?: false
             if (enabled) {
@@ -430,6 +464,45 @@ class MdmCommandService : Service() {
         }
 
         Log.d(TAG, "Remote policies applied (${policies.size} keys)")
+    }
+
+    /** New installs: re-apply app blocks (a blocked app installed later must be suspended too),
+     *  and refresh the website's app list. */
+    private fun registerPackageReceiver() {
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                val replacing = intent.getBooleanExtra(Intent.EXTRA_REPLACING, false)
+                serviceScope.launch {
+                    if (intent.action == Intent.ACTION_PACKAGE_ADDED && !replacing) {
+                        AppBlocker.reapply(applicationContext)
+                        // "Only chosen apps can install apps"
+                        InstallGuard.sweep(applicationContext)
+                    }
+                    reportDeviceInfo()
+                }
+            }
+        }
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_PACKAGE_ADDED)
+            addAction(Intent.ACTION_PACKAGE_REMOVED)
+            addDataScheme("package")
+        }
+        registerReceiver(receiver, filter)
+        packageReceiver = receiver
+    }
+
+    private fun reportDeviceInfo() {
+        runCatching {
+            @Suppress("DEPRECATION")
+            val info = packageManager.getPackageInfo(packageName, 0)
+            @Suppress("DEPRECATION")
+            val code = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) info.longVersionCode else info.versionCode.toLong()
+            DeviceRegistry.reportDeviceInfo(applicationContext, AppInventory.collect(applicationContext), info.versionName ?: "", code,
+                guardEnabled = GuardPolicy.isEnabled(applicationContext),
+                usageAccess  = AppTimeLimits.hasUsageAccess(applicationContext),
+                timeUsage    = AppTimeLimits.todayUsage(applicationContext,
+                    AppTimeLimits.readLimits(lastAppliedPolicies.orEmpty())).associate { it.pkg to it.usedMinutes })
+        }.onFailure { Log.w(TAG, "reportDeviceInfo: ${it.message}") }
     }
 
     private fun isInstalled(pkg: String): Boolean = runCatching {
@@ -458,17 +531,6 @@ class MdmCommandService : Service() {
         private const val TAG       = "MdmCommandService"
         private const val CHANNEL_ID = "mdm_command_service"
         private const val NOTIF_ID   = 9001
-
-        // Suspended together by the "Block Social Media" toggle in the web console.
-        private val SOCIAL_PACKAGES = arrayOf(
-            "com.whatsapp",                 // WhatsApp
-            "com.facebook.katana",          // Facebook
-            "com.instagram.android",        // Instagram
-            "com.zhiliaoapp.musically",     // TikTok
-            "com.snapchat.android",         // Snapchat
-            "com.twitter.android",          // X / Twitter
-            "com.facebook.orca",            // Messenger
-        )
 
         fun start(context: Context) {
             val intent = Intent(context, MdmCommandService::class.java)

@@ -1,4 +1,4 @@
-﻿package com.core.mdm.ui.pin
+package com.core.mdm.ui.pin
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -66,7 +66,7 @@ fun PinLockScreen(
     if (state.showRemoveDialog) {
         AlertDialog(
             onDismissRequest = viewModel::dismissRemoveDialog,
-            containerColor   = LocalAppColors.current.card,
+            containerColor   = LocalAppColors.current.panel,
             icon = {
                 Icon(Icons.Filled.LockOpen, null, tint = LocalAppColors.current.red, modifier = Modifier.size(32.dp))
             },
@@ -128,13 +128,14 @@ fun PinLockScreen(
             SnackbarHost(snackbarHostState) { data ->
                 Snackbar(
                     modifier      = Modifier.padding(12.dp),
-                    containerColor = LocalAppColors.current.card,
+                    containerColor = LocalAppColors.current.panel,
                     contentColor  = LocalAppColors.current.textPrimary,
                     snackbarData  = data
                 )
             }
         },
-        containerColor = LocalAppColors.current.navy
+        containerColor = Color.Transparent,
+        modifier = Modifier.siteBackground()
     ) { padding ->
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -142,7 +143,6 @@ fun PinLockScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(LocalAppColors.current.navy)
                 .verticalScroll(scrollState)
                 .padding(horizontal = 32.dp, vertical = 40.dp)
         ) {
@@ -289,7 +289,7 @@ private fun PinDotsRow(total: Int, filled: Int, modifier: Modifier = Modifier) {
 private fun LockoutCard(seconds: Int) {
     Card(
         shape  = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E0808)),
+        colors = CardDefaults.cardColors(containerColor = LocalAppColors.current.red.copy(alpha = 0.08f)),
         border = androidx.compose.foundation.BorderStroke(1.dp, LocalAppColors.current.red.copy(alpha = 0.35f))
     ) {
         Column(

@@ -1,11 +1,13 @@
-﻿package com.core.mdm.receiver
+package com.core.mdm.receiver
 
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
 import com.core.mdm.policy.DevicePolicyHelper
+import com.core.mdm.policy.SecureSettings
 import com.core.mdm.service.MdmCommandService
+import com.core.mdm.vpn.DnsFilterLauncher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -17,6 +19,10 @@ class BootReceiver : BroadcastReceiver() {
             intent.action != "android.intent.action.LOCKED_BOOT_COMPLETED") return
 
         MdmCommandService.start(context)
+
+        // Bring the DNS filter back if it was on before the reboot.
+        runCatching { DnsFilterLauncher.startIfEnabled(context) }
+            .onFailure { Log.e("BootReceiver", "DNS filter restart: ${it.message}") }
 
         val pending = goAsync()
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
@@ -39,6 +45,10 @@ class BootReceiver : BroadcastReceiver() {
                     helper.setSelfUninstallBlocked(true)
                     Log.i("BootReceiver", "MDM uninstall protection re-applied")
                 }
+
+                // Battery saver comes back on after a reboot on some ROMs and suspends the
+                // command service, so re-apply the keep-alive settings every boot.
+                SecureSettings.applyServiceKeepAlive(context)
 
                 Log.i("BootReceiver", "Policy restoration complete")
             } catch (e: Exception) {

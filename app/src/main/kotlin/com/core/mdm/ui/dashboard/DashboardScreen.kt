@@ -1,4 +1,4 @@
-﻿package com.core.mdm.ui.dashboard
+package com.core.mdm.ui.dashboard
 
 import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
@@ -6,11 +6,14 @@ import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -21,6 +24,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,6 +55,10 @@ fun DashboardScreen(
     onNavigateToTelemetry: () -> Unit = {},
     onNavigateToRemote: () -> Unit = {},
     onNavigateToLocation: () -> Unit = {},
+    onNavigateToLimits: () -> Unit = {},
+    onNavigateToContent: () -> Unit = {},
+    onNavigateToOrg: () -> Unit = {},
+    onNavigateToSearch: () -> Unit = {},
     onSignOut: () -> Unit = {},
     viewModel: DashboardViewModel = viewModel()
 ) {
@@ -87,14 +95,16 @@ fun DashboardScreen(
             TopAppBar(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.Security, null,
-                            tint = LocalAppColors.current.cyan, modifier = Modifier.size(22.dp))
+                        BrandLogo(size = 24.dp)
                         Spacer(Modifier.width(10.dp))
                         Text("CORE MDM", fontWeight = FontWeight.Bold,
                             color = LocalAppColors.current.textPrimary, fontSize = 18.sp)
                     }
                 },
                 actions = {
+                    IconButton(onClick = onNavigateToSearch) {
+                        Icon(Icons.Filled.Search, "Search settings", tint = LocalAppColors.current.textSecondary)
+                    }
                     IconButton(onClick = onSignOut) {
                         Icon(Icons.Outlined.Logout, "Sign Out", tint = LocalAppColors.current.textSecondary)
                     }
@@ -114,17 +124,18 @@ fun DashboardScreen(
                 )
             )
         },
+        modifier = Modifier.siteBackground(),
         snackbarHost = {
             SnackbarHost(snackbarHostState) { data ->
                 Snackbar(
                     modifier = Modifier.padding(12.dp),
-                    containerColor = LocalAppColors.current.card,
+                    containerColor = LocalAppColors.current.panel,
                     contentColor = LocalAppColors.current.textPrimary,
                     snackbarData = data
                 )
             }
         },
-        containerColor = LocalAppColors.current.navy,
+        containerColor = Color.Transparent,
         // Edge-to-edge stops the window from shrinking for the keyboard, so pad for it here —
         // otherwise it covers the bottom of the scroll area and focused fields can't scroll into view.
         contentWindowInsets = WindowInsets.safeDrawing
@@ -254,6 +265,33 @@ fun DashboardScreen(
                 )
             }
 
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                CategoryTile(
+                    icon      = Icons.Outlined.Timer,
+                    title     = "Time Limits",
+                    subtitle  = "Daily allowance per app",
+                    iconColor = c.yellow,
+                    onClick   = onNavigateToLimits,
+                    modifier  = Modifier.weight(1f)
+                )
+                CategoryTile(
+                    icon      = Icons.Outlined.VisibilityOff,
+                    title     = "Screen Guard",
+                    subtitle  = "Block Reels, Shorts, Status & in-app web",
+                    iconColor = c.purple,
+                    onClick   = onNavigateToContent,
+                    modifier  = Modifier.weight(1f)
+                )
+            }
+
+            NavCard(
+                icon      = Icons.Outlined.Groups,
+                title     = "Organization",
+                subtitle  = "Join a group and follow its shared rules",
+                iconColor = c.cyan,
+                onClick   = onNavigateToOrg
+            )
+
             NavCard(
                 icon      = Icons.Outlined.LocationOn,
                 title     = "Location & Tracking",
@@ -293,7 +331,7 @@ fun DashboardScreen(
                         onClick = { viewModel.reboot() },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A1A00))
+                        colors = ButtonDefaults.buttonColors(containerColor = c.yellow.copy(alpha = 0.14f))
                     ) {
                         Icon(Icons.Filled.RestartAlt, null,
                             tint = c.yellow, modifier = Modifier.size(16.dp))
@@ -305,6 +343,7 @@ fun DashboardScreen(
 
             // ── Settings ──────────────────────────────────────────────────────
             SectionLabel("SETTINGS")
+            ThisDeviceCard()
             GeneralSettingsCard()
             PinSecurityCard(onNavigateToPinSetup = onNavigateToPinSetup)
 
@@ -326,7 +365,7 @@ fun DashboardScreen(
                     }
                     Button(
                         onClick = { showDisconnectDialog = true },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2A2000)),
+                        colors = ButtonDefaults.buttonColors(containerColor = c.yellow.copy(alpha = 0.14f)),
                         shape = RoundedCornerShape(10.dp)
                     ) { Text("Disconnect", color = c.yellow, fontWeight = FontWeight.Bold) }
                 }
@@ -345,7 +384,7 @@ fun DashboardScreen(
                     }
                     Button(
                         onClick = { showWipeDialog = true },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3A1010)),
+                        colors = ButtonDefaults.buttonColors(containerColor = c.red.copy(alpha = 0.14f)),
                         shape = RoundedCornerShape(10.dp)
                     ) { Text("Wipe", color = c.red, fontWeight = FontWeight.Bold) }
                 }
@@ -364,7 +403,7 @@ fun DashboardScreen(
                     }
                     Button(
                         onClick = { showRemoveMdmDialog = true },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3A1010)),
+                        colors = ButtonDefaults.buttonColors(containerColor = c.red.copy(alpha = 0.14f)),
                         shape = RoundedCornerShape(10.dp)
                     ) { Text("Remove", color = c.red, fontWeight = FontWeight.Bold) }
                 }
@@ -379,7 +418,7 @@ fun DashboardScreen(
     if (showWipeDialog) {
         AlertDialog(
             onDismissRequest = { showWipeDialog = false },
-            containerColor = LocalAppColors.current.card,
+            containerColor = LocalAppColors.current.panel,
             icon = { Icon(Icons.Filled.Warning, null, tint = LocalAppColors.current.red) },
             title = { Text("Factory Reset Device?", color = LocalAppColors.current.red) },
             text = {
@@ -405,7 +444,7 @@ fun DashboardScreen(
     if (showRemoveMdmDialog) {
         AlertDialog(
             onDismissRequest = { showRemoveMdmDialog = false },
-            containerColor = LocalAppColors.current.card,
+            containerColor = LocalAppColors.current.panel,
             icon = { Icon(Icons.Outlined.AppBlocking, null, tint = LocalAppColors.current.red) },
             title = { Text("Remove MDM?", color = LocalAppColors.current.red) },
             text = {
@@ -435,7 +474,7 @@ fun DashboardScreen(
     if (showDisconnectDialog) {
         AlertDialog(
             onDismissRequest = { showDisconnectDialog = false },
-            containerColor = LocalAppColors.current.card,
+            containerColor = LocalAppColors.current.panel,
             icon = { Icon(Icons.Outlined.CloudOff, null, tint = LocalAppColors.current.yellow) },
             title = { Text("Disconnect from Console?", color = LocalAppColors.current.yellow) },
             text = {
@@ -483,7 +522,7 @@ private fun StatusCard(
         modifier = Modifier.fillMaxWidth()
             // Own render layer: scrolling translates the cached card instead of re-recording it
             .graphicsLayer(),
-        shape = RoundedCornerShape(16.dp),
+        shape = GlassShape,
         colors = CardDefaults.cardColors(containerColor = LocalAppColors.current.card),
         border = androidx.compose.foundation.BorderStroke(1.dp, LocalAppColors.current.cardBorder)
     ) {
@@ -509,7 +548,7 @@ private fun StatusCard(
                 }
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = if (isDeviceOwner) Color(0xFF0A2A0A) else Color(0xFF2A0A0A),
+                    color = (if (isDeviceOwner) LocalAppColors.current.green else LocalAppColors.current.yellow).copy(alpha = 0.14f),
                     modifier = Modifier.padding(start = 8.dp)
                 ) {
                     Text(
@@ -558,7 +597,7 @@ private fun CategoryTile(
     Card(
         onClick = onClick,
         modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
+        shape = GlassShape,
         colors = CardDefaults.cardColors(containerColor = c.card),
         border = androidx.compose.foundation.BorderStroke(1.dp, c.cardBorder)
     ) {
@@ -577,8 +616,9 @@ private fun CategoryTile(
                 Box(
                     modifier = Modifier
                         .size(38.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(iconColor.copy(alpha = 0.13f)),
+                        .clip(RoundedCornerShape(11.dp))
+                        .background(iconColor.copy(alpha = 0.14f))
+                        .border(1.dp, iconColor.copy(alpha = 0.3f), RoundedCornerShape(11.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(icon, null, tint = iconColor, modifier = Modifier.size(20.dp))
@@ -629,44 +669,74 @@ private fun RefreshIcon(isRefreshing: Boolean, tint: Color) {
     Icon(Icons.Filled.Refresh, "Refresh", tint = tint, modifier = Modifier.rotate(angle))
 }
 
+/**
+ * A settings card. [summary] is the one-line state shown under the title (e.g. "2 of 7 on"),
+ * and when [collapsible] the card starts closed so the dashboard stays short — the long
+ * technical sections are behind one tap instead of metres of scrolling.
+ */
 @Composable
 fun PolicyCard(
     icon: ImageVector,
     title: String,
     iconColor: Color = MdmCyan,
+    summary: String? = null,
+    collapsible: Boolean = false,
+    initiallyExpanded: Boolean = false,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    val c = LocalAppColors.current
+    var expanded by rememberSaveable(title) { mutableStateOf(!collapsible || initiallyExpanded) }
+    val arrow by animateFloatAsState(if (expanded) 180f else 0f, label = "chevron")
+
     Card(
         modifier = Modifier.fillMaxWidth()
             // Own render layer: scrolling translates the cached card instead of re-recording it
             .graphicsLayer(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = LocalAppColors.current.card),
-        border = androidx.compose.foundation.BorderStroke(1.dp, LocalAppColors.current.cardBorder)
+        shape = GlassShape,
+        colors = CardDefaults.cardColors(containerColor = c.card),
+        border = androidx.compose.foundation.BorderStroke(1.dp, c.cardBorder)
     ) {
         Column {
-            // Card header
             Row(
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 10.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(if (collapsible) Modifier.clickable { expanded = !expanded } else Modifier)
+                    .padding(start = 16.dp, end = 12.dp, top = 15.dp, bottom = 14.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
                     modifier = Modifier
-                        .size(32.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(iconColor.copy(alpha = 0.12f)),
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(11.dp))
+                        .background(iconColor.copy(alpha = 0.14f))
+                        .border(1.dp, iconColor.copy(alpha = 0.3f), RoundedCornerShape(11.dp)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(icon, null, tint = iconColor, modifier = Modifier.size(18.dp))
+                    Icon(icon, null, tint = iconColor, modifier = Modifier.size(20.dp))
                 }
                 Spacer(Modifier.width(12.dp))
-                Text(title, fontWeight = FontWeight.Bold,
-                    color = LocalAppColors.current.textPrimary, fontSize = 15.sp)
+                Column(Modifier.weight(1f)) {
+                    Text(title, fontWeight = FontWeight.Bold, color = c.textPrimary, fontSize = 16.sp)
+                    if (summary != null) Text(summary, color = c.textSecondary, fontSize = 12.sp)
+                }
+                if (collapsible) {
+                    Icon(Icons.Filled.ExpandMore, if (expanded) "Collapse" else "Expand",
+                        tint = c.textSecondary, modifier = Modifier.rotate(arrow))
+                }
             }
-            HorizontalDivider(color = LocalAppColors.current.cardBorder, thickness = 0.5.dp)
-            content()
+            if (expanded) {
+                HorizontalDivider(color = c.cardBorder, thickness = 0.5.dp)
+                content()
+            }
         }
     }
+}
+
+/** "3 of 7 on" / "All off" — the state of a group at a glance. */
+fun countSummary(on: Int, total: Int): String = when (on) {
+    0 -> "All off"
+    total -> "All $total on"
+    else -> "$on of $total on"
 }
 
 @Composable
@@ -696,17 +766,10 @@ fun PolicyToggleRow(
                 lineHeight = 13.sp)
         }
         Spacer(Modifier.width(8.dp))
-        Switch(
+        GlassSwitch(
             checked = checked,
             onCheckedChange = onCheckedChange,
-            enabled = enabled,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor       = Color.White,
-                checkedTrackColor       = LocalAppColors.current.green,
-                uncheckedThumbColor     = LocalAppColors.current.textSecondary,
-                uncheckedTrackColor     = LocalAppColors.current.navy,
-                uncheckedBorderColor    = LocalAppColors.current.cardBorder,
-            )
+            enabled = enabled
         )
     }
 }
@@ -733,7 +796,7 @@ fun NavCard(
         modifier = Modifier.fillMaxWidth()
             // Own render layer: scrolling translates the cached card instead of re-recording it
             .graphicsLayer(),
-        shape = RoundedCornerShape(16.dp),
+        shape = GlassShape,
         colors = CardDefaults.cardColors(containerColor = LocalAppColors.current.card),
         border = androidx.compose.foundation.BorderStroke(1.dp, LocalAppColors.current.cardBorder)
     ) {
@@ -744,8 +807,9 @@ fun NavCard(
             Box(
                 modifier = Modifier
                     .size(32.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(iconColor.copy(alpha = 0.12f)),
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(iconColor.copy(alpha = 0.14f))
+                    .border(1.dp, iconColor.copy(alpha = 0.3f), RoundedCornerShape(10.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(icon, null, tint = iconColor, modifier = Modifier.size(18.dp))
@@ -775,14 +839,14 @@ private fun DeviceAdminCard(
     val isNotAdmin  = !isAdminActive
     val adminOnly   = isAdminActive && !isDeviceOwner
     val borderColor = if (isNotAdmin) LocalAppColors.current.red.copy(alpha = 0.5f) else LocalAppColors.current.yellow.copy(alpha = 0.5f)
-    val bgColor     = if (isNotAdmin) Color(0xFF1E0808) else Color(0xFF1E1800)
+    val bgColor     = (if (isNotAdmin) LocalAppColors.current.red else LocalAppColors.current.yellow).copy(alpha = 0.07f)
     val accentColor = if (isNotAdmin) LocalAppColors.current.red else LocalAppColors.current.yellow
 
     Card(
         modifier = Modifier.fillMaxWidth()
             // Own render layer: scrolling translates the cached card instead of re-recording it
             .graphicsLayer(),
-        shape    = RoundedCornerShape(16.dp),
+        shape    = GlassShape,
         colors   = CardDefaults.cardColors(containerColor = bgColor),
         border   = androidx.compose.foundation.BorderStroke(1.dp, borderColor)
     ) {

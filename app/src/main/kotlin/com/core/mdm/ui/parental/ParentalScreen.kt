@@ -22,7 +22,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.core.mdm.policy.ScreenTimeScheduler
-import com.core.mdm.ui.theme.LocalAppColors
+import com.core.mdm.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,12 +63,13 @@ fun ParentalScreen(
         snackbarHost = {
             SnackbarHost(snackbarHost) { data ->
                 Snackbar(modifier = Modifier.padding(12.dp),
-                    containerColor = LocalAppColors.current.card,
+                    containerColor = LocalAppColors.current.panel,
                     contentColor = LocalAppColors.current.textPrimary,
                     snackbarData = data)
             }
         },
-        containerColor = LocalAppColors.current.navy,
+        containerColor = Color.Transparent,
+        modifier = Modifier.siteBackground(),
         contentWindowInsets = WindowInsets.safeDrawing
     ) { padding ->
         Column(
@@ -130,7 +131,7 @@ private fun ScreenTimeCard(
     onSetEnd: (String) -> Unit,
 ) {
     val colors = LocalAppColors.current
-    val bg     = if (enabled) Color(0xFF0A1520) else Color(0xFF1A1A1A)
+    val bg     = if (enabled) colors.cyan.copy(alpha = 0.08f) else colors.card
     val border = if (enabled) colors.cyan.copy(alpha = 0.5f) else colors.cardBorder
 
     var showStartPicker by remember { mutableStateOf(false) }
@@ -138,7 +139,7 @@ private fun ScreenTimeCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape    = RoundedCornerShape(16.dp),
+        shape    = GlassShape,
         colors   = CardDefaults.cardColors(containerColor = bg),
         border   = BorderStroke(1.dp, border)
     ) {
@@ -161,14 +162,9 @@ private fun ScreenTimeCard(
                         color = colors.textSecondary, fontSize = 12.sp
                     )
                 }
-                Switch(
+                GlassSwitch(
                     checked = enabled,
-                    onCheckedChange = onToggle,
-                    colors = SwitchDefaults.colors(
-                        checkedTrackColor    = colors.cyan,
-                        uncheckedTrackColor  = colors.navy,
-                        uncheckedBorderColor = colors.cardBorder
-                    )
+                    onCheckedChange = onToggle
                 )
             }
 
@@ -326,12 +322,12 @@ private fun ParentalToggleCard(
     color: Color,
 ) {
     val colors = LocalAppColors.current
-    val bg     = if (checked) Color(0xFF1A1520) else Color(0xFF1A1A1A)
+    val bg     = if (checked) color.copy(alpha = 0.08f) else colors.card
     val border = if (checked) color.copy(alpha = 0.5f) else colors.cardBorder
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape    = RoundedCornerShape(16.dp),
+        shape    = GlassShape,
         colors   = CardDefaults.cardColors(containerColor = bg),
         border   = BorderStroke(1.dp, border)
     ) {
@@ -348,14 +344,9 @@ private fun ParentalToggleCard(
                     color = if (checked) color else colors.textSecondary, fontSize = 15.sp)
                 Text(subtitle, color = colors.textSecondary, fontSize = 12.sp)
             }
-            Switch(
+            GlassSwitch(
                 checked = checked,
-                onCheckedChange = onToggle,
-                colors = SwitchDefaults.colors(
-                    checkedTrackColor    = color,
-                    uncheckedTrackColor  = colors.navy,
-                    uncheckedBorderColor = colors.cardBorder
-                )
+                onCheckedChange = onToggle
             )
         }
     }

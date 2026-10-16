@@ -1,4 +1,4 @@
-﻿package com.core.mdm
+package com.core.mdm
 
 import android.app.Application
 import android.util.Log
@@ -25,6 +25,10 @@ class MdmApplication : Application() {
         // AppLockState defaults to locked. Always stay locked on process start — the
         // PIN screen (VERIFY or SETUP) is the first thing the user sees every time.
         PinManager.getInstance(this)
+        // The lock screen shows the organization's branding before anything has synced.
+        com.core.mdm.org.OrgState.init(this)
+        // CoreMDM's own notifications: granted silently when Device Owner (MainActivity asks otherwise).
+        NotificationAccess.grantAsOwner(this)
 
         val helper = DevicePolicyHelper.getInstance(this)
         if (helper.isAdminActive) {

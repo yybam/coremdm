@@ -30,7 +30,7 @@ import androidx.credentials.exceptions.GetCredentialException
 import androidx.credentials.exceptions.NoCredentialException
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.core.mdm.ui.theme.LocalAppColors
+import com.core.mdm.ui.theme.*
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
@@ -55,7 +55,7 @@ fun LoginScreen(vm: LoginViewModel = viewModel()) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(c.navy)
+            .siteBackground()
             // System bars + keyboard: edge-to-edge stops the window from shrinking for the keyboard.
             .safeDrawingPadding(),
         contentAlignment = Alignment.Center
@@ -70,7 +70,7 @@ fun LoginScreen(vm: LoginViewModel = viewModel()) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Icon(Icons.Filled.Security, null, tint = c.cyan, modifier = Modifier.size(56.dp))
+            BrandLogo(size = 72.dp)
             Text("CORE MDM", fontWeight = FontWeight.Bold, color = c.textPrimary, fontSize = 24.sp, letterSpacing = 2.sp)
             Text(
                 if (isSignUp) "Create your account" else "Sign in to manage your devices",
@@ -122,22 +122,20 @@ fun LoginScreen(vm: LoginViewModel = viewModel()) {
                 Text(state.error ?: "", color = c.red, fontSize = 12.sp, modifier = Modifier.fillMaxWidth())
             }
 
-            Button(
+            GradientButton(
                 onClick = {
                     focusManager.clearFocus()
                     if (isSignUp) vm.signUp(email, password) else vm.signIn(email, password)
                 },
                 modifier = Modifier.fillMaxWidth().height(52.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = c.cyan),
                 enabled = !state.isLoading && email.isNotBlank() && password.isNotBlank()
             ) {
                 if (state.isLoading) {
-                    CircularProgressIndicator(color = Color.Black, modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                 } else {
                     Text(
                         if (isSignUp) "Create Account" else "Sign In",
-                        color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 15.sp
+                        color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 15.sp
                     )
                 }
             }
@@ -227,7 +225,7 @@ fun LoginScreen(vm: LoginViewModel = viewModel()) {
         var resetEmail by remember { mutableStateOf(email) }
         AlertDialog(
             onDismissRequest = { showResetDialog = false; vm.clearResetSent() },
-            containerColor = c.card,
+            containerColor = c.panel,
             icon  = { Icon(Icons.Outlined.LockReset, null, tint = c.cyan) },
             title = { Text("Reset Password", color = c.textPrimary) },
             text  = {

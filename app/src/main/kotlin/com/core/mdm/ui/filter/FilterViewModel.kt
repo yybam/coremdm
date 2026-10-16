@@ -1,4 +1,4 @@
-﻿package com.core.mdm.ui.filter
+package com.core.mdm.ui.filter
 
 import android.app.Application
 import android.content.Intent
@@ -15,17 +15,17 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class FilterUiState(
-    val isFilterRunning: Boolean      = false,
+    val isFilterRunning: Boolean     = false,
     val isDummyBrowserEnabled: Boolean = false,
-    val useDefaultBlocklist: Boolean  = true,
-    val customBlocked: List<String>   = emptyList(),
-    val importedCount: Int            = 0,
-    val whitelist: List<String>       = emptyList(),
-    val blocklistUrl: String          = "",
-    val upstreamDns: String           = "1.1.1.1",
-    val isFetching: Boolean           = false,
-    val snackbar: String?             = null,
-    val vpnPermissionIntent: Intent?  = null,  // non-null triggers permission dialog
+    val useDefaultBlocklist: Boolean = true,
+    val customBlocked: List<String>  = emptyList(),
+    val importedCount: Int           = 0,
+    val whitelist: List<String>      = emptyList(),
+    val blocklistUrl: String         = "",
+    val upstreamDns: String          = "1.1.1.1",
+    val isFetching: Boolean          = false,
+    val snackbar: String?            = null,
+    val vpnPermissionIntent: Intent? = null,  // non-null triggers permission dialog
 )
 
 class FilterViewModel(application: Application) : AndroidViewModel(application) {
@@ -53,13 +53,13 @@ class FilterViewModel(application: Application) : AndroidViewModel(application) 
     fun reload() {
         _state.update {
             it.copy(
-                useDefaultBlocklist   = repo.useDefaultBlocklist,
-                customBlocked         = repo.getCustomBlocked().sorted(),
-                importedCount         = repo.importedCount,
-                whitelist             = repo.getWhitelist().sorted(),
-                blocklistUrl          = repo.blocklistUrl,
-                upstreamDns           = repo.upstreamDns,
-                isFilterRunning       = DnsVpnService.isRunning.value,
+                useDefaultBlocklist = repo.useDefaultBlocklist,
+                customBlocked       = repo.getCustomBlocked().sorted(),
+                importedCount       = repo.importedCount,
+                whitelist           = repo.getWhitelist().sorted(),
+                blocklistUrl        = repo.blocklistUrl,
+                upstreamDns         = repo.upstreamDns,
+                isFilterRunning     = DnsVpnService.isRunning.value,
                 isDummyBrowserEnabled = DummyBrowserVpnService.isRunning.value,
             )
         }
@@ -91,69 +91,55 @@ class FilterViewModel(application: Application) : AndroidViewModel(application) 
         val intent = Intent(getApplication(), DnsVpnService::class.java)
             .setAction(DnsVpnService.ACTION_START)
         getApplication<Application>().startService(intent)
+        sync("filterRunning", true)
     }
 
     private fun stopFilter() {
         val intent = Intent(getApplication(), DnsVpnService::class.java)
             .setAction(DnsVpnService.ACTION_STOP)
         getApplication<Application>().startService(intent)
-    }
-
-    // ── Dummy browser toggle ──────────────────────────────────────────────────
-
-    fun requestToggleDummyBrowser() {
-        val app = getApplication<Application>()
-        if (DummyBrowserVpnService.isRunning.value) {
-            app.startService(
-                Intent(app, DummyBrowserVpnService::class.java)
-                    .setAction(DummyBrowserVpnService.ACTION_STOP)
-            )
-        } else {
-            val permIntent = VpnService.prepare(app)
-            if (permIntent == null) {
-                app.startService(
-                    Intent(app, DummyBrowserVpnService::class.java)
-                        .setAction(DummyBrowserVpnService.ACTION_START)
-                )
-            } else {
-                _state.update { it.copy(vpnPermissionIntent = permIntent) }
-            }
-        }
+        sync("filterRunning", false)
     }
 
     // ── Blocklist management ──────────────────────────────────────────────────
 
     fun setUseDefaultBlocklist(v: Boolean) {
         repo.useDefaultBlocklist = v
+        sync(com.core.mdm.firebase.LocalSettingsSync.FILTER_DEFAULT, v)
         _state.update { it.copy(useDefaultBlocklist = v) }
     }
 
     fun addBlocked(domain: String) {
         if (domain.isBlank()) return
         repo.addBlocked(domain)
+        sync(com.core.mdm.firebase.LocalSettingsSync.FILTER_BLOCKED, repo.getCustomBlocked().sorted())
         _state.update { it.copy(customBlocked = repo.getCustomBlocked().sorted()) }
         toast("$domain added to blocklist")
     }
 
     fun removeBlocked(domain: String) {
         repo.removeBlocked(domain)
+        sync(com.core.mdm.firebase.LocalSettingsSync.FILTER_BLOCKED, repo.getCustomBlocked().sorted())
         _state.update { it.copy(customBlocked = repo.getCustomBlocked().sorted()) }
     }
 
     fun addWhitelisted(domain: String) {
         if (domain.isBlank()) return
         repo.addWhitelisted(domain)
+        sync(com.core.mdm.firebase.LocalSettingsSync.FILTER_ALLOWED, repo.getWhitelist().sorted())
         _state.update { it.copy(whitelist = repo.getWhitelist().sorted()) }
         toast("$domain added to whitelist")
     }
 
     fun removeWhitelisted(domain: String) {
         repo.removeWhitelisted(domain)
+        sync(com.core.mdm.firebase.LocalSettingsSync.FILTER_ALLOWED, repo.getWhitelist().sorted())
         _state.update { it.copy(whitelist = repo.getWhitelist().sorted()) }
     }
 
     fun setUpstreamDns(dns: String) {
         repo.upstreamDns = dns
+        sync(com.core.mdm.firebase.LocalSettingsSync.FILTER_DNS, dns)
         _state.update { it.copy(upstreamDns = dns) }
     }
 
@@ -161,6 +147,7 @@ class FilterViewModel(application: Application) : AndroidViewModel(application) 
 
     fun setBlocklistUrl(url: String) {
         repo.blocklistUrl = url
+        sync(com.core.mdm.firebase.LocalSettingsSync.FILTER_LIST_URL, url)
         _state.update { it.copy(blocklistUrl = url) }
     }
 
@@ -187,6 +174,32 @@ class FilterViewModel(application: Application) : AndroidViewModel(application) 
         _state.update { it.copy(importedCount = 0) }
         toast("Imported domains cleared")
     }
+
+    // ── Dummy browser toggle ──────────────────────────────────────────────────
+
+    fun requestToggleDummyBrowser() {
+        val app = getApplication<Application>()
+        if (DummyBrowserVpnService.isRunning.value) {
+            app.startService(
+                Intent(app, DummyBrowserVpnService::class.java)
+                    .setAction(DummyBrowserVpnService.ACTION_STOP)
+            )
+        } else {
+            val permIntent = VpnService.prepare(app)
+            if (permIntent == null) {
+                app.startService(
+                    Intent(app, DummyBrowserVpnService::class.java)
+                        .setAction(DummyBrowserVpnService.ACTION_START)
+                )
+            } else {
+                _state.update { it.copy(vpnPermissionIntent = permIntent) }
+            }
+        }
+    }
+
+    /** Saves a change made here so the website shows it too. */
+    private fun sync(key: String, value: Any) =
+        com.core.mdm.firebase.RemotePolicies.record(getApplication(), key, value)
 
     fun clearSnackbar() = _state.update { it.copy(snackbar = null) }
 

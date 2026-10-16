@@ -9,6 +9,8 @@ import android.os.UserManager
 import android.util.Log
 import com.core.mdm.MdmDeviceAdmin
 import com.core.mdm.vpn.DnsVpnService
+import com.core.mdm.vpn.FilterLockdown
+import com.core.mdm.vpn.FilterSettings
 
 class DevicePolicyHelper private constructor(private val context: Context) {
 
@@ -47,6 +49,22 @@ class DevicePolicyHelper private constructor(private val context: Context) {
             "com.duckduckgo.mobile.android",
             "com.UCMobile.intl",             // UC Browser
             "com.kiwibrowser.browser",
+        )
+
+        /** Dialler apps hidden alongside the all-calls restriction. */
+        val DIALLER_PACKAGES = listOf(
+            "com.google.android.dialer",
+            "com.android.dialer",
+            "com.samsung.android.dialer",
+            "com.android.server.telecom",
+        )
+
+        /** System WebView providers (AOSP, Google, and their beta/dev channels). */
+        val WEBVIEW_PACKAGES = listOf(
+            "com.google.android.webview",
+            "com.android.webview",
+            "com.google.android.webview.beta",
+            "com.google.android.webview.dev",
         )
 
         fun getInstance(context: Context): DevicePolicyHelper =
@@ -180,6 +198,12 @@ class DevicePolicyHelper private constructor(private val context: Context) {
 
     fun setPrivateDnsHostname(host: String): Boolean {
         if (!isDeviceOwner) return false
+        // A Private DNS host would send every lookup around the DNS filter, so it waits until
+        // the filter is switched off.
+        if (FilterSettings.getInstance(context).enabled) {
+            Log.w(TAG, "setPrivateDnsHostname refused: the DNS filter is on")
+            return false
+        }
         return runCatching {
             dpm.setGlobalSetting(admin, "private_dns_mode", "hostname")
             dpm.setGlobalSetting(admin, "private_dns_specifier", host)
@@ -198,7 +222,10 @@ class DevicePolicyHelper private constructor(private val context: Context) {
         runCatching {
             dpm.setGlobalSetting(admin, "private_dns_mode", "opportunistic")
             dpm.setGlobalSetting(admin, "private_dns_specifier", "")
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            // While the DNS filter runs, the setting stays locked (FilterLockdown) so it can't be
+            // pointed around the filter from Settings.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
+                !FilterSettings.getInstance(context).enabled) {
                 unrestrict(UserManager.DISALLOW_CONFIG_PRIVATE_DNS)
             }
         }
@@ -212,17 +239,17 @@ class DevicePolicyHelper private constructor(private val context: Context) {
      * as the always-on VPN — this both pre-authorizes the tunnel and (re)starts the service.
      * Used so the "content filter" toggle works straight from the console.
      *
+     * Turning it on also applies the rest of [FilterLockdown] (Private DNS locked, uninstall
+     * blocked); turning it off releases them.
+     *
      * @return true if handled here (Device Owner). false means the caller should fall back to
      *         starting the service directly (which still needs manual consent).
      */
     fun setContentFilterVpnEnabled(enable: Boolean): Boolean {
         if (!isDeviceOwner || Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return false
         return runCatching {
-            if (enable) {
-                dpm.setAlwaysOnVpnPackage(admin, context.packageName, false)
-            } else if (dpm.getAlwaysOnVpnPackage(admin) == context.packageName) {
-                dpm.setAlwaysOnVpnPackage(admin, null, false)
-            }
+            FilterSettings.getInstance(context).enabled = enable
+            if (enable) FilterLockdown.apply(context) else FilterLockdown.release(context)
             Log.i(TAG, "Content filter VPN always-on ${if (enable) "enabled" else "disabled"}")
             true
         }.getOrElse {
@@ -301,6 +328,41 @@ class DevicePolicyHelper private constructor(private val context: Context) {
     /** Prevents mounting physical media (SD card). API 24+. */
     fun setPhysicalMediaBlocked(blocked: Boolean): Boolean =
         setRestriction(android.os.UserManager.DISALLOW_MOUNT_PHYSICAL_MEDIA, blocked)
+
+    /**
+     * Blocks the Settings screens that would let someone uninstall an app, force-stop it, or
+     * clear its data — the usual way of knocking the MDM out or resetting a blocked app.
+     */
+    fun setAppsControlBlocked(blocked: Boolean): Boolean =
+        setRestriction(android.os.UserManager.DISALLOW_APPS_CONTROL, blocked)
+
+    /** Blocks Wi-Fi hotspot / tethering. */
+    fun setTetheringBlocked(blocked: Boolean): Boolean =
+        setRestriction(android.os.UserManager.DISALLOW_CONFIG_TETHERING, blocked)
+
+    /**
+     * Blocks outgoing calls and, on Android 11+, hides the dialler so calls can't be started
+     * from the launcher either. Emergency calls always remain possible — Android enforces that.
+     */
+    fun setAllCallsBlocked(blocked: Boolean): Boolean {
+        val ok = setRestriction(android.os.UserManager.DISALLOW_OUTGOING_CALLS, blocked)
+        DIALLER_PACKAGES.forEach { runCatching { dpm.setApplicationHidden(admin, it, blocked) } }
+        return ok
+    }
+
+    /**
+     * Hides the system WebView provider, which stops in-app web pages in every app. Android has
+     * no per-app WebView permission, so this is all-or-nothing: apps that render screens with
+     * WebView (some banking, mail and help pages) show blank content while it's on.
+     */
+    fun setWebViewDisabled(disabled: Boolean): Boolean {
+        if (!isDeviceOwner) return false
+        WEBVIEW_PACKAGES.forEach { pkg ->
+            runCatching { dpm.setApplicationHidden(admin, pkg, disabled) }
+                .onFailure { Log.w(TAG, "setWebViewDisabled($pkg): ${it.message}") }
+        }
+        return true
+    }
 
     // ── Uninstall protection ──────────────────────────────────────────────────
 
@@ -429,6 +491,12 @@ class DevicePolicyHelper private constructor(private val context: Context) {
             runCatching { setScreenCaptureDisabled(false) }
             runCatching { setStatusBarDisabled(false) }
             runCatching { setKeyguardDisabled(false) }
+            // Right now, not via the service below: that runs later, after Device Owner is gone,
+            // and a leftover always-on VPN would leave the phone with no internet.
+            runCatching {
+                FilterSettings.getInstance(context).enabled = false
+                FilterLockdown.release(context)
+            }.onFailure { Log.w(TAG, "release filter lockdown: ${it.message}") }
             runCatching { clearPrivateDns() }
             // Must happen before clearDeviceOwnerApp() below, or the uninstall this whole
             // flow leads to (see MdmDeviceAdmin.onDisabled) can end up blocked.

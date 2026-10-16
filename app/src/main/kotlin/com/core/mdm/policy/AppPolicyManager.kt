@@ -160,15 +160,26 @@ class AppPolicyManager(
         loadIcons: Boolean = true
     ): List<AppStatus> {
         val pm = context.packageManager
-        return pm.getInstalledApplications(PackageManager.GET_META_DATA)
-            .filter { ai ->
-                includeSystem || (ai.flags and ApplicationInfo.FLAG_SYSTEM) == 0
-            }
-            .map { ai ->
+        // Hidden apps count as "uninstalled" for this user, so a plain query leaves them out —
+        // which made hidden apps impossible to find and unhide. Ask for them explicitly, then
+        // keep only apps that are really installed or that we hid.
+        @Suppress("DEPRECATION")
+        val flags = PackageManager.GET_META_DATA or
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) PackageManager.MATCH_UNINSTALLED_PACKAGES
+            else PackageManager.GET_UNINSTALLED_PACKAGES
+        return pm.getInstalledApplications(flags)
+            .asSequence()
+            .filter { it.packageName != context.packageName }
+            .mapNotNull { ai ->
                 val hidden = isPackageHidden(ai.packageName)
+                val installed = (ai.flags and ApplicationInfo.FLAG_INSTALLED) != 0
+                if (!installed && !hidden) return@mapNotNull null
                 val suspended = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                     isPackageSuspended(ai.packageName)
                 } else false
+                // Managed (hidden/paused) system apps always show, so they can be restored.
+                val system = (ai.flags and ApplicationInfo.FLAG_SYSTEM) != 0
+                if (system && !includeSystem && !hidden && !suspended) return@mapNotNull null
 
                 AppStatus(
                     packageName = ai.packageName,
@@ -180,6 +191,7 @@ class AppPolicyManager(
                     isSuspended = suspended
                 )
             }
+            .toList()
             .let { list ->
                 if (sortBlocked)
                     list.sortedWith(compareBy({ it.policyLabel == "Allowed" }, { it.label.lowercase() }))

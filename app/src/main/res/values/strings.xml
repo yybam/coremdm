@@ -3,4 +3,8 @@
     <string name="app_name">CORE MDM</string>
     <string name="device_admin_label">CORE MDM Admin</string>
     <string name="device_admin_description">Required for enterprise device management and policy enforcement</string>
+    <string name="browser_label">CORE MDM Browser</string>
+    <string name="screen_guard_label">CORE MDM screen guard</string>
+    <string name="screen_guard_summary">Blocks the app sections your administrator turned off</string>
+    <string name="screen_guard_description">Lets CORE MDM close app sections your administrator has blocked, such as WhatsApp Status or Channels, Instagram Reels and YouTube Shorts, and web pages inside apps that are not allowed to show them. CORE MDM only checks which screen is open so it can close it — screen content is never recorded, saved or sent anywhere.</string>
 </resources>

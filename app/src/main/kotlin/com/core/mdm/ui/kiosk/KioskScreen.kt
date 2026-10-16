@@ -1,4 +1,4 @@
-﻿package com.core.mdm.ui.kiosk
+package com.core.mdm.ui.kiosk
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -13,6 +13,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -24,7 +25,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.core.mdm.ui.dashboard.PolicyCard
 import com.core.mdm.ui.dashboard.PolicyDivider
-import com.core.mdm.ui.theme.LocalAppColors
+import com.core.mdm.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,6 +42,7 @@ fun KioskScreen(
     }
 
     Scaffold(
+        modifier = Modifier.siteBackground(),
         topBar = {
             TopAppBar(
                 title = {
@@ -61,11 +63,11 @@ fun KioskScreen(
         },
         snackbarHost = {
             SnackbarHost(snackbarHost) { data ->
-                Snackbar(containerColor = c.card, contentColor = c.textPrimary,
+                Snackbar(containerColor = c.panel, contentColor = c.textPrimary,
                     modifier = Modifier.padding(12.dp), snackbarData = data)
             }
         },
-        containerColor = c.navy,
+        containerColor = Color.Transparent,
         // Edge-to-edge stops the window from shrinking for the keyboard, so pad for it here —
         // otherwise it covers the bottom of the scroll area and focused fields can't scroll into view.
         contentWindowInsets = WindowInsets.safeDrawing

@@ -1,0 +1,7 @@
+amazonaws.com
+cdn.com
+cloudflare.com
+scontent.xx.fbcdn.net
+sendwishonline.s3.us-east-2.amazonaws.com
+signalr-relayhub-prod-eu01-4.service.signalr.net
+www.cloudflare.com

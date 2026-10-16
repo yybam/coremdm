@@ -10,6 +10,7 @@ import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.SetOptions
+import com.google.firebase.firestore.Source
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 
@@ -55,6 +56,7 @@ object EnrollmentManager {
 
     private const val PREFS_NAME = "mdm_enrollment"
     private const val KEY_HW_ID  = "hardware_id"
+    private const val KEY_ENROLLED_UID = "enrolled_uid"
 
     /**
      * Returns a stable hardware identifier, cached in SharedPreferences so it
@@ -103,11 +105,14 @@ object EnrollmentManager {
         fcmToken?.let            { metadata["fcmToken"] = it }
 
         Log.i(TAG, "Enrolling device: hardwareId=$hardwareId deviceUid=$uid")
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val markEnrolled = { prefs.edit().putString(KEY_ENROLLED_UID, uid).apply() }
 
         // Try update first — preserves admin-assigned ownerId on existing docs.
         docRef.update(metadata)
             .addOnSuccessListener {
                 Log.i(TAG, "Enroll (update) OK: $hardwareId")
+                markEnrolled()
                 onSuccess?.invoke()
             }
             .addOnFailureListener { err ->
@@ -118,19 +123,47 @@ object EnrollmentManager {
                 val code = (err as? FirebaseFirestoreException)?.code
                 if (code == FirebaseFirestoreException.Code.NOT_FOUND ||
                         code == FirebaseFirestoreException.Code.PERMISSION_DENIED) {
-                    // New device — create the doc and set ownerId to the current user.
-                    val createData = HashMap(metadata)
-                    createData["ownerId"] = uid
-                    docRef.set(createData, SetOptions.merge())
-                        .addOnSuccessListener {
-                            Log.i(TAG, "Enroll (create) OK: $hardwareId")
-                            onSuccess?.invoke()
-                        }
-                        .addOnFailureListener { Log.e(TAG, "Enroll create FAILED: ${it.message}") }
+                    val create = {
+                        // New device — create the doc and set ownerId to the current user.
+                        val createData = HashMap(metadata)
+                        createData["ownerId"] = uid
+                        docRef.set(createData, SetOptions.merge())
+                            .addOnSuccessListener {
+                                Log.i(TAG, "Enroll (create) OK: $hardwareId")
+                                markEnrolled()
+                                onSuccess?.invoke()
+                            }
+                            .addOnFailureListener { Log.e(TAG, "Enroll create FAILED: ${it.message}") }
+                    }
+                    if (wasEnrolled(context)) {
+                        // Already enrolled under this account: if the record is gone on the server
+                        // the owner removed this device from the website — honour that instead of
+                        // silently re-creating it.
+                        docRef.get(Source.SERVER)
+                            .addOnSuccessListener { snap ->
+                                if (snap.exists()) Log.e(TAG, "Enroll update FAILED: ${err.message}")
+                                else DeviceRemoval.handle(context)
+                            }
+                            .addOnFailureListener { Log.w(TAG, "Enrollment check deferred (offline?): ${it.message}") }
+                    } else {
+                        create()
+                    }
                 } else {
                     Log.e(TAG, "Enroll update FAILED: ${err.message}")
                 }
             }
+    }
+
+    /** True once this device has been enrolled under the currently signed-in account. */
+    fun wasEnrolled(context: Context): Boolean {
+        val uid = Firebase.auth.currentUser?.uid ?: return false
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getString(KEY_ENROLLED_UID, null) == uid
+    }
+
+    fun forgetEnrollment(context: Context) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit().remove(KEY_ENROLLED_UID).apply()
     }
 
     fun setOffline(context: Context) {

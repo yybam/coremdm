@@ -1,4 +1,4 @@
-﻿package com.core.mdm.ui.remote
+package com.core.mdm.ui.remote
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -17,7 +17,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.core.mdm.firebase.DeviceInfo
-import com.core.mdm.ui.theme.LocalAppColors
+import com.core.mdm.ui.theme.*
+import androidx.compose.ui.graphics.Color
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -48,7 +49,8 @@ fun RemoteControlScreen(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = c.navyLight)
             )
         },
-        containerColor = c.navy
+        containerColor = Color.Transparent,
+        modifier = Modifier.siteBackground()
     ) { padding ->
         if (devices.isEmpty()) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {

@@ -1,10 +1,15 @@
-﻿package com.core.mdm.ui.theme
+package com.core.mdm.ui.theme
 
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.graphics.Color
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
+/**
+ * Palette mirrors the website's tokens (mdm site/style.css) so the app and the web console
+ * look like one product. `card`/`cardBorder` are translucent "glass" over the glow background;
+ * `panel` is the opaque surface for dialogs, snackbars and anything that floats above content.
+ */
 data class AppColors(
     val cyan: Color,
     val cyanDim: Color,
@@ -12,6 +17,7 @@ data class AppColors(
     val navyLight: Color,
     val card: Color,
     val cardBorder: Color,
+    val panel: Color,
     val green: Color,
     val red: Color,
     val yellow: Color,
@@ -19,40 +25,54 @@ data class AppColors(
     val orange: Color,
     val textPrimary: Color,
     val textSecondary: Color,
+    val accent: Color,
+    val accent2: Color,
+    val gradStart: Color,
+    val gradEnd: Color,
     val isDark: Boolean,
 )
 
 fun darkAppColors() = AppColors(
-    cyan          = Color(0xFF4DD2F0),
-    cyanDim       = Color(0xFF1E6880),
-    navy          = Color(0xFF080814),
-    navyLight     = Color(0xFF0F1028),
-    card          = Color(0xFF141432),
-    cardBorder    = Color(0xFF1E1E42),
-    green         = Color(0xFF22C55E),
-    red           = Color(0xFFEF4444),
-    yellow        = Color(0xFFF59E0B),
-    purple        = Color(0xFF8B5CF6),
-    orange        = Color(0xFFF97316),
-    textPrimary   = Color(0xFFD8E8FF),
-    textSecondary = Color(0xFF667799),
+    cyan          = Color(0xFF7FD0F5),   // site link / console --cyan
+    cyanDim       = Color(0x4D2E9AE6),   // accent @ 30% — tinted buttons & borders
+    navy          = Color(0xFF070A14),   // --bg
+    navyLight     = Color(0xB30A101E),   // .nav glass bar
+    card          = Color(0x12FFFFFF),   // --glass (~7% white)
+    cardBorder    = Color(0x1FFFFFFF),   // --line (12% white)
+    panel         = Color(0xFF131B2E),   // --panel
+    green         = Color(0xFF4ADE9B),   // --ok
+    red           = Color(0xFFFF6B7D),   // --bad
+    yellow        = Color(0xFFFFC15E),   // --warn
+    purple        = Color(0xFF7FE0D0),   // site icon stroke (teal)
+    orange        = Color(0xFFFFA36B),
+    textPrimary   = Color(0xFFEEF1F8),   // --text
+    textSecondary = Color(0x9EE2E8F5),   // --muted
+    accent        = Color(0xFF2E9AE6),
+    accent2       = Color(0xFF2FD39A),
+    gradStart     = Color(0xFF1F7FD6),
+    gradEnd       = Color(0xFF1FB58F),
     isDark        = true,
 )
 
 fun lightAppColors() = AppColors(
-    cyan          = Color(0xFF0288D1),
-    cyanDim       = Color(0xFF0367A6),
-    navy          = Color(0xFFF0F4F8),
-    navyLight     = Color(0xFFFFFFFF),
-    card          = Color(0xFFFFFFFF),
-    cardBorder    = Color(0xFFD0D8E8),
-    green         = Color(0xFF16A34A),
-    red           = Color(0xFFDC2626),
-    yellow        = Color(0xFFD97706),
-    purple        = Color(0xFF7C3AED),
-    orange        = Color(0xFFEA580C),
+    cyan          = Color(0xFF1F7FD6),
+    cyanDim       = Color(0x331F7FD6),
+    navy          = Color(0xFFF1F5FA),
+    navyLight     = Color(0xCCFFFFFF),
+    card          = Color(0xB3FFFFFF),
+    cardBorder    = Color(0x1A0D1B2A),
+    panel         = Color(0xFFFFFFFF),
+    green         = Color(0xFF16A36A),
+    red           = Color(0xFFE5485C),
+    yellow        = Color(0xFFC98A12),
+    purple        = Color(0xFF14A38B),
+    orange        = Color(0xFFE0692E),
     textPrimary   = Color(0xFF0D1B2A),
     textSecondary = Color(0xFF5A6A80),
+    accent        = Color(0xFF1F7FD6),
+    accent2       = Color(0xFF1FB58F),
+    gradStart     = Color(0xFF1F7FD6),
+    gradEnd       = Color(0xFF1FB58F),
     isDark        = false,
 )
 

@@ -22,8 +22,8 @@ android {
         applicationId = "com.core.mdm"
         minSdk = 24
         targetSdk = 34
-        versionCode = 56
-        versionName = "0.7.0"
+        versionCode = 57
+        versionName = "0.8.0"
         buildConfigField("String", "WS_BACKEND_URL",
             "\"${localProps.getProperty("WS_BACKEND_URL", "")}\"")
     }

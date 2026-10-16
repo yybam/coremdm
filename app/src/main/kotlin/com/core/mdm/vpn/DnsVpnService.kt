@@ -4,8 +4,10 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
-import android.content.Context
 import android.content.Intent
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
 import android.net.VpnService
 import android.os.Build
 import android.os.ParcelFileDescriptor
@@ -13,18 +15,10 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.core.mdm.R
 import com.core.mdm.ui.MainActivity
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.io.FileInputStream
-import java.io.FileOutputStream
+import java.net.InetAddress
 
 class DnsVpnService : VpnService() {
 
@@ -34,70 +28,62 @@ class DnsVpnService : VpnService() {
         const val CHANNEL_ID   = "mdm_vpn_filter"
         const val NOTIF_ID     = 1001
 
-        // Fake DNS server address — only this IP is routed through VPN
-        private const val VPN_ADDRESS = "10.33.33.1"
-        private const val FAKE_DNS    = "10.33.33.2"
-        private const val TAG         = "DnsVpnService"
-
-        private const val PREFS_NAME    = "dns_vpn_prefs"
-        private const val KEY_ENABLED   = "filter_enabled"
+        // Fake DNS server addresses — only these are routed through the VPN, so every other
+        // packet goes straight out. IPv6 too, so AAAA lookups can't go around the filter.
+        private const val VPN_ADDRESS    = "10.33.33.1"
+        private const val FAKE_DNS       = "10.33.33.2"
+        private const val VPN_ADDRESS_V6 = "fd00:33:33::1"
+        private const val FAKE_DNS_V6    = "fd00:33:33::2"
+        private const val MTU            = 1500
+        private const val TAG            = "DnsVpnService"
 
         private val _isRunning = MutableStateFlow(false)
         val isRunning: StateFlow<Boolean> = _isRunning.asStateFlow()
-
-        // Whether the admin intentionally enabled the filter (persists across process restarts).
-        fun isFilterEnabled(ctx: Context): Boolean =
-            ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                .getBoolean(KEY_ENABLED, false)
-
-        private fun setFilterEnabled(ctx: Context, enabled: Boolean) {
-            ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                .edit().putBoolean(KEY_ENABLED, enabled).apply()
-        }
     }
 
     private var tunInterface: ParcelFileDescriptor? = null
-    // Fresh job/scope per start so a stop→start cycle within the same instance works.
-    private var vpnJob: Job? = null
-    private var scope: CoroutineScope? = null
+    private var tunnel: DnsTunnel? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        when (intent?.action) {
-            ACTION_STOP -> {
-                setFilterEnabled(this, false)
-                stopVpn()
-                stopSelf()
-                return START_NOT_STICKY
-            }
-            null -> {
-                // System restarted the service (START_STICKY). Only continue if the admin
-                // deliberately had the filter on; if it was stopped via the quick-settings toggle
-                // (onRevoke) or the Stop button, the pref was set to false and we bail out.
-                if (!isFilterEnabled(this)) {
-                    stopSelf()
-                    return START_NOT_STICKY
-                }
-            }
+        val settings = FilterSettings.getInstance(this)
+        if (intent?.action == ACTION_STOP) {
+            settings.enabled = false
+            // Before stopping: with lockdown still on, stopping would cut the phone off the internet.
+            FilterLockdown.release(this)
+            stopVpn()
+            stopSelf()
+            return START_NOT_STICKY
         }
-        // ACTION_START or system restart with filter still enabled.
-        setFilterEnabled(this, true)
         createNotificationChannel()
         startForeground(NOTIF_ID, buildNotification())
+        // Remembered so BootReceiver turns the filter back on after a reboot.
+        settings.enabled = true
         startVpn()
         return START_STICKY
     }
 
     private fun startVpn() {
-        vpnJob?.cancel()
-        tunInterface?.close()
+        stopVpn()
 
-        val tun = Builder()
-            .addAddress(VPN_ADDRESS, 32)
-            .addDnsServer(FAKE_DNS)
-            .addRoute(FAKE_DNS, 32)   // only DNS traffic goes through VPN
-            .setMtu(1500)
-            .setSession("CORE MDM Filter")
-            .establish()
+        // A Private DNS hostname would send lookups around the tunnel.
+        PrivateDnsGuard.turnOffIfBypassing(this)
+
+        val tun = runCatching {
+            Builder()
+                .addAddress(VPN_ADDRESS, 32)
+                .addDnsServer(FAKE_DNS)
+                .addRoute(FAKE_DNS, 32)
+                .addAddress(VPN_ADDRESS_V6, 128)
+                .addDnsServer(FAKE_DNS_V6)
+                .addRoute(FAKE_DNS_V6, 128)
+                .setMtu(MTU)
+                .setSession("CORE MDM Filter")
+                .apply {
+                    // Our own traffic (sign-in, push messages, updates) never goes through the filter.
+                    runCatching { addDisallowedApplication(packageName) }
+                }
+                .establish()
+        }.onFailure { Log.e(TAG, "establish(): ${it.message}") }.getOrNull()
 
         if (tun == null) {
             Log.e(TAG, "Failed to establish VPN tunnel")
@@ -106,42 +92,34 @@ class DnsVpnService : VpnService() {
         }
 
         tunInterface = tun
+        val repo = BlocklistRepository.getInstance(this)
+        tunnel = DnsTunnel(this, tun, DnsFilter.getInstance(this), { repo.upstreamDns }, ::networkDnsServers, MTU)
+            .also { it.start() }
         _isRunning.value = true
         Log.i(TAG, "VPN tunnel established — DNS filter active")
 
-        val blocklist = BlocklistRepository.getInstance(this)
-        val newJob = SupervisorJob()
-        vpnJob = newJob
-        scope  = CoroutineScope(newJob + Dispatchers.IO)
-
-        scope!!.launch {
-            val input  = FileInputStream(tun.fileDescriptor)
-            val output = FileOutputStream(tun.fileDescriptor)
-            val buffer = ByteArray(32_767)
-
-            while (isActive) {
-                val n = withContext(Dispatchers.IO) {
-                    runCatching { input.read(buffer) }.getOrDefault(-1)
-                }
-                if (n <= 0) continue
-                val packet   = buffer.copyOf(n)
-                val response = DnsPacketProcessor.process(packet, blocklist, this@DnsVpnService)
-                    ?: continue
-                withContext(Dispatchers.IO) {
-                    runCatching { output.write(response) }
-                }
-            }
-        }
+        // After PrivateDnsGuard above: clearing Private DNS can lift the lock this re-applies.
+        FilterLockdown.apply(this)
     }
 
+    /** DNS servers of the real networks (Wi-Fi, mobile) — not our own VPN. */
+    private fun networkDnsServers(): List<Pair<Network, InetAddress>> = runCatching {
+        val cm = getSystemService(ConnectivityManager::class.java)
+        @Suppress("DEPRECATION")
+        cm.allNetworks
+            .filter { cm.getNetworkCapabilities(it)?.hasTransport(NetworkCapabilities.TRANSPORT_VPN) == false }
+            .flatMap { network -> cm.getLinkProperties(network)?.dnsServers.orEmpty().map { network to it } }
+    }.getOrDefault(emptyList())
+
     private fun stopVpn() {
-        vpnJob?.cancel()
-        vpnJob = null
-        scope  = null
-        tunInterface?.close()
+        tunnel?.stop()
+        tunnel = null
+        tunInterface?.let {
+            runCatching { it.close() }
+            Log.i(TAG, "VPN tunnel closed")
+        }
         tunInterface = null
         _isRunning.value = false
-        Log.i(TAG, "VPN tunnel closed")
     }
 
     override fun onDestroy() {
@@ -149,20 +127,11 @@ class DnsVpnService : VpnService() {
         super.onDestroy()
     }
 
+    // Another VPN took over or the user revoked us. `enabled` stays on, so the filter comes back
+    // after a reboot once the permission is ours again.
     override fun onRevoke() {
-        // Android calls this when the system VPN quick-settings tile is used to disconnect.
-        // Device Owner policy: the filter cannot be stopped from outside CoreMDM.
-        // If the filter is supposed to be running, tear down the old tunnel and
-        // immediately re-establish it — the revoke is silently ignored from the
-        // user's perspective. The VPN permission (from prepare()) is still valid;
-        // only the current session was revoked, so establish() will succeed.
-        // The admin can still stop the filter via ACTION_STOP sent from within the app.
         stopVpn()
-        if (isFilterEnabled(this)) {
-            startVpn()
-        } else {
-            stopSelf()
-        }
+        stopSelf()
     }
 
     // ── Notification ──────────────────────────────────────────────────────────
@@ -182,6 +151,7 @@ class DnsVpnService : VpnService() {
         }
     }
 
+    // No Stop action: the filter is switched off only from inside the (PIN-protected) app.
     private fun buildNotification(): Notification {
         val openIntent = PendingIntent.getActivity(
             this, 0,
@@ -191,7 +161,7 @@ class DnsVpnService : VpnService() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle("CORE MDM — Filter Active")
-            .setContentText("Open CORE MDM to manage content filtering")
+            .setContentText("DNS content filter is running")
             .setContentIntent(openIntent)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)

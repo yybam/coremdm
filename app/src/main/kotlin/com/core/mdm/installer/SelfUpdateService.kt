@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.IBinder
 import android.os.UserManager
@@ -13,6 +14,7 @@ import androidx.core.app.NotificationCompat
 import com.core.mdm.R
 import com.core.mdm.firebase.DeviceRegistry
 import com.core.mdm.policy.DevicePolicyHelper
+import com.core.mdm.update.GitHubReleases
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -46,6 +48,7 @@ class SelfUpdateService : Service() {
         scope.launch {
             try {
                 val apkFile = downloadApk(url, version)
+                verifyApk(apkFile)
                 notify(buildNotification("Installing v$version…", -1))
 
                 val helper         = DevicePolicyHelper.getInstance(applicationContext)
@@ -126,6 +129,34 @@ class SelfUpdateService : Service() {
         }
         Log.i(TAG, "APK downloaded to ${dest.absolutePath} (${dest.length()} bytes)")
         dest
+    }
+
+    /**
+     * Refuses anything that isn't this same app, a higher versionCode, and signed with the same
+     * key as the installed copy — whether the URL came from GitHub or was pushed from the console.
+     */
+    private fun verifyApk(apk: File) {
+        val candidate = GitHubReleases.archiveInfo(applicationContext, apk)
+            ?: run { apk.delete(); throw IllegalStateException("Unreadable APK") }
+        @Suppress("DEPRECATION")
+        val installed = packageManager.getPackageInfo(
+            packageName,
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) PackageManager.GET_SIGNING_CERTIFICATES
+            else PackageManager.GET_SIGNATURES
+        )
+        val problem = when {
+            candidate.packageName != packageName ->
+                "APK is a different app (${candidate.packageName})"
+            GitHubReleases.versionCode(candidate) <= GitHubReleases.versionCode(installed) ->
+                "APK is not newer than the installed version"
+            GitHubReleases.signatures(candidate) != GitHubReleases.signatures(installed) ->
+                "APK is signed with a different key"
+            else -> null
+        }
+        if (problem != null) {
+            apk.delete()
+            throw IllegalStateException(problem)
+        }
     }
 
     // ── Notifications ─────────────────────────────────────────────────────────

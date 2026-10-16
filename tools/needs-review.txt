@@ -1,0 +1,3 @@
+# Lines from source/hosts-original.txt that build-blocklists.mjs would not guess at.
+# These are NOT blocked. Fix them in the source file, then re-run the script.
+

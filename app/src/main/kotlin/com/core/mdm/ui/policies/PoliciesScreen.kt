@@ -27,13 +27,15 @@ import com.core.mdm.ui.dashboard.DashboardViewModel
 import com.core.mdm.ui.dashboard.PolicyCard
 import com.core.mdm.ui.dashboard.PolicyDivider
 import com.core.mdm.ui.dashboard.PolicyToggleRow
-import com.core.mdm.ui.theme.LocalAppColors
+import com.core.mdm.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PoliciesScreen(
     onNavigateBack: () -> Unit,
     onNavigateToApps: () -> Unit = {},
+    onNavigateToContent: () -> Unit = {},
+    onNavigateToLimits: () -> Unit = {},
     viewModel: DashboardViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -73,12 +75,13 @@ fun PoliciesScreen(
         snackbarHost = {
             SnackbarHost(snackbarHostState) { data ->
                 Snackbar(modifier = Modifier.padding(12.dp),
-                    containerColor = LocalAppColors.current.card,
+                    containerColor = LocalAppColors.current.panel,
                     contentColor = LocalAppColors.current.textPrimary,
                     snackbarData = data)
             }
         },
-        containerColor = LocalAppColors.current.navy,
+        containerColor = Color.Transparent,
+        modifier = Modifier.siteBackground(),
         contentWindowInsets = WindowInsets.safeDrawing
     ) { padding ->
         Column(
@@ -100,6 +103,18 @@ fun PoliciesScreen(
                 Spacer(Modifier.width(8.dp))
                 Text("Apply Full Device Lockdown", fontWeight = FontWeight.SemiBold)
             }
+
+            // ── Blocking (WhatsApp, social, AI chats, WebView, remote-only) ────────
+            com.core.mdm.ui.dashboard.BlockingCard(
+                onNavigateToApps    = onNavigateToApps,
+                onNavigateToContent = onNavigateToContent
+            )
+
+            // ── Phone & communication (calls, SMS, hotspot, app settings) ─────────
+            com.core.mdm.ui.dashboard.PhoneControlCard(onNavigateToLimits = onNavigateToLimits)
+
+            // ── Which apps may install other apps ─────────────────────────────────
+            com.core.mdm.ui.dashboard.AppInstallCard()
 
             // ── App Restrictions ──────────────────────────────────────────────────
             PolicyCard(icon = Icons.Outlined.Apps, title = "App Restrictions",
@@ -250,7 +265,7 @@ fun PoliciesScreen(
     if (showLockdownDialog) {
         AlertDialog(
             onDismissRequest = { showLockdownDialog = false },
-            containerColor = LocalAppColors.current.card,
+            containerColor = LocalAppColors.current.panel,
             icon = { Icon(Icons.Filled.Lock, null, tint = LocalAppColors.current.yellow) },
             title = { Text("Apply Full Lockdown?", color = LocalAppColors.current.textPrimary) },
             text = {

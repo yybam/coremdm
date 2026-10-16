@@ -11,6 +11,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 
+// The installer fills in the result (status, package) — an immutable intent would arrive empty.
+// Explicit intent to our own receiver, so mutable is safe.
+private val MUTABLE = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) PendingIntent.FLAG_MUTABLE else 0
+
 class SilentInstaller(private val context: Context) {
 
     private val installer = context.packageManager.packageInstaller
@@ -61,7 +65,7 @@ class SilentInstaller(private val context: Context) {
                     context,
                     packageName.hashCode(),
                     intent,
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    PendingIntent.FLAG_UPDATE_CURRENT or MUTABLE
                 )
                 installer.uninstall(packageName, pi.intentSender)
                 Log.i("SilentInstaller", "Uninstall requested: $packageName")
@@ -79,7 +83,7 @@ class SilentInstaller(private val context: Context) {
             context,
             sessionId,
             intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            PendingIntent.FLAG_UPDATE_CURRENT or MUTABLE
         ).intentSender
     }
 }

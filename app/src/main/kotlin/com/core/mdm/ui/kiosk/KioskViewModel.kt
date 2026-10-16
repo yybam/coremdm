@@ -1,4 +1,4 @@
-﻿package com.core.mdm.ui.kiosk
+package com.core.mdm.ui.kiosk
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
@@ -60,7 +60,10 @@ class KioskViewModel(application: Application) : AndroidViewModel(application) {
     fun disableKiosk() {
         viewModelScope.launch(Dispatchers.IO) {
             val ok = manager.disable()
-            if (ok) { reload(); toast("Kiosk mode disabled") }
+            if (ok) {
+                com.core.mdm.firebase.RemotePolicies.record(getApplication(), "kioskPackages", emptyList<String>())
+                reload(); toast("Kiosk mode disabled")
+            }
             else toast("Failed — requires Device Owner")
         }
     }
@@ -70,7 +73,10 @@ class KioskViewModel(application: Application) : AndroidViewModel(application) {
     private fun apply(packages: List<String>) {
         viewModelScope.launch(Dispatchers.IO) {
             val ok = manager.setAllowedPackages(packages)
-            if (ok) { reload(); toast("Lock-task packages updated") }
+            if (ok) {
+                com.core.mdm.firebase.RemotePolicies.record(getApplication(), "kioskPackages", packages)
+                reload(); toast("Lock-task packages updated")
+            }
             else toast("Failed — requires Device Owner")
         }
     }

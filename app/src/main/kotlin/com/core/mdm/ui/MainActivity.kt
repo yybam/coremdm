@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -40,6 +41,12 @@ import com.core.mdm.ui.provisioning.ProvisioningTokenDialog
 import com.core.mdm.ui.provisioning.ProvisioningViewModel
 import com.core.mdm.ui.remote.RemoteControlScreen
 import com.core.mdm.ui.location.LocationScreen
+import com.core.mdm.policy.RemoteModeState
+import com.core.mdm.ui.content.ContentRulesScreen
+import com.core.mdm.ui.limits.TimeLimitsScreen
+import com.core.mdm.ui.org.OrgScreen
+import com.core.mdm.ui.remote.RemoteOnlyScreen
+import com.core.mdm.ui.search.SettingsSearchScreen
 import com.core.mdm.ui.telemetry.TelemetryScreen
 import com.core.mdm.ui.theme.CoreMdmTheme
 import com.core.mdm.ui.theme.ThemeMode
@@ -54,6 +61,11 @@ private const val ROUTE_KIOSK     = "kiosk"
 private const val ROUTE_TELEMETRY = "telemetry"
 private const val ROUTE_REMOTE    = "remote"
 private const val ROUTE_LOCATION  = "location"
+// These four must match the routes in ui/search/SettingsCatalog.kt.
+private const val ROUTE_CONTENT   = "content_rules"
+private const val ROUTE_LIMITS    = "time_limits"
+private const val ROUTE_SEARCH    = "search"
+private const val ROUTE_ORG       = "org"
 
 class MainActivity : ComponentActivity() {
 
@@ -67,7 +79,19 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Blank the app-switcher thumbnail: it would otherwise show the dashboard (and every
+        // setting on it) after the PIN lock has kicked in. Deliberately not FLAG_SECURE — that
+        // would also stop the admin screenshotting their own console.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) setRecentsScreenshotEnabled(false)
         ThemePrefs.init(this)
+        RemoteModeState.init(this)
+        com.core.mdm.firebase.RemotePolicies.init(this)
+        com.core.mdm.content.GuardPolicy.init(this)
+        // Not Device Owner (so it couldn't grant itself): ask Android once.
+        if (!com.core.mdm.NotificationAccess.grantAsOwner(this) && savedInstanceState == null &&
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 1)
+        }
         enableEdgeToEdge()
         setContent {
             val themeMode by ThemePrefs.themeMode.collectAsState()
@@ -144,7 +168,9 @@ private fun MdmRoot() {
     Box(modifier = Modifier.fillMaxSize()) {
         // Nav graph only composed while unlocked — no locked-state side effects run.
         if (!lockSnap.isLocked) {
-            MdmNavGraph(pinManager = pinManager)
+            // Remote-only mode (set from the website): the app shows only "managed remotely".
+            val remoteOnly by RemoteModeState.remoteOnly.collectAsState()
+            if (remoteOnly) RemoteOnlyScreen() else MdmNavGraph(pinManager = pinManager)
         }
 
         // PIN overlay: plain `if` means it appears in the same frame that isLocked
@@ -194,6 +220,10 @@ private fun MdmNavGraph(pinManager: PinManager) {
                 onNavigateToTelemetry = { navController.navigate(ROUTE_TELEMETRY) },
                 onNavigateToRemote    = { navController.navigate(ROUTE_REMOTE) },
                 onNavigateToLocation  = { navController.navigate(ROUTE_LOCATION) },
+                onNavigateToLimits    = { navController.navigate(ROUTE_LIMITS) },
+                onNavigateToContent   = { navController.navigate(ROUTE_CONTENT) },
+                onNavigateToOrg       = { navController.navigate(ROUTE_ORG) },
+                onNavigateToSearch    = { navController.navigate(ROUTE_SEARCH) },
                 onSignOut = {
                     EnrollmentManager.setOffline(context)
                     MdmCommandService.stop(context)
@@ -206,7 +236,9 @@ private fun MdmNavGraph(pinManager: PinManager) {
             PoliciesScreen(
                 viewModel        = dashVm,
                 onNavigateBack   = { navController.popBackStack() },
-                onNavigateToApps = { navController.navigate(ROUTE_APPS) }
+                onNavigateToApps = { navController.navigate(ROUTE_APPS) },
+                onNavigateToContent = { navController.navigate(ROUTE_CONTENT) },
+                onNavigateToLimits  = { navController.navigate(ROUTE_LIMITS) }
             )
         }
 
@@ -236,6 +268,25 @@ private fun MdmNavGraph(pinManager: PinManager) {
 
         composable(ROUTE_LOCATION) {
             LocationScreen(onNavigateBack = { navController.popBackStack() })
+        }
+
+        composable(ROUTE_CONTENT) {
+            ContentRulesScreen(onNavigateBack = { navController.popBackStack() })
+        }
+
+        composable(ROUTE_LIMITS) {
+            TimeLimitsScreen(onNavigateBack = { navController.popBackStack() })
+        }
+
+        composable(ROUTE_ORG) {
+            OrgScreen(onNavigateBack = { navController.popBackStack() })
+        }
+
+        composable(ROUTE_SEARCH) {
+            SettingsSearchScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onOpenRoute    = { route -> navController.navigate(route) }
+            )
         }
 
         composable(ROUTE_PIN_SETUP) {

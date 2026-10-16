@@ -270,6 +270,8 @@ body{
 
 .sel-hint{font-size:12px;color:var(--textSec);margin-bottom:12px}
 .sel-hint span{color:var(--cyan);font-weight:700}
+.btn-ghost:disabled{opacity:.45;cursor:default}
+.ts-slot{display:flex;justify-content:center;min-height:65px;margin:4px 0 10px}
 </style>
 </head>
 <body>
@@ -290,6 +292,7 @@ body{
       <label>PASSWORD</label>
       <input type="password" id="auth-pass" placeholder="••••••••" autocomplete="current-password" />
     </div>
+    <div id="ts-login" class="ts-slot"></div>
     <p class="err" id="auth-err"></p>
     <button class="btn-primary" id="signin-btn">Sign In</button>
     <button class="btn-ghost"   id="reset-btn">Forgot password?</button>
@@ -392,6 +395,7 @@ body{
 </div>
 
 <script type="module">
+import { guardForm } from './turnstile.js';
 import { initializeApp }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail,
@@ -438,25 +442,33 @@ function log(msg, level = '') {
 }
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
+// Cloudflare Turnstile: sign-in and reset stay disabled until the human check passes.
+const authGuard = guardForm('ts-login', ['signin-btn', 'reset-btn'],
+  { onError: m => { document.getElementById('auth-err').textContent = m; } });
+
 document.getElementById('signin-btn').addEventListener('click', async () => {
   const email = document.getElementById('auth-email').value.trim();
   const pass  = document.getElementById('auth-pass').value;
   const errEl = document.getElementById('auth-err');
   errEl.textContent = '';
+  if (!authGuard.passed()) { errEl.textContent = 'Complete the check above first.'; return; }
   const btn = document.getElementById('signin-btn');
   btn.disabled = true; btn.textContent = 'Signing in…';
   try {
     await signInWithEmailAndPassword(auth, email, pass);
   } catch (e) {
     errEl.textContent = e.message.replace('Firebase: ', '');
-    btn.disabled = false; btn.textContent = 'Sign In';
+    btn.textContent = 'Sign In';
+    authGuard.reset();   // a fresh check for every attempt (re-enables the button when it passes)
   }
 });
 
 document.getElementById('reset-btn').addEventListener('click', async () => {
   const email = document.getElementById('auth-email').value.trim();
+  if (!authGuard.passed()) { document.getElementById('auth-err').textContent = 'Complete the check above first.'; return; }
   if (!email) { document.getElementById('auth-err').textContent = 'Enter your email first.'; return; }
   await sendPasswordResetEmail(auth, email).catch(() => {});
+  authGuard.reset();
   const errEl = document.getElementById('auth-err');
   errEl.style.color = 'var(--green)';
   errEl.textContent = 'Reset email sent.';

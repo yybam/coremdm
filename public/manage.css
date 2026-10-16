@@ -445,3 +445,8 @@ main.console-main { padding-top: 32px; }
   .geo-row, .time-range { flex-direction: column; }
   .usage-label { width: 96px; }
 }
+
+/* Cloudflare Turnstile widget on sign-in / reset forms */
+.ts-slot { display: flex; justify-content: center; min-height: 65px; margin: 6px 0 10px; }
+#btn-login:disabled, #btn-reset-send:disabled { opacity: .45; cursor: default; }
+#btn-login:disabled:hover { background: var(--grad-btn); }

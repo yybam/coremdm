@@ -45,6 +45,7 @@
       <label for="inp-pass">Password</label>
       <input type="password" id="inp-pass" placeholder="••••••••" autocomplete="current-password">
     </div>
+    <div id="ts-login" class="ts-slot"></div>
     <div id="login-msg"></div>
     <button id="btn-login">Sign in</button>
     <p class="login-legal">Forgot your password? Reset it on the <a href="console.html">Manage</a> page.</p>
@@ -125,6 +126,7 @@ import { getFirestore, collection, query, where, onSnapshot, doc, getDoc, update
          serverTimestamp, arrayUnion, arrayRemove, deleteField, FieldPath }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { ORG_SETTING_GROUPS, orgRule } from './policies.js';
+import { guardForm } from './turnstile.js';
 
 const app = initializeApp({
   apiKey:            "AIzaSyCWew6jKeAyEMUWY1DYjuzhxH0jSke3JhE",
@@ -212,16 +214,21 @@ const cur        = () => orgs[currentId] || { org: {}, profile: {} };
 const isOwner    = () => cur().org.ownerEmail === me;
 
 // ── Auth ───────────────────────────────────────────────────
+// Cloudflare Turnstile: sign-in stays disabled until the human check passes.
+const loginGuard = guardForm('ts-login', ['btn-login'],
+  { onError: m => { document.getElementById('login-msg').textContent = m; } });
 document.getElementById('btn-login').addEventListener('click', async () => {
   const email = document.getElementById('inp-email').value.trim();
   const pass  = document.getElementById('inp-pass').value;
   const msg   = document.getElementById('login-msg');
   msg.textContent = '';
+  if (!loginGuard.passed()) { msg.textContent = 'Complete the check above first.'; return; }
   if (!email || !pass) { msg.textContent = 'Enter email and password.'; return; }
   try { await signInWithEmailAndPassword(auth, email, pass); }
   catch (e) {
     msg.textContent = (e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password')
       ? 'Incorrect email or password.' : e.message;
+    loginGuard.reset();   // a fresh check for every attempt
   }
 });
 document.getElementById('inp-pass').addEventListener('keydown', e => {

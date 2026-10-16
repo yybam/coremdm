@@ -47,6 +47,7 @@
       <label for="inp-pass">Password</label>
       <input type="password" id="inp-pass" placeholder="••••••••" autocomplete="current-password">
     </div>
+    <div id="ts-login" class="ts-slot"></div>
     <div id="login-msg"></div>
     <button id="btn-login" class="hover:scale-[1.02] active:scale-95">Sign in</button>
     <div class="login-footer">
@@ -61,6 +62,7 @@
       <label for="inp-reset-email">Email</label>
       <input type="email" id="inp-reset-email" placeholder="you@example.com">
     </div>
+    <div id="ts-reset" class="ts-slot"></div>
     <div class="row-btns">
       <button class="btn-sec" id="btn-reset-cancel">Cancel</button>
       <button class="btn-pri" id="btn-reset-send">Send reset link</button>
@@ -181,6 +183,7 @@ import { getFirestore, collection, query, where, orderBy, limit,
          onSnapshot, doc, updateDoc, deleteDoc, getDoc, getDocs,
          addDoc, serverTimestamp, Timestamp, arrayUnion, arrayRemove }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { guardForm } from './turnstile.js';
 import { APP_POLICIES, SYS_POLICIES, HW_POLICIES, BLOCK_POLICIES, CONTROL_POLICIES, NETWORK_POLICIES, SECTIONS,
          SEARCH_KEYWORDS, orgRule, sectionKey, effectivePolicy, effectiveSection, FILTER_GROUPS } from './policies.js';
 
@@ -393,17 +396,25 @@ function toast(msg, kind = '') {
 }
 
 // ── Auth flow ─────────────────────────────────────────────────
+// Cloudflare Turnstile: sign-in and reset stay disabled until the human check passes.
+const loginGuard = guardForm('ts-login', ['btn-login'],
+  { onError: m => { document.getElementById('login-msg').textContent = m; } });
+const resetGuard = guardForm('ts-reset', ['btn-reset-send'],
+  { onError: m => { document.getElementById('reset-msg').textContent = m; } });
+
 document.getElementById('btn-login').addEventListener('click', async () => {
   const email = document.getElementById('inp-email').value.trim();
   const pass  = document.getElementById('inp-pass').value;
   const msgEl = document.getElementById('login-msg');
   msgEl.textContent = '';
+  if (!loginGuard.passed()) { msgEl.textContent = 'Complete the check above first.'; return; }
   if (!email || !pass) { msgEl.textContent = 'Enter email and password.'; return; }
   try {
     await signInWithEmailAndPassword(auth, email, pass);
   } catch(e) {
     msgEl.textContent = (e.code==='auth/invalid-credential'||e.code==='auth/wrong-password')
       ? 'Incorrect email or password.' : e.message;
+    loginGuard.reset();   // a fresh check for every attempt
   }
 });
 document.getElementById('inp-pass').addEventListener('keydown', e => {
@@ -422,11 +433,13 @@ document.getElementById('btn-reset-cancel').addEventListener('click', () => {
 document.getElementById('btn-reset-send').addEventListener('click', async () => {
   const email = document.getElementById('inp-reset-email').value.trim();
   const msgEl = document.getElementById('reset-msg');
+  if (!resetGuard.passed()) { msgEl.style.color='var(--red)'; msgEl.textContent='Complete the check above first.'; return; }
   if (!email) { msgEl.style.color='var(--red)'; msgEl.textContent='Enter your email.'; return; }
   try {
     await sendPasswordResetEmail(auth, email);
     msgEl.style.color='var(--green)'; msgEl.textContent='Reset link sent — check your inbox.';
   } catch(e) { msgEl.style.color='var(--red)'; msgEl.textContent=e.message; }
+  resetGuard.reset();
 });
 
 onAuthStateChanged(auth, user => {

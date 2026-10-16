@@ -24,7 +24,7 @@ function setStep(name, state) {
   const li = document.querySelector(`[data-step="${name}"]`);
   li.className = state || "";
 }
-function resetSteps() { ["accounts", "install", "owner"].forEach((s) => setStep(s, "")); }
+function resetSteps() { ["accounts", "install", "owner", "grant"].forEach((s) => setStep(s, "")); }
 function showResult(kind, text) {
   const el = $("result");
   el.className = `alert ${kind}`;
@@ -156,6 +156,22 @@ async function setDeviceOwner() {
   throw new Error(`Setting device owner failed:\n${out || "(no output)"}${hint}`);
 }
 
+// Required: lets CORE MDM keep OEM battery saving from suspending it (SecureSettings). Android only
+// lets ADB grant this permission, so the installer always does it.
+const SECURE_SETTINGS = "android.permission.WRITE_SECURE_SETTINGS";
+async function grantSecureSettings() {
+  setStep("grant", "run");
+  const out = await shell(`pm grant ${PACKAGE} ${SECURE_SETTINGS}`);
+  const check = await shell(`dumpsys package ${PACKAGE} | grep "${SECURE_SETTINGS}: granted=true"`);
+  if (check.includes("granted=true")) { setStep("grant", "ok"); return; }
+  setStep("grant", "bad");
+  let hint = "";
+  if (/security|SecurityException|not allowed/i.test(out))
+    hint = "\n\nOn Xiaomi / Redmi / POCO phones, also turn on \"USB debugging (Security settings)\" in Developer options, then run the command below.";
+  throw new Error(`Granting the required permission failed:\n${out || "(no output)"}${hint}\n\n` +
+    `Or run it yourself:  adb shell pm grant ${PACKAGE} ${SECURE_SETTINGS}`);
+}
+
 async function run(task) {
   if (busy || !adb) return;
   busy = true; refreshButtons(); showResult("", ""); resetSteps();
@@ -196,7 +212,8 @@ $("btnAll").onclick = () => run(async () => {
     await shell(`pm uninstall ${PACKAGE}`).catch(() => {});
     throw new Error(`${e.message}\n\nCORE MDM was removed from the phone so it isn't left half set up.`);
   }
-  showResult("ok", "Done. CORE MDM is installed and set as device owner. Unplug the phone, open CORE MDM and sign in. Then manage it from the web console with the same account.");
+  await grantSecureSettings();
+  showResult("ok", "Done. CORE MDM is installed, set as device owner and has its required permission. Unplug the phone, open CORE MDM and sign in. Then manage it from the web console with the same account.");
   $("doneRow").hidden = false;
 });
 

@@ -143,7 +143,7 @@ export const FILTER_GROUPS = [
   { id:'analytics',              label:'Analytics & tracking' },
   { id:'social',                 label:'Social media' },
   { id:'video',                  label:'Video (YouTube)' },
-  { id:'gifs-images',            label:'GIFs & images' },
+  { id:'gifs-images',            label:'GIFs & keyboard pictures', sub:'Hides GIFs and pictures in the keyboard (Gboard GIFs and stickers) and on GIF sites' },
   { id:'spotify-music',          label:'Spotify & music images' },
   { id:'google-apple-microsoft', label:'Google, Apple & Microsoft pages' },
   { id:'app-help-pages',         label:'Help & about pages inside apps' },

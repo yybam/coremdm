@@ -1267,7 +1267,7 @@ function renderFilterDetails(id, p) {
     ${toggle('Built-in blocklist', 'The blocklist that comes with CORE MDM',
         p.filterDefaultList !== false, `window._mdm.setFilterBool('${e}','filterDefaultList',this.checked,this)`)}
     <div class="sect-app" style="margin-top:12px">Site groups</div>
-    ${FILTER_GROUPS.map(g => toggle(g.label, '', !groupsOff.has(g.id),
+    ${FILTER_GROUPS.map(g => toggle(g.label, g.sub || '', !groupsOff.has(g.id),
         `window._mdm.setFilterGroup('${e}','${g.id}',this.checked,this)`)).join('')}
     <div class="sect-app" style="margin-top:12px">Extra groups (off unless switched on)</div>
     ${FILTER_OPT_IN_GROUPS.map(g => toggle(g.label, g.sub, groupsOn.has(g.id),

@@ -27,7 +27,7 @@ private val GROUP_LABELS = linkedMapOf(
     "analytics"              to "Analytics & tracking",
     "social"                 to "Social media",
     "video"                  to "Video (YouTube)",
-    "gifs-images"            to "GIFs & images",
+    "gifs-images"            to "GIFs & keyboard pictures",
     "spotify-music"          to "Spotify & music images",
     "google-apple-microsoft" to "Google, Apple & Microsoft pages",
     "app-help-pages"         to "Help & about pages inside apps",
@@ -87,9 +87,11 @@ fun BlocklistGroupsCard() {
         groups.forEach { group ->
             SwitchRow(
                 title    = GROUP_LABELS[group] ?: group,
-                subtitle = if (group == "google-maps-images")
-                               "Map photos & Street View images, Google image hosts, YouTube site and video"
-                           else "%,d sites".format(sizes[group] ?: 0),
+                subtitle = when (group) {
+                    "google-maps-images" -> "Map photos & Street View images, Google image hosts, YouTube site and video"
+                    "gifs-images"        -> "Hides GIFs and pictures in the keyboard (Gboard GIFs and stickers) and on GIF sites"
+                    else                 -> "%,d sites".format(sizes[group] ?: 0)
+                },
                 checked  = groupOn[group] ?: settings.isGroupEnabled(group),
                 onChange = {
                     groupOn[group] = it

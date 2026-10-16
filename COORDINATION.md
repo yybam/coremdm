@@ -24,7 +24,7 @@ read it before you start, and update it when you take or finish an area.
 3. Before a large edit, add a line under "Live ownership" below naming the files you
    are touching, so we don't edit the same file at once.
 4. App version lives only in `app/build.gradle.kts`. Never lower `versionCode` /
-   `versionName`. Current: **0.4.4 (versionCode 42)**.
+   `versionName`. Current: **0.8.0 (versionCode 57)**.
 5. Releases: push a `vX.Y.Z` tag to build+publish the APK. Hosting redeploys on any
    push that touches `public/**`, `firebase.json`, or `.firebaserc`.
 6. Don't commit large binaries to the repo. The installer's APK is pulled from the
@@ -54,3 +54,7 @@ porting its unique work). `main` now contains everything:
 ## Live ownership (update as you go)
 
 - **yy-bamberger-16**: unified the merge; idle after tagging v0.4.5.
+- 2026-10-16: branch `merge/best-of-both` merges the separate MainLoop321 line (`coremdm` app
+  0.0.47 + `coremdm-site`) into this repo as app 0.8.0. Site domain is now **coremdm.org**;
+  MainLoop's Vercel site and `coremdm-releases` repo are not used. Releases are signed only
+  with this repo's `RELEASE_KEYSTORE_*` secret.

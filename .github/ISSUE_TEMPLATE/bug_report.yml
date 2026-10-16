@@ -20,7 +20,7 @@ body:
     attributes:
       label: Steps to reproduce
       placeholder: |
-        1. Open coremdm.web.app
+        1. Open coremdm.org
         2. Open device → Commands
         3. Press Lock
     validations:

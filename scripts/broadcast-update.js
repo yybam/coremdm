@@ -29,7 +29,7 @@ const APK_URL_ARG = args.find(a => a.startsWith('http'));
 const GITHUB_APK  = `https://github.com/yybam/coremdm/releases/latest/download/app-release.apk`;
 const DOWNLOAD    = SILENT
   ? (APK_URL_ARG || GITHUB_APK)
-  : (APK_URL_ARG || 'https://coremdm.web.app/install');
+  : (APK_URL_ARG || 'https://coremdm.org/install');
 const PROJECT_ID = process.env.FIREBASE_PROJECT_ID || 'techeaz-core-mdm';
 const FS_BASE    = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
 const FCM_BASE   = `https://fcm.googleapis.com/v1/projects/${PROJECT_ID}/messages:send`;

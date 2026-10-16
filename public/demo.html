@@ -3,18 +3,27 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Try the app · CORE MDM</title>
-<meta name="description" content="Try the CORE MDM Android app in your browser. A clickable demo: flip switches, open settings and see how it works. Nothing on any phone changes.">
-<link rel="icon" type="image/png" href="/favicon.png">
+<title>Try CORE MDM · live demo</title>
+<meta name="description" content="Try CORE MDM in your browser: the phone app and the website console side by side, linked like the real thing. Nothing on any phone changes.">
+<link rel="icon" type="image/png" href="favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="manage.css">
 <style>
+.demo-version-note { max-width: 620px; margin: 18px auto 0; padding: 12px 14px; border-radius: 14px; font-size: .9rem; line-height: 1.55; text-align: left;
+  background: rgba(46, 154, 230, .09); border: 1px solid rgba(46, 154, 230, .28); }
+.demo-version-note a { color: inherit; text-decoration: underline; }
   /* ---------- page layout ---------- */
-  .demo-wrap { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 48px; align-items: start; margin-top: 8px; }
-  .demo-side h2 { margin: 0 0 8px; font-size: 1.35rem; letter-spacing: -.02em; }
-  .demo-side p { color: var(--muted); margin: 0 0 14px; }
+  .demo-wrap { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 32px; align-items: start; margin-top: 8px; }
+  .demo-col h2 { margin: 0 0 12px; font-size: 1rem; font-weight: 600; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+  .demo-col h2 b { color: var(--text); }
+  .demo-side { margin-top: 40px; }
+  .demo-side > h2 { margin: 0 0 8px; font-size: 1.35rem; letter-spacing: -.02em; }
+  .demo-side > p { color: var(--muted); margin: 0 0 14px; }
+  .try-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .try-cols h3 { margin: 0 0 10px; font-size: .8rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--accent2); }
+  @media (max-width: 760px) { .try-cols { grid-template-columns: 1fr; } }
   .try { list-style: none; margin: 0 0 18px; padding: 0; display: grid; gap: 10px; }
   .try li { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: 16px;
     background: var(--glass); border: 1px solid var(--line); }
@@ -26,7 +35,66 @@
     color: var(--text); font-size: .9rem; }
   .demo-note b { color: var(--warn); }
   .demo-side button.btn { font: inherit; font-weight: 600; cursor: pointer; }
-  @media (max-width: 900px) { .demo-wrap { grid-template-columns: 1fr; justify-items: center; gap: 32px; } .demo-side { max-width: 560px; } }
+  @media (max-width: 1000px) { .demo-wrap { grid-template-columns: 1fr; justify-items: center; } .demo-wrap > .demo-col { width: 100%; display: grid; justify-items: center; } }
+
+  /* ---------- browser frame around the console ---------- */
+  .browser { width: 100%; height: calc(min(360px, 100vw - 32px) * 19 / 9); display: flex; flex-direction: column; position: relative;
+    border-radius: 18px; overflow: hidden; border: 1px solid var(--line); background: rgba(7, 10, 20, .82);
+    box-shadow: 0 40px 80px -30px rgba(0, 0, 0, .9), 0 0 60px -10px rgba(31, 160, 190, .25); }
+  @media (max-width: 1000px) { .browser { height: 680px; } }
+  .b-top { flex: none; display: flex; align-items: center; gap: 6px; padding: 10px 14px; border-bottom: 1px solid var(--line); background: rgba(255, 255, 255, .04); }
+  .b-top > span { width: 10px; height: 10px; border-radius: 50%; background: rgba(255, 255, 255, .18); }
+  .b-top b { flex: 1; min-width: 0; margin-left: 10px; padding: 4px 12px; border-radius: 8px; background: rgba(0, 0, 0, .3); color: var(--muted);
+    font-size: .78rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .b-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 18px; scrollbar-width: thin; }
+  .b-body .console-bar { margin: 0 0 16px; }
+  .b-body .console-h { font-size: 1.5rem; }
+  .b-body #stats-strip { gap: 10px; margin-bottom: 16px; }
+  .b-body .stat-card { padding: 12px 14px; border-radius: 14px; }
+  .b-body .stat-val { font-size: 1.5rem; }
+  .b-body .stat-lbl { font-size: .76rem; }
+  .b-body #device-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+  .b-body .device-card { padding: 16px; }
+  .b-body .device-card.linked { border-color: rgba(46, 154, 230, .45); }
+  .linked-tag { display: inline-block; margin-top: 4px; font-size: .7rem; color: var(--cyan); }
+  .b-body .modal-panel { max-width: none; max-height: none; height: 100%; border-radius: 16px; background: transparent; box-shadow: none; border: 0; }
+  .b-body.in-device { padding: 0; display: flex; flex-direction: column; overflow: hidden; }
+  .b-body .modal-hdr { padding: 16px 18px 12px; }
+  .b-body .tab-bar { padding: 0 18px 12px; }
+  .b-body .tab-body { padding: 16px 18px 22px; overscroll-behavior: contain; }
+  .b-body .back-btn { width: 36px; height: 36px; flex-shrink: 0; border-radius: 11px; background: rgba(255, 255, 255, .06); border: 1px solid var(--line); color: var(--muted); }
+  .b-body .back-btn:hover { color: var(--text); }
+  .demo-only { font-size: .8rem; color: var(--muted); padding: 12px 14px; border-radius: 12px; border: 1px dashed var(--line); }
+  .c-toast { position: absolute; left: 50%; bottom: 16px; z-index: 40; transform: translate(-50%, 12px); opacity: 0; transition: .2s; pointer-events: none;
+    padding: 10px 16px; border-radius: 12px; font-size: .85rem; background: #131b2e; border: 1px solid var(--line); max-width: calc(100% - 32px); }
+  .c-toast.show { opacity: 1; transform: translate(-50%, 0); }
+  .c-toast.ok { border-color: rgba(74, 222, 155, .5); }
+  .c-dialog { position: absolute; inset: 0; z-index: 50; display: grid; place-items: center; padding: 20px; }
+  .c-dialog .wipe-backdrop { position: absolute; }
+
+  /* ---------- phone overlays: locked screen, restart, alarm, remote-only ---------- */
+  .ovl { position: absolute; inset: 0; z-index: 25; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 10px; text-align: center; padding: 24px; color: #fff; border-radius: 37px; }
+  .ovl.locked { background: radial-gradient(80% 50% at 50% 0%, #10324f, #04060c 70%); cursor: pointer; justify-content: flex-start; padding-top: 90px; }
+  .ovl.locked .big { font-size: 64px; font-weight: 300; letter-spacing: -.02em; line-height: 1; }
+  .ovl.locked small { color: rgba(255, 255, 255, .7); font-size: 13px; }
+  .ovl.locked .hint { margin-top: auto; margin-bottom: 40px; font-size: 12px; color: rgba(255, 255, 255, .7); }
+  .ovl.locked svg { width: 22px; height: 22px; margin-top: 18px; opacity: .8; }
+  .ovl.reboot { background: #000; }
+  .ovl.reboot img { width: 70px; animation: cx-pulse 1.2s ease-in-out infinite; }
+  .ovl.reboot small { color: rgba(255, 255, 255, .6); font-size: 12px; }
+  .ovl.alarm { z-index: 35; background: #d1263c; animation: alarm-flash .5s steps(2) infinite; }
+  .ovl.alarm b { font-size: 26px; }
+  .ovl.alarm small { font-size: 13px; opacity: .9; max-width: 240px; }
+  .ovl.alarm svg { width: 64px; height: 64px; animation: ring .3s ease-in-out infinite alternate; }
+  @keyframes alarm-flash { 50% { background: #8f1424; } }
+  @keyframes ring { from { transform: rotate(-14deg); } to { transform: rotate(14deg); } }
+  @media (prefers-reduced-motion: reduce) { .ovl.alarm, .ovl.alarm svg { animation: none; } }
+  .remote { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 28px; text-align: center; }
+  .remote img { width: 80px; }
+  .remote b { font-size: 24px; }
+  .remote p { margin: 0; color: var(--c-muted); font-size: 13.5px; line-height: 1.5; }
+  .remote .demo-flag { text-align: center; }
 
   /* ---------- phone frame ---------- */
   .phone { --c-cyan: #7fd0f5; --c-cyandim: rgba(46, 154, 230, .3); --c-navy: #070a14; --c-bar: rgba(10, 16, 30, .7);
@@ -119,13 +187,13 @@
   .abtn.grad { color: #fff; border: 0; background: linear-gradient(135deg, #1f7fd6, #1fb58f); }
   .abtn:hover { filter: brightness(1.12); }
 
-  .stat-card { padding: 14px; }
-  .stat-card .top { display: flex; align-items: center; gap: 10px; }
+  .ph-status { padding: 14px; }
+  .ph-status .top { display: flex; align-items: center; gap: 10px; }
   .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c-green); flex: none; }
-  .stat-card .top .tx { flex: 1; }
-  .stat-card .top b { color: var(--c-green); font-size: 14.5px; display: block; }
-  .stat-card small, .stat-card p { color: var(--c-muted); font-size: 11px; margin: 0; }
-  .stat-card p { margin-top: 9px; }
+  .ph-status .top .tx { flex: 1; }
+  .ph-status .top b { color: var(--c-green); font-size: 14.5px; display: block; }
+  .ph-status small, .ph-status p { color: var(--c-muted); font-size: 11px; margin: 0; }
+  .ph-status p { margin-top: 9px; }
   .tag { font-size: 9.5px; font-weight: 700; letter-spacing: 1px; padding: 5px 9px; border-radius: 8px; color: var(--c-green);
     background: color-mix(in srgb, var(--c-green) 12%, transparent); }
   .wide-btn { flex: none; display: flex; align-items: center; justify-content: center; gap: 8px; height: 46px; border-radius: 12px;
@@ -141,9 +209,9 @@
   .btn-pair .abtn { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
   .btn-pair svg { width: 15px; height: 15px; }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 14px 12px; }
-  .chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px 4px 10px; border-radius: 99px; font-size: 11.5px;
+  .pchip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px 4px 10px; border-radius: 99px; font-size: 11.5px;
     background: var(--c-card); border: 1px solid var(--c-border); }
-  .chip button { border: 0; background: none; color: var(--c-muted); cursor: pointer; padding: 0 2px; font-size: 14px; line-height: 1; }
+  .pchip button { border: 0; background: none; color: var(--c-muted); cursor: pointer; padding: 0 2px; font-size: 14px; line-height: 1; }
   .add { display: flex; gap: 8px; padding: 0 14px 14px; }
   .add input { flex: 1; min-width: 0; font: inherit; font-size: 12.5px; color: var(--c-text); background: transparent;
     border: 1px solid var(--c-border); border-radius: 10px; padding: 8px 10px; }
@@ -196,13 +264,13 @@
 </div>
 
 <nav class="nav">
-  <a class="brand" href="/"><svg class="cmark nav" viewBox="0 0 24 24" aria-hidden="true"><text x="12" y="12.5" text-anchor="middle" dominant-baseline="central" font-weight="800" font-size="15" fill="#fff">C</text></svg> CORE MDM</a>
+  <a class="brand" href="index.html"><img src="logo-mark.png" alt="" width="28" height="34"> CORE MDM</a>
   <div class="links">
     <a href="features.html">Features</a>
-    <a href="demo.html" aria-current="page">Demo</a>
+    <a href="demo.html" class="active">Try the app</a>
     <a href="faq.html">FAQ</a>
     <a href="about.html">About</a>
-    <a href="https://github.com/yybam/coremdm" target="_blank" rel="noopener">GitHub</a>
+    <a href="organizations.html">Organizations</a>
     <a class="pill ghost-pill" href="console.html">Manage</a>
     <a class="pill" href="install.html">Install</a>
   </div>
@@ -211,47 +279,74 @@
 <main class="wide">
   <header class="hero page-hero">
     <p class="eyebrow">Live demo</p>
-    <h1>Try the app, <span class="grad">right here.</span></h1>
-    <p class="sub">This is the CORE MDM phone app running in your browser. Tap around: open sections, flip switches, lock the app. It's only a demo, so nothing is saved and no phone changes.</p>
+    <h1>Try CORE MDM, <span class="grad">right here.</span></h1>
+    <p class="sub">On the left is the phone app; on the right is the website you control it from. They're linked like the real thing. It's only a demo, so nothing is saved and no real phone changes.</p>
+    <p class="demo-version-note"><b>This demo isn't the latest version of CORE MDM.</b> It shows how the app and website work, but some newer settings and screens aren't in it. The real app and console have everything — <a href="install.html">install CORE MDM</a> to get the latest version.</p>
   </header>
 
   <div class="demo-wrap">
-    <div class="phone" id="phone">
-      <div class="screen" id="screen">
-        <span class="camera" aria-hidden="true"></span>
-        <div class="sbar" aria-hidden="true"><span id="clock">9:41</span><span><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 20 1.5 8.5a15 15 0 0 1 21 0z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 21h20V3z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="3" width="10" height="19" rx="2"/><rect x="10" y="1" width="4" height="3" rx="1"/></svg></span></div>
-        <div class="view" id="view"></div>
-        <div class="navbar">
-          <button type="button" id="nav-back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M17 4 6 12l11 8z"/></svg></button>
-          <button type="button" id="nav-home" aria-label="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="7"/></svg></button>
-          <button type="button" id="nav-recent" aria-label="Recent apps"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="5" width="14" height="14" rx="2"/></svg></button>
+    <div class="demo-col">
+      <h2><b>The phone</b> · the CORE MDM app</h2>
+      <div class="phone" id="phone">
+        <div class="screen" id="screen">
+          <span class="camera" aria-hidden="true"></span>
+          <div class="sbar" aria-hidden="true"><span id="clock">9:41</span><span><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 20 1.5 8.5a15 15 0 0 1 21 0z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 21h20V3z"/></svg><svg viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="3" width="10" height="19" rx="2"/><rect x="10" y="1" width="4" height="3" rx="1"/></svg></span></div>
+          <div class="view" id="view"></div>
+          <div class="navbar">
+            <button type="button" id="nav-back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M17 4 6 12l11 8z"/></svg></button>
+            <button type="button" id="nav-home" aria-label="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="7"/></svg></button>
+            <button type="button" id="nav-recent" aria-label="Recent apps"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="5" width="14" height="14" rx="2"/></svg></button>
+          </div>
+          <div class="snack" id="snack" role="status" aria-live="polite"></div>
+          <div id="ovl-host"></div>
+          <div id="dialog-host"></div>
         </div>
-        <div class="snack" id="snack" role="status" aria-live="polite"></div>
-        <div id="dialog-host"></div>
       </div>
     </div>
-
-    <aside class="demo-side">
-      <h2>Things to try</h2>
-      <p>The phone on the left works like the real app. Your taps stay in this page.</p>
-      <ol class="try">
-        <li><i>1</i><div><b>Unlock it</b><span>The app is protected by a PIN. In the demo, any 6 digits work. Tap ✓ to go in.</span></div></li>
-        <li><i>2</i><div><b>Open a section</b><span>Tap a card like <em>Stop the rules being bypassed</em> to see its switches.</span></div></li>
-        <li><i>3</i><div><b>Flip some switches</b><span>The count under each card's title updates as you go, just like on a real phone.</span></div></li>
-        <li><i>4</i><div><b>Open the content filter</b><span>Scroll to <em>Content Filter</em> and tap <em>Manage</em>. Add a site to the block list.</span></div></li>
-        <li><i>5</i><div><b>Switch to light mode</b><span>Open <em>App settings</em> and pick Light or Dark.</span></div></li>
-      </ol>
-      <p class="demo-note"><b>Demo only.</b> On a real phone every one of these settings can also be changed from the <a href="console.html">web console</a>, and changes reach the phone straight away.</p>
-      <div class="row">
-        <a class="btn primary" href="install.html">Install on a phone →</a>
-        <button class="btn ghost" type="button" id="reset">Start the demo again</button>
+    <div class="demo-col" id="console-col">
+      <h2><b>The website</b> · the console you use from any computer</h2>
+      <div class="browser">
+        <div class="b-top" aria-hidden="true"><span></span><span></span><span></span><b>coremdm.org/manage.html</b></div>
+        <div class="b-body cx" id="console"></div>
+        <div class="c-toast" id="c-toast" role="status" aria-live="polite"></div>
+        <div id="c-dialog-host"></div>
       </div>
-    </aside>
+    </div>
   </div>
 
+  <section class="demo-side">
+    <h2>Things to try</h2>
+    <p>The phone and the website are linked, just like the real thing: change a setting on one and watch it arrive on the other.</p>
+    <div class="try-cols">
+      <div>
+        <h3>On the phone</h3>
+        <ol class="try">
+          <li><i>1</i><div><b>Unlock it</b><span>The app is protected by a PIN. In the demo, any 6 digits work. Tap ✓ to go in.</span></div></li>
+          <li><i>2</i><div><b>Open a section and flip switches</b><span>Tap a card like <em>Stop the rules being bypassed</em>. The count under its title updates as you go.</span></div></li>
+          <li><i>3</i><div><b>Open the content filter</b><span>Scroll to <em>Content Filter</em> and tap <em>Manage</em>. Add a site to the block list.</span></div></li>
+          <li><i>4</i><div><b>Switch to light mode</b><span>Open <em>App settings</em> and pick Light or Dark.</span></div></li>
+        </ol>
+      </div>
+      <div>
+        <h3>On the website</h3>
+        <ol class="try">
+          <li><i>1</i><div><b>Manage Sam's phone</b><span>Tap <em>Manage →</em> on Sam's phone. It's the phone on the left.</span></div></li>
+          <li><i>2</i><div><b>Block something</b><span>On the <em>Apps</em> tab, switch on <em>Block social media</em> or <em>Block AI chats</em>. The switch on the phone follows a moment later.</span></div></li>
+          <li><i>3</i><div><b>Send a command</b><span>On <em>Commands</em>, try <em>Sound Alarm</em>, <em>Lock screen</em> or <em>Reboot</em> and watch the phone.</span></div></li>
+          <li><i>4</i><div><b>Try remote-only mode</b><span>On <em>Device</em>, switch on <em>Remote-only mode</em>. The phone's app locks, and only the website can change anything.</span></div></li>
+        </ol>
+      </div>
+    </div>
+    <p class="demo-note"><b>Demo only.</b> Nothing here is saved or sent anywhere, and no real phone changes. On real phones, changes from the <a href="console.html">web console</a> reach the phone straight away.</p>
+    <div class="row">
+      <a class="btn primary" href="install.html">Install on a phone →</a>
+      <button class="btn ghost" type="button" id="reset">Start the demo again</button>
+    </div>
+  </section>
+
   <footer class="muted foot">
-    <span><span class="cmark foot">C</span> CORE MDM <small>Beta</small></span>
-    <span class="foot-links"><a href="features.html">Features</a><a href="demo.html">Demo</a><a href="faq.html">FAQ</a><a href="about.html">About</a><a href="install.html">Install</a><a href="console.html">Manage</a><a href="https://github.com/yybam/coremdm" target="_blank" rel="noopener">GitHub</a><a href="terms.html">Terms</a><a href="privacy.html">Privacy</a><a href="consent.html">Consent</a></span>
+  <span><img src="logo-mark.png" alt="" width="18" height="22"> CORE MDM <small>© 2026 CORE MDM</small></span>
+  <span class="foot-links"><a href="features.html">Features</a><a href="demo.html">Try the app</a><a href="faq.html">FAQ</a><a href="about.html">About</a><a href="organizations.html">Organizations</a><a href="install.html">Install</a><a href="console.html">Manage</a><a href="https://github.com/yybam/coremdm" target="_blank" rel="noopener">GitHub</a><a href="terms.html">Terms</a><a href="privacy.html">Privacy</a><a href="consent.html">Consent</a></span>
   </footer>
 </main>
 
@@ -315,6 +410,7 @@
     check: '<path d="M5 12l5 5 9-10"/>',
     del: '<path d="M8 5h12v14H8l-6-7z"/><path d="M11 9l6 6M17 9l-6 6"/>',
     x: '<path d="M6 6l12 12M18 6 6 18"/>',
+    bell: '<path d="M6 16v-5a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/>',
   };
   const ic = (n, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n]}</svg>`;
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -340,8 +436,11 @@
     pin = '';
     theme = 'dark';
     blocked = ['example-games.com', 'casino-ads.net'];
+    ovl = null; alarmOn = false;
     applyTheme();
     render();
+    renderOvl();
+    window.dispatchEvent(new Event('demo-reset'));
   }
 
   const row = (r) => {
@@ -470,37 +569,45 @@
       ...GROUPS.map(([id, title]) => ({ t: 'toggle', id, icon: 'block', title, sub: 'Built-in list' })) ] }),
     card({ key: 'custom', title: 'Custom Blocked Sites', icon: 'block', color: '--c-red', body: () =>
       `<div class="prow"><div class="tx"><small>Block specific domains</small></div></div>
-       <div class="chips">${blocked.length ? blocked.map((d, i) => `<span class="chip">${esc(d)}<button type="button" aria-label="Remove ${esc(d)}" data-unblock="${i}">×</button></span>`).join('') : '<small style="color:var(--c-muted)">Nothing added yet</small>'}</div>
+       <div class="chips">${blocked.length ? blocked.map((d, i) => `<span class="pchip">${esc(d)}<button type="button" aria-label="Remove ${esc(d)}" data-unblock="${i}">×</button></span>`).join('') : '<small style="color:var(--c-muted)">Nothing added yet</small>'}</div>
        <form class="add" id="add-site"><input name="d" placeholder="example.com" autocomplete="off" aria-label="Site to block"><button class="abtn grad" type="submit">Add</button></form>` }),
     card({ key: 'allow', title: 'Always Allowed', icon: 'shieldok', color: '--c-green', body: () =>
-      `<div class="prow"><div class="tx"><small>These domains bypass all blocking</small></div></div><div class="chips"><span class="chip">school-portal.org</span></div>` }),
+      `<div class="prow"><div class="tx"><small>These domains bypass all blocking</small></div></div><div class="chips"><span class="pchip">school-portal.org</span></div>` }),
   ];
 
   // ---------- render ----------
   const $view = document.getElementById('view');
   function render() {
+    window.dispatchEvent(new Event('demo-phone-change'));   // the website console mirrors this state
+    if (S.remoteOnly) {
+      $view.className = 'view';
+      $view.innerHTML = `<div class="remote"><img src="logo-mark.png" alt=""><b>Managed remotely</b>
+        <p>This phone's settings are controlled by its administrator from the CORE MDM website. Nothing can be changed here.</p>
+        <span class="demo-flag">Demo: switch off <em>Remote-only mode</em> on the website's Device tab.</span></div>`;
+      return;
+    }
     const scrollEl = $view.querySelector('.scroll');
     const keep = scrollEl && scrollEl.dataset.screen === screen ? scrollEl.scrollTop : 0;
     if (screen === 'pin') {
       $view.className = 'view pin';
-      $view.innerHTML = `<div class="pin-head"><span class="cmark" style="width:22px;height:22px;font-size:12px;border-radius:6px;display:inline-flex">C</span><h3>CORE MDM</h3><p>Managed Device</p>
+      $view.innerHTML = `<div class="pin-head"><img src="logo-mark.png" alt=""><h3>CORE MDM</h3><p>Managed Device</p>
         <div class="pin-dots" aria-label="${pin.length} digits entered">${Array.from({ length: Math.max(6, pin.length) }, (_, i) => `<i class="${i < pin.length ? 'f' : ''}"></i>`).join('')}</div>
         <div class="pin-hint" id="pin-hint">Enter your PIN to continue · demo: any 6 digits</div></div>
         <div class="keys">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => `<button type="button" data-k="${n}">${n}</button>`).join('')}
           <button type="button" class="plain" data-k="del" aria-label="Delete">${ic('del')}</button><button type="button" data-k="0">0</button>
           <button type="button" class="ok" data-k="ok" aria-label="Confirm PIN">${ic('check')}</button></div>
-        <div class="pin-foot"><span class="cmark" style="width:22px;height:22px;font-size:12px;border-radius:6px;display:inline-flex">C</span>Protected by CORE MDM</div>`;
+        <div class="pin-foot"><img src="logo-mark.png" alt="">Protected by CORE MDM</div>`;
       return;
     }
     $view.className = 'view';
     const top = screen === 'dash'
-      ? `<div class="topbar"><div class="title"><span class="cmark" style="width:22px;height:22px;font-size:12px;border-radius:6px;display:inline-flex">C</span>CORE MDM</div>
+      ? `<div class="topbar"><div class="title"><img src="logo-mark.png" alt="">CORE MDM</div>
           <button class="ib" type="button" data-act="search" aria-label="Search settings">${ic('search')}</button>
           <button class="ib cyan" type="button" data-act="refresh" aria-label="Refresh">${ic('refresh')}</button></div>`
       : `<div class="topbar" style="padding-left:6px"><button class="ib cyan" type="button" data-go="back" aria-label="Back">${ic('back')}</button>
           <div class="title">Content Filter</div></div>`;
     const body = screen === 'dash'
-      ? `<section class="card stat-card"><div class="top"><span class="dot"></span><div class="tx"><b>Device Owner — Protected</b><small>Samsung Galaxy A15</small></div>
+      ? `<section class="card ph-status"><div class="top"><span class="dot"></span><div class="tx"><b>Device Owner — Protected</b><small>Samsung Galaxy A15</small></div>
           <span class="tag">FULL CONTROL</span></div><p>Android 14 (API 34)</p></section>
          <button class="wide-btn" type="button" data-act="lockdown">${ic('lock')} Turn on every restriction</button>` + C.map(card).join('')
       : filterCards().join('');
@@ -531,8 +638,7 @@
     lockdown: () => dialog({ icon: 'lock', color: '--c-yellow', title: 'Apply Full Lockdown?', ok: 'Apply',
       text: 'This will enforce all anti-bypass restrictions, block installs/uninstalls, lock Wi-Fi/BT/mobile settings, disable screen capture, and disable the status bar.',
       onOk: () => {
-        ['safeBoot', 'factoryReset', 'debugging', 'addUser', 'userSwitch', 'capture', 'installs', 'uninstalls', 'sideload',
-          'wifi', 'mobile', 'btConfig', 'vpn', 'statusBar', 'netReset', 'protect'].forEach(k => S[k] = true);
+        LOCKDOWN_KEYS.forEach(k => S[k] = true);
         render(); snack('Full lockdown applied');
       } }),
     wipe: () => dialog({ icon: 'warn', color: '--c-red', titleColor: '--c-red', title: 'Factory Reset Device?', ok: 'WIPE DEVICE',
@@ -542,8 +648,8 @@
       onOk: () => snack('Demo: CORE MDM was not removed') }),
     remove: () => dialog({ icon: 'personrm', color: '--c-red', titleColor: '--c-red', title: 'Remove this device?', ok: 'Remove',
       text: 'This phone will be deleted from your account and signed out.', onOk: () => snack('Demo: nothing was removed') }),
-    lock: () => { screen = 'pin'; pin = ''; render(); },
-    reboot: () => snack('Demo: a real phone would restart now'),
+    lock: () => lockPhone(),
+    reboot: () => rebootPhone(),
     update: () => snack('Up to date'),
     guard: () => snack('Screen guard is on'),
     apps: () => snack('The app list is not part of the demo'),
@@ -613,7 +719,7 @@
   document.getElementById('nav-recent').onclick = () => snack('Recent apps is not part of the demo');
   document.getElementById('reset').onclick = () => { $host.innerHTML = ''; reset(); };
   document.addEventListener('keydown', e => {
-    if (screen !== 'pin' || $host.innerHTML || e.target.matches('input')) return;
+    if (screen !== 'pin' || $host.innerHTML || ovl || S.remoteOnly || e.target.matches('input')) return;
     if (/^[0-9]$/.test(e.key)) pinKey(e.key);
     else if (e.key === 'Backspace') pinKey('del');
     else if (e.key === 'Enter' && document.activeElement === document.body) pinKey('ok');
@@ -630,8 +736,274 @@
   const tick = () => { clock.textContent = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }).replace(/\s?[AP]M$/i, ''); };
   tick(); setInterval(tick, 20000);
 
+  // ---------- what the website console can do to this phone ----------
+  const LOCKDOWN_KEYS = ['safeBoot', 'factoryReset', 'debugging', 'addUser', 'userSwitch', 'capture', 'installs', 'uninstalls',
+    'sideload', 'wifi', 'mobile', 'btConfig', 'vpn', 'statusBar', 'netReset', 'protect'];
+  let ovl = null, alarmOn = false;
+  const $ovl = document.getElementById('ovl-host');
+  function renderOvl() {
+    let h = '';
+    if (ovl === 'locked') h = `<div class="ovl locked" role="button" tabindex="0" data-unlock><div class="big">${clock.textContent}</div>
+      <small>${new Date().toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long' })}</small>${ic('lock')}
+      <div class="hint">Tap to unlock</div></div>`;
+    if (ovl === 'reboot') h = '<div class="ovl reboot"><img src="logo-mark.png" alt=""><small>Restarting…</small></div>';
+    if (alarmOn) h += `<div class="ovl alarm" role="alert">${ic('bell')}<b>Alarm</b>
+      <small>Ringing at full volume so the phone can be found. It's stopped from the website.</small></div>`;
+    $ovl.innerHTML = h;
+  }
+  $ovl.addEventListener('click', e => { if (e.target.closest('[data-unlock]')) { ovl = null; renderOvl(); } });
+  $ovl.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches('[data-unlock]')) e.target.click(); });
+  function lockPhone() { $host.innerHTML = ''; ovl = 'locked'; screen = 'pin'; pin = ''; render(); renderOvl(); }
+  function rebootPhone() {
+    $host.innerHTML = ''; ovl = 'reboot'; renderOvl();
+    setTimeout(() => { if (ovl === 'reboot') lockPhone(); }, 2600);
+  }
+  window.demoPhone = {
+    get: id => S[id],
+    set(id, v) {
+      S[id] = v; render();
+      if (screen !== 'pin' && !S.remoteOnly) snack('Settings updated from the website');
+    },
+    lockdown() { [...LOCKDOWN_KEYS, 'camera'].forEach(k => S[k] = true); render(); },
+    lock: lockPhone,
+    reboot: rebootPhone,
+    alarm(on) { alarmOn = on; renderOvl(); },
+  };
+
   reset();
 })();
+</script>
+<script type="module">
+// The website console, demo edition: same markup and styles as manage.html, same settings list
+// (policies.js), no Firebase. "Sam's phone" is the phone demo above (window.demoPhone).
+import { APP_POLICIES, SYS_POLICIES, HW_POLICIES, BLOCK_POLICIES, CONTROL_POLICIES, NETWORK_POLICIES } from './policies.js';
+
+const phone = window.demoPhone;
+// Console setting key → the phone demo's setting id
+const PHONE = {
+  installAppsBlocked: 'installs', uninstallAppsBlocked: 'uninstalls', unknownSourcesBlocked: 'sideload', playStoreHidden: 'playHidden',
+  browsersHidden: 'browsers', cameraDisabled: 'camera', screenCaptureDisabled: 'capture', installerAllowlistOn: 'allowlist',
+  remoteOnly: 'remoteOnly', safeBootBlocked: 'safeBoot', factoryResetBlocked: 'factoryReset', debuggingBlocked: 'debugging',
+  addUserBlocked: 'addUser', userSwitchBlocked: 'userSwitch', statusBarDisabled: 'statusBar', wifiConfigBlocked: 'wifi',
+  mobileNetworksBlocked: 'mobile', bluetoothConfigBlocked: 'btConfig', vpnBlocked: 'vpn', networkResetBlocked: 'netReset',
+  usbTransferBlocked: 'usb', bluetoothDisabled: 'btOff', outgoingCallsBlocked: 'outCalls', physicalMediaBlocked: 'media',
+  mdmUninstallProtected: 'protect', whatsappBlocked: 'whatsapp', socialMediaBlocked: 'social', aiChatsBlocked: 'ai',
+  webviewDisabled: 'webview', appsControlBlocked: 'lockSettings', allCallsBlocked: 'calls', smsBlocked: 'sms',
+  hotspotBlocked: 'hotspot', filterRunning: 'filter',
+};
+const TABS = [
+  { id: 'commands', label: 'Commands' }, { id: 'installed', label: 'Apps' }, { id: 'limits', label: 'Time limits' },
+  { id: 'network', label: 'Internet' }, { id: 'device', label: 'Device' }, { id: 'danger', label: 'Danger', danger: true },
+];
+const COMMANDS = {
+  lockCommand:         { label: 'Lock screen',   title: 'Lock the screen?',     body: d => `The screen of ${d} will lock right away.` },
+  rebootCommand:       { label: 'Reboot',        title: 'Restart the phone?',   body: d => `${d} will restart and be offline for about a minute.` },
+  fullLockdownCommand: { label: 'Full lockdown', title: 'Apply full lockdown?', body: d => `All major restrictions will be enabled on ${d}, including camera, status bar and screen capture.` },
+  wipeCommand:         { label: 'Wipe',          title: 'Wipe this phone?',     body: d => `Everything on ${d} will be permanently erased. This cannot be undone.`, danger: true },
+};
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+let devices, view, tab, ver = null;
+function fresh() {
+  devices = [
+    { id: 'sam', name: "Sam's phone", model: 'Galaxy A15', os: 'Android 14', imei: '356938035643809', serial: 'R58W30DEMO1',
+      online: true, linked: true, guard: true, alarm: false, cmds: {}, pend: {}, policies: {} },
+    { id: 'office', name: 'Office Pixel', model: 'Pixel 8', os: 'Android 15', imei: '358240051111110', serial: '3A281FDEMO2',
+      online: true, guard: true, alarm: false, cmds: {}, pend: {},
+      policies: { whatsappBlocked: true, aiChatsBlocked: true, installAppsBlocked: true, factoryResetBlocked: true, filterRunning: true } },
+    { id: 'tablet', name: 'Kitchen tablet', model: 'Galaxy Tab A9', os: 'Android 14', serial: 'R9PW20DEMO3', online: false,
+      lastSeen: '3 hours ago', guard: false, alarm: false, cmds: {}, pend: {},
+      policies: { socialMediaBlocked: true, remoteOnly: true, filterRunning: true } },
+  ];
+  view = 'list'; tab = 'commands';
+}
+const dev = id => devices.find(d => d.id === id);
+const getP = (d, k) => k in d.pend ? d.pend[k] : d.linked && PHONE[k] ? !!phone.get(PHONE[k]) : !!d.policies[k];
+function setP(d, k, v) {
+  if (!(d.linked && PHONE[k])) { d.policies[k] = v; return render(); }
+  // The phone picks the change up a moment later, as it does from Firestore
+  d.pend[k] = v;
+  setTimeout(() => { delete d.pend[k]; phone.set(PHONE[k], v); }, 700);
+}
+
+// ---------- rendering (markup mirrors manage.html) ----------
+const $c = document.getElementById('console');
+function activeChips(d) {
+  const chips = [];
+  if (getP(d, 'whatsappBlocked'))    chips.push('WhatsApp off');
+  if (getP(d, 'socialMediaBlocked')) chips.push('Social off');
+  if (getP(d, 'aiChatsBlocked'))     chips.push('AI off');
+  if (getP(d, 'allCallsBlocked'))    chips.push('Calls off');
+  if (getP(d, 'smsBlocked'))         chips.push('SMS off');
+  if (getP(d, 'remoteOnly'))         chips.push('Remote-only');
+  if (!chips.length) return '<span class="chip chip-none">Nothing blocked</span>';
+  return chips.map(t => `<span class="chip">${esc(t)}</span>`).join('');
+}
+const hasPending = d => Object.keys(d.cmds).length > 0;
+const seen = d => d.online ? 'just now' : d.lastSeen || 'a minute ago';
+function renderList() {
+  const online = devices.filter(d => d.online).length, alarming = devices.filter(d => d.alarm).length;
+  $c.classList.remove('in-device');
+  $c.innerHTML = `<div class="console-bar"><div><h1 class="console-h">Your devices</h1>
+      <p class="console-sub">Changes reach the phone the moment you make them.</p></div></div>
+    <div id="stats-strip">
+      <div class="stat-card stat-total"><div class="stat-val">${devices.length}</div><div class="stat-lbl">Total devices</div></div>
+      <div class="stat-card stat-online"><div class="stat-val">${online}</div><div class="stat-lbl">Online</div></div>
+      <div class="stat-card stat-offline"><div class="stat-val">${devices.length - online}</div><div class="stat-lbl">Offline</div></div>
+      <div class="stat-card stat-alarm"><div class="stat-val">${alarming}</div><div class="stat-lbl">Alarming</div></div>
+    </div>
+    <div id="device-grid">${devices.map(d => `
+      <div class="device-card${d.alarm ? ' alarming' : ''}${d.linked ? ' linked' : ''}">
+        <div class="dc-head">
+          <div><div class="dc-name">${esc(d.name)}</div><div class="dc-sub">${esc(d.model)} · ${esc(d.os)}</div>
+            ${d.linked ? '<span class="linked-tag">This is the demo phone</span>' : ''}</div>
+          <div class="dc-badges">
+            <span class="badge ${d.online ? 'badge-online' : 'badge-offline'}">${d.online ? 'ONLINE' : 'OFFLINE'}</span>
+            ${d.alarm ? '<span class="badge badge-alarm animate-pulse">ALARM</span>' : ''}
+            ${hasPending(d) ? '<span class="badge badge-pending">PENDING</span>' : ''}
+          </div>
+        </div>
+        <div class="dc-ids">
+          ${d.imei ? `<div class="dc-id"><span class="dc-id-lbl">IMEI</span><span class="dc-id-val">${d.imei}</span></div>` : ''}
+          <div class="dc-id"><span class="dc-id-lbl">Serial</span><span class="dc-id-val">${d.serial}</span></div>
+        </div>
+        <div class="dc-chips">${activeChips(d)}</div>
+        <div class="dc-lastseen">Last seen: ${seen(d)}</div>
+        <div class="dc-actions">
+          <button class="dc-btn dc-btn-alarm${d.alarm ? ' active' : ''}" data-alarm="${d.id}">${d.alarm ? 'Stop Alarm' : 'Sound Alarm'}</button>
+          <button class="dc-btn dc-btn-manage" data-open="${d.id}">Manage &rarr;</button>
+        </div>
+      </div>`).join('')}</div>`;
+}
+function policyRow(d, pol) {
+  return `<div class="policy-row"><div class="policy-info">
+      <div class="policy-label">${esc(pol.label)}</div><div class="policy-sub">${esc(pol.sub)}</div>
+      ${pol.warn ? `<div class="policy-warn">${esc(pol.warn)}</div>` : ''}</div>
+    <label class="toggle"><input type="checkbox" data-key="${pol.key}" ${getP(d, pol.key) ? 'checked' : ''} aria-label="${esc(pol.label)}">
+      <span class="toggle-track"></span><span class="toggle-thumb"></span></label></div>`;
+}
+const group = (d, title, list, note) => `<div class="net-section"><h3>${esc(title)}</h3>
+  ${note ? `<p class="apps-meta">${note}</p>` : ''}${list.map(p => policyRow(d, p)).join('')}</div>`;
+const notInDemo = what => `<p class="demo-only">${what}: not part of the demo. In the real console they're on this tab.</p>`;
+function cmdButton(d, field, cls) {
+  const c = COMMANDS[field];
+  return d.cmds[field]
+    ? `<button class="cmd-btn cmd-pending" data-cancel="${field}"><span><span class="spin"></span>${c.label} pending…</span><small>Waiting for the phone · tap to cancel</small></button>`
+    : `<button class="cmd-btn ${cls}" data-cmd="${field}">${c.label}</button>`;
+}
+function tabBody(d) {
+  switch (tab) {
+    case 'commands': return `<div class="cmd-grid">
+        <button class="cmd-btn ${d.alarm ? 'cmd-alarm-on' : 'cmd-alarm-off'}" data-alarm="${d.id}">${d.alarm ? 'Stop Alarm' : 'Sound Alarm'}</button>
+        ${cmdButton(d, 'lockCommand', 'cmd-lock')}${cmdButton(d, 'rebootCommand', 'cmd-reboot')}</div>
+      ${d.cmds.fullLockdownCommand
+        ? `<button class="cmd-lockdown cmd-pending" data-cancel="fullLockdownCommand"><div class="ld-icon">!</div><div class="ld-text"><span class="spin"></span>Full lockdown pending…<span class="ld-sub">Waiting for the phone · tap to cancel</span></div></button>`
+        : `<button class="cmd-lockdown" data-cmd="fullLockdownCommand"><div class="ld-icon">!</div><div class="ld-text">Apply Full Lockdown<span class="ld-sub">Enables all restrictions, disables camera, status bar, screen capture</span></div></button>`}
+      <p class="cmd-note">If the phone is offline, commands wait until it reconnects — you can cancel them any time before then.</p>`;
+    case 'installed': return group(d, 'Quick blocks', BLOCK_POLICIES) + notInDemo('The full app list, blocking single apps and blocking parts of apps');
+    case 'limits': return notInDemo('Daily time limits for each app');
+    case 'network': return group(d, 'Content filter', NETWORK_POLICIES.filter(p => p.key === 'filterRunning'))
+      + notInDemo('Blocklist groups, your own blocked sites and web pages in apps');
+    case 'device': return group(d, 'Installing and removing apps', APP_POLICIES)
+      + group(d, 'Keep these rules in place', [...CONTROL_POLICIES, ...SYS_POLICIES], 'Stops the phone’s own Settings being used to undo what you set here.')
+      + group(d, 'Hardware', HW_POLICIES);
+    case 'danger': return `<div class="danger-card"><div class="danger-title">Wipe Device</div>
+        <div class="danger-desc">Permanently erase all data on <strong>${esc(d.name)}</strong> and restore it to factory settings. This action cannot be undone.</div>
+        ${d.cmds.wipeCommand ? `<button class="btn-cancel" data-cancel="wipeCommand"><span class="spin"></span>Wipe pending — cancel</button>`
+          : `<button class="btn-wipe" data-cmd="wipeCommand">Wipe Device</button>`}</div>
+      <div class="danger-card"><div class="danger-title">Remove from account</div>
+        <div class="danger-desc">Deletes <strong>${esc(d.name)}</strong> from your devices. The phone signs out of CORE MDM the next time it's online; restrictions already on the phone stay until it's set up again.</div>
+        <button class="btn-wipe" data-remove>Remove device</button></div>`;
+  }
+}
+function renderDevice() {
+  const d = dev(view);
+  const body = $c.querySelector('.tab-body');
+  const keep = body && body.dataset.tab === tab ? body.scrollTop : 0;
+  $c.classList.add('in-device');
+  $c.innerHTML = `<div class="modal-panel">
+    <div class="modal-hdr">
+      <div class="modal-hdr-info"><div id="modal-device-name">${esc(d.name)}</div>
+        <div id="modal-device-sub"><span class="badge ${d.online ? 'badge-online' : 'badge-offline'}">${d.online ? 'ONLINE' : 'OFFLINE'}</span>
+          ${d.alarm ? '<span class="badge badge-alarm animate-pulse">ALARM</span>' : ''}<span>${esc(d.model)}</span><span>Last seen: ${seen(d)}</span>
+          ${ver ? `<span>CORE MDM v${esc(ver)}</span>` : ''}
+          ${d.guard ? '<span class="badge badge-online">GUARD ON</span>' : '<span class="badge badge-guard-off">GUARD OFF</span>'}</div></div>
+      <button class="back-btn" type="button" data-close aria-label="Back to all devices">&#x2715;</button>
+    </div>
+    <div class="tab-bar" role="tablist">${TABS.map(t => `<button class="tab-btn${t.id === tab ? ' active' : ''}" role="tab" aria-selected="${t.id === tab}" data-tab="${t.id}">${t.danger ? `<span style="color:var(--red)">${t.label}</span>` : t.label}</button>`).join('')}</div>
+    <div class="tab-body" data-tab="${tab}">${tabBody(d)}</div></div>`;
+  $c.querySelector('.tab-body').scrollTop = keep;
+}
+const render = () => (view === 'list' ? renderList() : renderDevice());
+
+// ---------- toast + confirm (inside the browser frame) ----------
+const $toast = document.getElementById('c-toast');
+let toastT;
+function toast(msg, kind = '') {
+  $toast.textContent = msg; $toast.className = 'c-toast show ' + kind;
+  clearTimeout(toastT); toastT = setTimeout(() => { $toast.className = 'c-toast'; }, 3000);
+}
+const $dlg = document.getElementById('c-dialog-host');
+function askConfirm({ title, body, label, danger }) {
+  return new Promise(res => {
+    $dlg.innerHTML = `<div class="c-dialog cx" role="dialog" aria-modal="true" aria-labelledby="c-dlg-t"><div class="wipe-backdrop" data-a="no"></div>
+      <div class="wipe-dialog confirm-dialog"><h2 id="c-dlg-t">${esc(title)}</h2><p>${esc(body)}</p>
+      <div class="wipe-btns"><button class="btn-cancel" data-a="no">Cancel</button>
+      <button class="${danger ? 'btn-confirm-wipe' : 'btn-confirm'}" data-a="yes">${esc(label)}</button></div></div></div>`;
+    $dlg.querySelector('[data-a="yes"]').focus();
+    $dlg.onclick = e => { const a = e.target.closest('[data-a]')?.dataset.a; if (a) { $dlg.innerHTML = ''; res(a === 'yes'); } };
+  });
+}
+
+// ---------- actions ----------
+function setAlarm(d, on) {
+  d.alarm = on; render();
+  if (d.linked) setTimeout(() => phone.alarm(on), 500);
+  toast(on ? `Alarm sent to ${d.name}` : `Alarm stopped on ${d.name}`);
+}
+async function sendCommand(d, field) {
+  const c = COMMANDS[field];
+  if (!await askConfirm({ title: c.title, body: c.body(d.name), label: c.label, danger: c.danger })) return;
+  d.cmds[field] = true; render();
+  if (!d.online) return toast(`${d.name} is offline — the command waits until it reconnects`);
+  setTimeout(() => {
+    if (!d.cmds[field]) return;            // cancelled meanwhile
+    delete d.cmds[field];
+    if (d.linked) {
+      if (field === 'lockCommand') phone.lock();
+      if (field === 'rebootCommand') { phone.reboot(); d.online = false; setTimeout(() => { d.online = true; render(); }, 2600); }
+      if (field === 'fullLockdownCommand') phone.lockdown();
+    }
+    render();
+    toast(field === 'wipeCommand' ? `Demo: ${d.name} was not wiped` : `${d.name}: ${c.label.toLowerCase()} done`, 'ok');
+  }, 1200);
+}
+
+$c.addEventListener('click', async e => {
+  const t = e.target.closest('button');
+  if (!t) return;
+  const d = view === 'list' ? null : dev(view);
+  if (t.dataset.open) { view = t.dataset.open; tab = 'commands'; return render(); }
+  if (t.dataset.alarm) { const a = dev(t.dataset.alarm); return setAlarm(a, !a.alarm); }
+  if (t.hasAttribute('data-close')) { view = 'list'; return render(); }
+  if (t.dataset.tab) { tab = t.dataset.tab; return render(); }
+  if (t.dataset.cmd) return sendCommand(d, t.dataset.cmd);
+  if (t.dataset.cancel) { delete d.cmds[t.dataset.cancel]; render(); return toast('Command cancelled'); }
+  if (t.hasAttribute('data-remove')) {
+    if (await askConfirm({ title: `Remove ${d.name}?`, body: 'It will be deleted from your devices.', label: 'Remove', danger: true }))
+      toast(`Demo: ${d.name} was not removed`);
+  }
+});
+$c.addEventListener('change', e => {
+  const k = e.target.dataset.key;
+  if (k) setP(dev(view), k, e.target.checked);
+});
+
+window.addEventListener('demo-phone-change', () => render());
+window.addEventListener('demo-reset', () => { fresh(); render(); });
+window.appVersion.then(v => { ver = v; render(); });
+fresh();
+render();
 </script>
 </body>
 </html>

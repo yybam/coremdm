@@ -39,7 +39,7 @@ class SecurityConfig(private val firebaseTokenFilter: FirebaseTokenFilter) {
     @Bean
     fun corsSource(): CorsConfigurationSource {
         val config = CorsConfiguration().apply {
-            allowedOriginPatterns = listOf("https://coremdm.web.app", "http://localhost:*")
+            allowedOriginPatterns = listOf("https://coremdm.org", "https://coremdm.web.app", "http://localhost:*")
             allowedMethods        = listOf("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
             allowedHeaders        = listOf("*")
             allowCredentials      = true

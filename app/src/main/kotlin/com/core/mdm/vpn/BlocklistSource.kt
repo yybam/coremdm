@@ -5,7 +5,7 @@ import android.util.Log
 
 /**
  * Where the grouped blocklists come from. Loading is kept apart from matching (DomainMatcher)
- * so the bundled lists can later be swapped for ones downloaded from coremdm.vercel.app by
+ * so the bundled lists can later be swapped for ones downloaded from coremdm.org by
  * writing another implementation — nothing else has to change.
  */
 interface BlocklistSource {

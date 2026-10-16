@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CORE MDM — Fleet Updater</title>
-<link rel="icon" type="image/png" href="/favicon.png" />
+<link rel="icon" type="image/png" href="favicon.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
@@ -46,11 +46,7 @@ body{
   box-shadow:var(--shadow);backdrop-filter:blur(12px);
 }
 .logo{display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:28px}
-.logo-mark{
-  width:42px;height:42px;border-radius:12px;background:var(--brand);
-  display:flex;align-items:center;justify-content:center;
-  font-size:20px;font-weight:800;color:#fff;
-}
+.logo-mark{width:35px;height:42px;object-fit:contain}
 .logo-text{font-size:22px;font-weight:800}
 .logo-text span{background:var(--brand);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .auth-sub{font-size:13px;color:var(--textSec);text-align:center;margin-bottom:26px}
@@ -282,7 +278,7 @@ body{
 <div id="auth-screen">
   <div class="auth-card">
     <div class="logo">
-      <div class="logo-mark">C</div>
+      <img class="logo-mark" src="logo-mark.png" alt="">
       <div class="logo-text">CORE <span>MDM</span></div>
     </div>
     <p class="auth-sub">Fleet Updater · Admin sign-in required</p>
@@ -407,7 +403,9 @@ import { getFirestore, collection, query, where, getDocs,
 import { getStorage, ref, uploadBytesResumable, getDownloadURL }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
 
-const ADMIN_EMAIL = 'yybamberger1@gmail.com';
+// Keep in step with isSuperAdmin() in firestore.rules / storage.rules.
+const ADMIN_EMAILS = ['yybamberger1@gmail.com', 'yybambi23@gmail.com', 'shmuelzevkatz@gmail.com', 'adschochet03@gmail.com'];
+const isAdmin = user => !!user && ADMIN_EMAILS.includes((user.email || '').toLowerCase());
 
 const fbApp = initializeApp({
   apiKey:            "AIzaSyCWew6jKeAyEMUWY1DYjuzhxH0jSke3JhE",
@@ -487,7 +485,7 @@ onAuthStateChanged(auth, async user => {
   }
 
   // Wrong account → show denied
-  if (user.email !== ADMIN_EMAIL) {
+  if (!isAdmin(user)) {
     document.getElementById('denied-screen').style.display = 'flex';
     log(`Access denied for ${user.email}`, 'err');
     return;
@@ -698,7 +696,7 @@ document.getElementById('push-btn').addEventListener('click', pushUpdate);
 
 async function pushUpdate() {
   const user = auth.currentUser;
-  if (!user || user.email !== ADMIN_EMAIL) return;
+  if (!isAdmin(user)) return;
   if (!selectedApk) return;
 
   const version = document.getElementById('ver-input').value.trim();
@@ -821,7 +819,7 @@ async function pushUpdate() {
 async function resendUpdate(d) {
   if (!d.pushedUrl || !d.pushedVersion) return;
   const user = auth.currentUser;
-  if (!user || user.email !== ADMIN_EMAIL) return;
+  if (!isAdmin(user)) return;
 
   try {
     await addDoc(collection(db, 'devices', d.id, 'commands'), {

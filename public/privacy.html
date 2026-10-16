@@ -3,98 +3,222 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Privacy Policy — CORE MDM</title>
-<meta name="description" content="What CORE MDM collects, why, and what it does not collect. CORE MDM manages what a device can do — it does not read messages, track location or record browsing.">
-<link rel="icon" type="image/png" href="/favicon.png">
+<title>Privacy Policy · CORE MDM</title>
+<meta name="description" content="What CORE MDM collects, why, who can see it, and the choices you have.">
+<link rel="icon" type="image/png" href="favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="bg" aria-hidden="true"><span class="orb o1"></span><span class="orb o2"></span><span class="orb o3"></span></div>
+<div class="bg" aria-hidden="true">
+  <span class="orb o1"></span><span class="orb o2"></span><span class="orb o3"></span>
+</div>
 
 <nav class="nav">
-  <a class="brand" href="/"><svg class="cmark nav" viewBox="0 0 24 24" aria-hidden="true"><text x="12" y="12.5" text-anchor="middle" dominant-baseline="central" font-weight="800" font-size="15" fill="#fff">C</text></svg> CORE MDM</a>
+  <a class="brand" href="index.html"><img src="logo-mark.png" alt="" width="28" height="34"> CORE MDM</a>
   <div class="links">
     <a href="features.html">Features</a>
-    <a href="demo.html">Demo</a>
+    <a href="demo.html">Try the app</a>
     <a href="faq.html">FAQ</a>
     <a href="about.html">About</a>
-    <a href="https://github.com/yybam/coremdm" target="_blank" rel="noopener">GitHub</a>
+    <a href="organizations.html">Organizations</a>
     <a class="pill ghost-pill" href="console.html">Manage</a>
     <a class="pill" href="install.html">Install</a>
   </div>
 </nav>
 
-<main class="narrow">
-  <header class="hero page-hero">
+<main>
+  <header class="page-hero">
     <p class="eyebrow">Legal</p>
     <h1>Privacy <span class="grad">Policy</span></h1>
-    <p class="updated">Last updated: 7 October 2026</p>
+    <p class="updated">Last updated 16 October 2026</p>
   </header>
 
-  <section class="glass prose">
+  <section class="glass summary">
     <h2>The short version</h2>
-    <p>CORE MDM manages <b>what a device can do</b>. It does <b>not</b> read your messages, track your location, record your browsing history, or access your photos, contacts or files. It collects the minimum needed to show a phone in your console and apply the rules you set.</p>
-  </section>
-
-  <section class="glass prose">
-    <h2>What we collect</h2>
-    <p><b>From a managed device:</b></p>
     <ul>
-      <li>Device info: model, manufacturer, Android version, and a stable hardware identifier (IMEI/serial/Android ID, where available).</li>
-      <li>Status: online/offline and a "last seen" time (a heartbeat).</li>
-      <li>The policies and commands you apply to the device.</li>
-      <li>A list of installed apps (package name, label, version) so you can see and manage them. No app content is collected.</li>
+      <li>We collect what's needed to manage a phone: your sign-in email, the phone's model and identifiers (like IMEI and serial number), whether it's online, the list of apps installed on it, and the rules and commands you set.</li>
+      <li>The phone also reports its battery level and network type, and — once usage access is allowed on it — how long each app was used in the last 24 hours. If you set a daily time limit on an app, it reports that app's minutes used today.</li>
+      <li>Location is collected <b>only</b> if you switch on location tracking or a geofence for a phone. Then the phone reports its latest GPS position every few minutes; only the most recent position is kept.</li>
+      <li>We <b>don't</b> collect contacts, messages, photos, files, call logs, what's on the screen or browsing history.</li>
+      <li>Only you, and the admins of an organization the phone has joined, can see and manage your phones. Our platform administrators can also access device records, for support and security.</li>
+      <li>We don't sell your data, share it for advertising, or use it to train AI.</li>
     </ul>
-    <p><b>From an administrator (you):</b> your sign-in identity (email and account ID) from Firebase Authentication, and an audit log of admin actions you take (such as lock, wipe, rename and policy changes) with a timestamp.</p>
-    <p><b>What we do not collect:</b> message contents, call contents, location, browsing history, keystrokes, photos, contacts or files.</p>
   </section>
 
-  <section class="glass prose">
-    <h2>How we use it</h2>
-    <p>Only to provide the Service: to show your devices in the console, deliver the commands and rules you set, keep status current, and maintain an audit trail of administrative actions. We don't sell your data or use it for advertising.</p>
-  </section>
+  <nav class="glass toc" aria-label="Contents">
+    <a href="#who">Who we are</a><a href="#collect">What we collect</a><a href="#not">What we don't collect</a>
+    <a href="#phone">What stays on the phone</a><a href="#use">How we use it</a><a href="#access">Who can see it</a>
+    <a href="#orgs">Organizations</a><a href="#providers">Service providers</a><a href="#filter">Content filter</a>
+    <a href="#installer">Installing the app</a><a href="#keep">How long we keep it</a><a href="#security">Security</a>
+    <a href="#rights">Your rights</a><a href="#children">Children</a><a href="#transfers">International transfers</a>
+    <a href="#changes">Changes</a><a href="#contact">Contact</a>
+  </nav>
 
-  <section class="glass prose">
-    <h2>Where it's stored</h2>
-    <p>Data is stored in Google Firebase (Firestore and Authentication). Devices are scoped to the account that signed in on them, enforced by security rules, so only that account can read them. Google processes this data as our infrastructure provider under its own terms and security.</p>
-  </section>
+  <article class="glass doc">
+    <section id="who">
+      <h2>1. Who we are</h2>
+      <p>CORE MDM is an Android device management service made up of the CORE MDM app, the web installer and the web console (together, "the Service"). It is operated by CORE MDM USA, based in the United States ("CORE MDM", "we", "us"). We are responsible for the personal information about account holders described in this policy.</p>
+      <p>If you manage phones used by other people, such as employees, students or your children, you decide which phones are managed and which rules apply. For information about those phones, you are in control of how it's used (the "controller"), and we process it on your behalf (as "processor"). You are responsible for telling the people who use those phones that they are managed, and for having a lawful reason to manage them.</p>
+    </section>
 
-  <section class="glass prose">
-    <h2>Retention and deletion</h2>
-    <p>Device records persist while a device is enrolled under your account. You can delete a device from the console, and wiping or un-enrolling a phone removes its management state. Audit logs are kept to provide an administrative history.</p>
-  </section>
+    <section id="collect">
+      <h2>2. What we collect</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Information</th><th>What it includes</th><th>Where it comes from</th></tr></thead>
+          <tbody>
+            <tr><td>Account</td><td>Email address, a user ID, and your password (stored in encrypted form by our sign-in provider; we can't see it).</td><td>You, when you create an account or sign in.</td></tr>
+            <tr><td>Device details</td><td>Manufacturer and model, Android version, IMEI, serial number, Android ID, a hardware ID made from one of these, the device name you give it, and the CORE MDM version installed.</td><td>The CORE MDM app on the phone, and you.</td></tr>
+            <tr><td>Device status</td><td>Online or offline, the time the phone was last seen, battery level and whether it's charging, network type and Wi-Fi signal strength, whether the screen guard and usage access are switched on, when it last applied your rules, and the result of app updates.</td><td>The app, about once a minute while it runs.</td></tr>
+            <tr><td>Location (only if switched on)</td><td>The phone's latest GPS position and its accuracy, and the geofence area you set. Only the most recent position is kept.</td><td>The app, every few minutes while location tracking or a geofence is on for that phone.</td></tr>
+            <tr><td>App usage</td><td>For each app: how long it was used in the last 24 hours. For apps with a daily time limit: the minutes used since midnight.</td><td>The app, using Android's usage statistics, once usage access is allowed on the phone.</td></tr>
+            <tr><td>Messages you send</td><td>The title and text of messages you send to a phone from the console.</td><td>You, in the web console.</td></tr>
+            <tr><td>Installed apps</td><td>The name and package name of each app installed on the phone, whether it's a system app, and whether it's hidden or blocked.</td><td>The app, when apps are installed or removed and about every 30 minutes.</td></tr>
+            <tr><td>Push token</td><td>A token that lets us send instant commands to the phone.</td><td>The app, through Firebase Cloud Messaging.</td></tr>
+            <tr><td>Rules and commands</td><td>The settings you turn on (for example, "block app installs" or "only chosen apps can install apps"), blocked, hidden and time-limited apps, blocked parts of apps, which apps may show web pages, the content filter's settings (site groups, sites you block or always allow, its DNS server and any blocklist link you add), private DNS, the kiosk list, and commands you send (lock, alarm, reboot, lockdown, wipe).</td><td>You, in the web console or the app.</td></tr>
+            <tr><td>Organizations</td><td>For organizations: the name, logo and lock-screen message, the owner's and admins' email addresses, the join code and the organization's rules. For phones: which organization they've joined.</td><td>Organization owners and admins, and you when a phone joins.</td></tr>
+            <tr><td>Activity log</td><td>Each action taken in the console: what it was, which device, the time, your email and user ID, and your browser's user-agent string.</td><td>The web console, automatically.</td></tr>
+            <tr><td>Pre-registered devices</td><td>IMEI, a group name and a one-time enrollment code, for devices registered before they're set up.</td><td>Platform administrators.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
 
-  <section class="glass prose">
-    <h2>Your responsibilities and the people who use the device</h2>
-    <p>If you manage a device used by someone else, you're responsible for informing them that it's managed, as required by law and by our <a href="consent.html">Consent Policy</a>. CORE MDM is not for covert monitoring.</p>
-  </section>
+    <section id="not">
+      <h2>3. What we don't collect</h2>
+      <p>CORE MDM controls what a phone can do. It does not read what's on it. We do not collect:</p>
+      <ul>
+        <li>location or GPS data, unless you switch on location tracking or a geofence for that phone;</li>
+        <li>contacts, messages, emails, photos, files or call logs;</li>
+        <li>what's shown on the screen, or anything typed;</li>
+        <li>the websites visited (see Content filter);</li>
+        <li>what you do inside apps — only how long each app was used (see above);</li>
+        <li>anything for advertising. There are no ads, analytics or tracking tools in the app or the console.</li>
+      </ul>
+    </section>
 
-  <section class="glass prose">
-    <h2>Security</h2>
-    <p>Access is authenticated, device data is scoped per account by security rules, and the in-app PIN is stored only as a salted hash. No system is perfectly secure; report issues via a <a href="https://github.com/yybam/coremdm/security/advisories/new" target="_blank" rel="noopener">security advisory</a>.</p>
-  </section>
+    <section id="phone">
+      <h2>4. What stays on the phone</h2>
+      <p>Some features need the app to look at things on the phone. They do this on the phone itself and don't send what they see to us:</p>
+      <ul>
+        <li><b>Screen guard</b> (Android accessibility service). When you block parts of apps (for example WhatsApp Status or YouTube Shorts) or limit web pages inside apps, the screen guard recognises those screens and closes them. It doesn't record, store or upload screen contents or anything typed. It only runs when it has been switched on in Android's settings.</li>
+        <li><b>Usage access.</b> Used to enforce daily time limits and to show app usage in the console. Only per-app usage time is reported (see above).</li>
+        <li><b>Install source.</b> When "only chosen apps can install apps" is on, the phone checks which app installed each new app, so it can remove ones that weren't allowed.</li>
+        <li><b>Battery, storage and network details</b> shown on the phone's own screen.</li>
+      </ul>
+    </section>
 
-  <section class="glass prose">
-    <h2>Children</h2>
-    <p>CORE MDM is operated by the adult who manages the devices. If you use it on a child's phone, you're responsible for doing so lawfully and openly.</p>
+    <section id="use">
+      <h2>5. How we use it</h2>
+      <ul>
+        <li>To run the Service: to link a phone to your account, show it in your console, and deliver your rules and commands to it.</li>
+        <li>To keep it secure: to sign you in, keep the activity log, prevent misuse, and investigate problems.</li>
+        <li>To support you: to answer your questions and fix problems with your devices.</li>
+        <li>To meet legal obligations: where the law requires it.</li>
+      </ul>
+      <p>We rely on these legal bases: providing the Service you asked for (contract); keeping the Service secure and working (legitimate interests); and complying with the law. We never sell or share personal information for advertising, and we don't use it to train AI models.</p>
+    </section>
 
-    <h2>Changes &amp; contact</h2>
-    <p>We may update this policy; the "last updated" date will change. Questions? Open an issue on <a href="https://github.com/yybam/coremdm/issues/new" target="_blank" rel="noopener">GitHub</a>.</p>
+    <section id="access">
+      <h2>6. Who can see it</h2>
+      <ul>
+        <li><b>You.</b> A phone is linked to the account that signed in on it. That account can see and manage it in the console and in the app.</li>
+        <li><b>Organization admins,</b> if the phone has joined an organization (see below).</li>
+        <li><b>Our platform administrators.</b> They can view all devices and the activity log, and send commands, to provide support, keep the Service secure and prevent abuse. Every action is recorded in the activity log.</li>
+        <li><b>Service providers</b> who run parts of the Service for us (see below).</li>
+        <li><b>Authorities,</b> if the law requires it, or to protect someone's safety or our legal rights.</li>
+        <li><b>A buyer or successor,</b> if our business is sold or merged, under the same protections.</li>
+      </ul>
+    </section>
 
-    <p class="fine">Provided for a beta, open-source project; not legal advice. Review your own obligations before deploying in an organization.</p>
-  </section>
+    <section id="orgs">
+      <h2>7. Organizations</h2>
+      <p>A phone can join an organization (for example a school, charity or company) with a join code, or automatically when it's signed in on the organization owner's account. Once it has joined, the organization's owner and admins can see the phone's details, status and app list, change its settings and remove it from the organization. An organization can lock some settings so the phone's own admin can't change them, and its name, logo and message appear on the phone's lock screen. Organization admins are responsible for how they use this information.</p>
+    </section>
+
+    <section id="providers">
+      <h2>8. Service providers</h2>
+      <ul>
+        <li><b>Google Firebase</b> (Google LLC): sign-in, database, and push messages to the phone.</li>
+        <li><b>Google Firebase Hosting</b> (Google LLC): hosts this website.</li>
+        <li><b>OpenStreetMap</b> supplies the map in the console's Location tab. Your browser loads map images from it when you open that tab.</li>
+        <li><b>GitHub</b> (GitHub Inc., owned by Microsoft): stores CORE MDM's app releases. Phones download CORE MDM and its updates from GitHub, so GitHub receives the phone's IP address.</li>
+        <li><b>Google Fonts</b> supplies the website's font, and <b>jsDelivr</b> supplies code libraries the website uses. Your browser contacts them to load these.</li>
+        <li><b>DNS providers,</b> if you use the content filter (see below).</li>
+      </ul>
+      <p>These providers process information only to provide their service and under their own privacy terms.</p>
+    </section>
+
+    <section id="filter">
+      <h2>9. Content filter and DNS</h2>
+      <p>The content filter runs on the phone. When an app or website looks up an address, the filter checks it on the phone and passes allowed lookups to a DNS server: Cloudflare (1.1.1.1) by default, another server you choose, or the phone's own network's DNS server if that one can't be reached. If you turn on "Private DNS" in the console, the phone uses the DNS provider you entered.</p>
+      <p>Those DNS providers receive the addresses the phone looks up, under their own privacy policies. CORE MDM does not record or upload the sites visited. If you add a blocklist link, the phone downloads that list from the address you entered, so that website receives the phone's IP address.</p>
+    </section>
+
+    <section id="installer">
+      <h2>10. Installing the app</h2>
+      <p>The USB installer runs entirely in your browser. It sends the CORE MDM app to the phone directly over the USB cable and does not upload anything about the phone to us. To connect, your browser creates a security key and saves it on this computer, so the phone can recognise it next time. The key stays in your browser; you can remove it by clearing this site's data in your browser settings.</p>
+      <p>The QR setup code is made in your browser. When a phone scans it, the phone downloads CORE MDM from GitHub.</p>
+    </section>
+
+    <section id="keep">
+      <h2>11. How long we keep it</h2>
+      <ul>
+        <li>Account and device records: for as long as your account and devices are active. When a device is removed or you ask us to delete your account, we delete the records promptly.</li>
+        <li>Installed-app list, app usage, device status and location: replaced each time the phone reports; only the latest copy is kept.</li>
+        <li>Activity log: kept as a tamper-proof security record for as long as it's needed for security and preventing abuse, then deleted.</li>
+        <li>Backups and legal holds: copies may remain in backups for a short time, or longer if the law requires it.</li>
+      </ul>
+    </section>
+
+    <section id="security">
+      <h2>12. Security</h2>
+      <p>Information is encrypted in transit. Access to the database is restricted by rules that let each account reach only its own devices, and organization admins only their organization's phones. Only a small number of verified administrators have wider access, and their actions are logged. No system is perfectly secure, so please use a strong, unique password and keep it private: anyone with your password can control your phones.</p>
+    </section>
+
+    <section id="rights">
+      <h2>13. Your choices and rights</h2>
+      <p>Depending on where you live (for example under the GDPR in the EU and UK, or state laws such as the CCPA in California), you may have the right to:</p>
+      <ul>
+        <li>know what personal information we hold about you, and get a copy;</li>
+        <li>correct information that's wrong;</li>
+        <li>have your information deleted;</li>
+        <li>object to or restrict how we use it, or take it elsewhere;</li>
+        <li>not be treated differently for using these rights;</li>
+        <li>complain to your local data protection authority.</li>
+      </ul>
+      <p>We don't sell personal information or share it for targeted advertising. To use any of these rights, contact us (see below). We'll respond within the time the law requires, and may need to confirm your identity first. If you use a phone managed by someone else, such as your employer, school or parent, contact them first: they control that phone's information.</p>
+      <p>To stop a phone sending information, remove it from your account in the console or the app and uninstall CORE MDM, or factory reset it.</p>
+    </section>
+
+    <section id="children">
+      <h2>14. Children</h2>
+      <p>CORE MDM accounts are for adults. Parents and guardians may use CORE MDM to manage a child's phone; the parent or guardian is responsible for that choice and for the phone's settings. We collect only the device information described above, not the child's own personal content. If you believe a child has created an account, contact us and we'll delete it.</p>
+    </section>
+
+    <section id="transfers">
+      <h2>15. International transfers</h2>
+      <p>Our service providers may store and process information in the United States and other countries. Where the law requires it, we rely on appropriate safeguards, such as standard contractual clauses or adequacy decisions, for these transfers.</p>
+    </section>
+
+    <section id="changes">
+      <h2>16. Changes to this policy</h2>
+      <p>If we make significant changes, we'll update the date above and let account holders know before the changes take effect.</p>
+    </section>
+
+    <section id="contact">
+      <h2>17. Contact</h2>
+      <p>Questions about privacy, or want to use your rights? Email us at <a href="mailto:support@techeaz.net">support@techeaz.net</a>.</p>
+      <p>CORE MDM USA, United States.</p>
+    </section>
+  </article>
 
   <footer class="muted foot">
-    <span><span class="cmark foot">C</span> CORE MDM <small>Beta</small></span>
-    <span class="foot-links">
-      <a href="features.html">Features</a><a href="demo.html">Demo</a><a href="faq.html">FAQ</a>
-      <a href="about.html">About</a><a href="install.html">Install</a><a href="console.html">Manage</a>
-      <a href="https://github.com/yybam/coremdm" target="_blank" rel="noopener">GitHub</a>
-      <a href="terms.html">Terms</a><a href="privacy.html">Privacy</a><a href="consent.html">Consent</a>
-    </span>
+  <span><img src="logo-mark.png" alt="" width="18" height="22"> CORE MDM <small>© 2026 CORE MDM</small></span>
+  <span class="foot-links"><a href="features.html">Features</a><a href="demo.html">Try the app</a><a href="faq.html">FAQ</a><a href="about.html">About</a><a href="organizations.html">Organizations</a><a href="install.html">Install</a><a href="console.html">Manage</a><a href="https://github.com/yybam/coremdm" target="_blank" rel="noopener">GitHub</a><a href="terms.html">Terms</a><a href="privacy.html">Privacy</a><a href="consent.html">Consent</a></span>
   </footer>
 </main>
 </body>

@@ -4,7 +4,7 @@ import qrcode from "https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/+esm";
 // makes CORE MDM device owner. The APK is always the latest public release on GitHub. The checksum is
 // the SHA-256 of the signing certificate (base64url), so it stays valid for every build signed with our key.
 const ADMIN_COMPONENT = "com.core.mdm/com.core.mdm.MdmDeviceAdmin";
-const SIGNATURE_CHECKSUM = "dyQFS6xBIkg4Y3vcGHpmvx6535F-sOpCDBfoVwXdeAY";
+const SIGNATURE_CHECKSUM = "QyhA-vfIAZvLxO453ZWU81aPXQQi-UJCsnvuRYBIN-o";
 const APK_URL = "https://github.com/yybam/coremdm/releases/latest/download/app-release.apk";
 
 const $ = (id) => document.getElementById(id);

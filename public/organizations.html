@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Organizations · CORE MDM</title>
+<meta name="description" content="CORE MDM for charities, schools, communities and companies: one set of rules for every phone, with your own logo on the lock screen.">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+  .modes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 24px; }
+  .mode { padding: 22px; border-radius: 20px; }
+  .mode b.tag { display: inline-block; padding: 4px 12px; border-radius: 99px; font-size: .8rem; margin-bottom: 10px;
+    background: rgba(255, 255, 255, .08); }
+  .mode.locked b.tag { background: rgba(214, 158, 46, .2); color: #f6c453; }
+  .mode.default b.tag { background: rgba(46, 154, 230, .2); color: #7fd0f5; }
+  .mode p { margin: 0; color: var(--muted); }
+  @media (max-width: 760px) { .modes { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="bg" aria-hidden="true">
+  <span class="orb o1"></span><span class="orb o2"></span><span class="orb o3"></span>
+</div>
+
+<nav class="nav">
+  <a class="brand" href="index.html"><img src="logo-mark.png" alt="" width="28" height="34"> CORE MDM</a>
+  <div class="links">
+    <a href="features.html">Features</a>
+    <a href="demo.html">Try the app</a>
+    <a href="faq.html">FAQ</a>
+    <a href="about.html">About</a>
+    <a href="organizations.html" class="active">Organizations</a>
+    <a class="pill ghost-pill" href="console.html">Manage</a>
+    <a class="pill" href="install.html">Install</a>
+  </div>
+</nav>
+
+<main>
+  <header class="hero page-hero">
+    <img class="logo" src="logo-mark.png" alt="CORE MDM logo" width="191" height="231">
+    <p class="eyebrow">For organizations</p>
+    <h1>One set of rules for every phone, <span class="grad">with your name on it.</span></h1>
+    <p class="sub">Charities, schools, communities and companies can manage a whole group of phones together: set the rules once, lock the ones that matter, and put your own logo on every lock screen.</p>
+  </header>
+
+  <div class="about-grid">
+    <article class="glass">
+      <div class="ico"><svg viewBox="0 0 24 24"><path d="M12 21s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.6-7 10-7 10z"/></svg></div>
+      <h3>Charities &amp; communities</h3>
+      <p>Hand out filtered phones to members and families, with the same protections on every one.</p>
+    </article>
+    <article class="glass">
+      <div class="ico"><svg viewBox="0 0 24 24"><path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5"/></svg></div>
+      <h3>Schools</h3>
+      <p>Keep students' phones for learning, with rules the school sets and parents can build on.</p>
+    </article>
+    <article class="glass">
+      <div class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18"/></svg></div>
+      <h3>Companies</h3>
+      <p>Give every work phone the same settings, branded with your company and managed by your team.</p>
+    </article>
+  </div>
+
+  <section class="section">
+    <h2 class="h2">How it works</h2>
+    <div class="how">
+      <div class="glass stepc"><span class="num">1</span><h3>We set up your organization</h3><p>CORE MDM creates your organization and makes you its owner. You can add more admins from your team.</p></div>
+      <div class="glass stepc"><span class="num">2</span><h3>Phones join with your code</h3><p>You get a short join code. On each phone, open CORE MDM, choose <b>Join an organization</b> and type it in. The phone shows your name and asks to confirm.</p></div>
+      <div class="glass stepc"><span class="num">3</span><h3>You set the rules</h3><p>Choose your rules once on the website and every phone in your organization follows them as soon as it's online.</p></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2 class="h2">You decide how strict each rule is</h2>
+    <p class="lead center">Every setting in CORE MDM can be set three ways for your whole organization.</p>
+    <div class="modes">
+      <div class="glass mode"><b class="tag">Open</b><p>You leave it to each phone's own admin, for example a parent, to decide.</p></div>
+      <div class="glass mode default"><b class="tag">Default</b><p>Your choice applies to every phone, unless that phone's own admin changes it for their phone.</p></div>
+      <div class="glass mode locked"><b class="tag">🔒 Locked</b><p>Your choice applies to every phone and nobody else can change it, not on the website and not on the phone.</p></div>
+    </div>
+  </section>
+
+  <section id="features" class="section">
+    <h2 class="h2">Everything an organization needs</h2>
+    <div class="grid">
+      <article class="glass feat"><h3>Your lock screen</h3><p>Your logo, your name and your own message, such as "Property of … — if found please call …", on every phone's CORE MDM lock screen.</p></article>
+      <article class="glass feat"><h3>44 settings to lock or default</h3><p>App blocks, WhatsApp and social media, parts of apps like Status and Reels, the content filter, calls, SMS, Wi-Fi, USB and more.</p></article>
+      <article class="glass feat"><h3>Several admins</h3><p>The owner adds the people who help run the organization. Every admin works from the same page.</p></article>
+      <article class="glass feat"><h3>Families keep their say</h3><p>Each phone still has its own admin, who manages everything you haven't locked.</p></article>
+      <article class="glass feat"><h3>Phones can't slip away</h3><p>Only your organization's admins can take a phone out of the organization.</p></article>
+      <article class="glass feat"><h3>A new code any time</h3><p>Make a new join code whenever you like. Phones that already joined stay in.</p></article>
+    </div>
+  </section>
+
+  <section class="section narrow">
+    <h2 class="h2">Questions</h2>
+    <details class="glass qa"><summary>How do we start an organization?</summary><p>Organizations are set up by the CORE MDM team, who make your organization and name its owner. The owner then signs in on the <a href="org.html">organization page</a> to set everything up.</p></details>
+    <details class="glass qa"><summary>Do the phones need anything special?</summary><p>Just CORE MDM, installed the normal way from our <a href="install.html">installer</a>. Any phone running it can join with your code.</p></details>
+    <details class="glass qa"><summary>Can a phone's own admin change our rules?</summary><p>Not the ones you lock. Settings you leave as Default they can change for their own phone, and Open settings are entirely theirs.</p></details>
+    <details class="glass qa"><summary>Can a phone leave the organization?</summary><p>Only if one of your admins removes it. The person holding the phone can't take it out.</p></details>
+    <details class="glass qa"><summary>What can we see about the phones?</summary><p>Each phone's name, model and when it was last online. CORE MDM manages what a phone <i>can do</i>. It doesn't read messages, track location or record browsing. See our <a href="privacy.html">Privacy Policy</a>.</p></details>
+  </section>
+
+  <section class="glass manage">
+    <div class="ico big-ico"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h2M14 7h2M8 11h2M14 11h2M10 21v-4h4v4"/></svg></div>
+    <div class="manage-text">
+      <h3>Already have an organization?</h3>
+      <p>Sign in to set your lock screen, rules, admins and join code.</p>
+    </div>
+    <a class="btn primary" href="org.html">Open the organization page →</a>
+  </section>
+
+  <footer class="muted foot">
+  <span><img src="logo-mark.png" alt="" width="18" height="22"> CORE MDM <small>© 2026 CORE MDM</small></span>
+  <span class="foot-links"><a href="features.html">Features</a><a href="demo.html">Try the app</a><a href="faq.html">FAQ</a><a href="about.html">About</a><a href="organizations.html">Organizations</a><a href="install.html">Install</a><a href="console.html">Manage</a><a href="https://github.com/yybam/coremdm" target="_blank" rel="noopener">GitHub</a><a href="terms.html">Terms</a><a href="privacy.html">Privacy</a><a href="consent.html">Consent</a></span>
+  </footer>
+</main>
+</body>
+</html>

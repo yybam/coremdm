@@ -1,480 +1,91 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CORE MDM Console</title>
-<link rel="icon" type="image/png" href="/favicon.png" />
+<link rel="icon" type="image/png" href="favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
-<!-- Self-hosted, purged Tailwind build (no runtime CDN script) -->
-<link rel="stylesheet" href="tailwind.css" />
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<style>
-:root {
-  --bg:       #070a14;
-  --navy:     rgba(255,255,255,.045);   /* glass surface */
-  --card:     rgba(255,255,255,.07);    /* raised glass */
-  --cardLt:   rgba(255,255,255,.12);
-  --border:   rgba(255,255,255,.12);
-  --borderLt: rgba(255,255,255,.22);
-  --cyan:     #2e9ae6;                   /* primary accent */
-  --accent2:  #2fd39a;                   /* teal accent */
-  --green:    #4ade9b;
-  --red:      #ff6b7d;
-  --yellow:   #ffc15e;
-  --purple:   #8b7bf0;
-  --text:     #eef1f8;
-  --textSec:  rgba(226,232,245,.62);
-  --textDim:  rgba(226,232,245,.40);
-  --brand:    linear-gradient(135deg,#1f7fd6,#1fb58f);
-  --brand-soft: linear-gradient(145deg, rgba(46,154,230,.16), rgba(47,211,154,.10));
-  --shadow:   0 20px 50px -24px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.06);
-  --glow:     0 10px 30px -12px rgba(31,160,190,.7);
-}
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  color: var(--text); min-height: 100vh;
-  background:
-    radial-gradient(1200px 820px at 50% -12%, #0c2a44 0%, transparent 60%),
-    radial-gradient(900px 700px at 100% 0%, rgba(47,211,154,.08) 0%, transparent 55%),
-    var(--bg);
-  background-attachment: fixed;
-  -webkit-font-smoothing: antialiased;
-}
-input, button, textarea, select { font-family: inherit; }
-button { cursor: pointer; border: none; outline: none; }
-input { outline: none; border: none; }
-
-/* glass helper look applied to primary surfaces */
-.login-card, .device-card, .stat-card, .modal-panel, .inv-form-card,
-.admin-tab-bar, .admin-table-wrap, header, #reset-panel, .wipe-dialog, .danger-card {
-  backdrop-filter: blur(20px) saturate(140%);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
-}
-
-/* ─── Login ─────────────────────────────────────────────── */
-#s-login { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
-.login-card { background: var(--navy); border: 1px solid var(--border); border-radius: 20px; padding: 40px 36px; width: 100%; max-width: 390px; box-shadow: var(--shadow); }
-.logo { display: flex; align-items: center; gap: 12px; margin-bottom: 26px; justify-content: center; }
-.logo-mark { width: 44px; height: 44px; background: var(--brand); border-radius: 13px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 19px; color: #fff; box-shadow: var(--glow); }
-.logo-text { font-size: 21px; font-weight: 800; letter-spacing: 2px; color: var(--text); }
-.login-title { font-size: 14px; color: var(--textSec); text-align: center; margin-bottom: 26px; }
-.field { margin-bottom: 14px; }
-.field label { display: block; font-size: 12px; font-weight: 600; color: var(--textSec); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
-.field input { width: 100%; background: rgba(0,0,0,.25); border: 1px solid var(--border); border-radius: 11px; padding: 11px 14px; font-size: 14px; color: var(--text); transition: border-color 0.2s, box-shadow 0.2s; }
-.field input:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(46,154,230,.15); }
-#btn-login { width: 100%; background: var(--brand); color: #fff; border-radius: 12px; padding: 13px; font-size: 14px; font-weight: 700; letter-spacing: 0.5px; margin-top: 10px; box-shadow: var(--glow); transition: transform .15s, box-shadow .2s; }
-#btn-login:hover { transform: translateY(-1px); box-shadow: 0 14px 34px -12px rgba(31,160,190,.9); }
-.login-footer { display: flex; justify-content: center; margin-top: 16px; }
-.link-btn { background: none; color: var(--cyan); font-size: 13px; padding: 4px; }
-.link-btn:hover { text-decoration: underline; }
-#login-msg { min-height: 20px; font-size: 13px; text-align: center; margin-top: 10px; color: var(--red); }
-#reset-panel { display: none; background: var(--navy); border: 1px solid var(--border); border-radius: 20px; padding: 28px; width: 100%; max-width: 390px; margin-top: 12px; box-shadow: var(--shadow); }
-#reset-panel.open { display: block; }
-
-/* ─── Setup gate ─────────────────────────────────────────── */
-#s-setup { display: none; min-height: 100vh; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
-.setup-card { background: var(--navy); border: 1px solid var(--border); border-radius: 20px; padding: 40px 36px; width: 100%; max-width: 420px; box-shadow: var(--shadow); }
-.setup-step { display: flex; gap: 14px; align-items: flex-start; padding: 14px 0; border-bottom: 1px solid var(--border); }
-.setup-step:last-of-type { border-bottom: none; }
-.setup-num { width: 28px; height: 28px; border-radius: 50%; background: var(--brand-soft); border: 1px solid rgba(46,154,230,.4); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; color: var(--cyan); flex-shrink: 0; margin-top: 1px; }
-.setup-step-body b { font-size: 14px; font-weight: 700; color: var(--text); display: block; margin-bottom: 4px; }
-.setup-step-body p { font-size: 12px; color: var(--textSec); line-height: 1.5; margin: 0; }
-#btn-setup-check { width: 100%; background: var(--brand); color: #fff; border-radius: 12px; padding: 13px; font-size: 14px; font-weight: 700; margin-top: 20px; box-shadow: var(--glow); transition: transform .15s, box-shadow .2s; }
-#btn-setup-check:hover { transform: translateY(-1px); }
-#btn-setup-check:disabled { opacity: .5; transform: none; }
-#setup-msg { min-height: 18px; font-size: 12px; text-align: center; margin-top: 10px; color: var(--textSec); }
-#reset-panel h3 { font-size: 16px; margin-bottom: 8px; }
-#reset-panel p { font-size: 13px; color: var(--textSec); margin-bottom: 16px; }
-.row-btns { display: flex; gap: 8px; }
-.btn-sec { background: var(--card); border: 1px solid var(--border); color: var(--text); border-radius: 11px; padding: 10px 14px; font-size: 13px; font-weight: 600; transition: border-color 0.2s; }
-.btn-sec:hover { border-color: var(--borderLt); }
-.btn-pri { background: var(--brand); color: #fff; border-radius: 11px; padding: 10px 16px; font-size: 13px; font-weight: 700; transition: transform .15s; }
-.btn-pri:hover { transform: translateY(-1px); }
-#reset-msg { font-size: 13px; margin-top: 10px; min-height: 18px; }
-
-/* ─── App shell ──────────────────────────────────────────── */
-#s-app { display: none; flex-direction: column; min-height: 100vh; }
-header { background: rgba(10,13,24,.55); border-bottom: 1px solid var(--border); padding: 0 24px; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
-.hdr-logo { display: flex; align-items: center; gap: 11px; }
-.hdr-mark { width: 32px; height: 32px; background: var(--brand); border-radius: 9px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 14px; color: #fff; box-shadow: var(--glow); }
-.hdr-name { font-size: 15px; font-weight: 800; letter-spacing: 1.5px; }
-#btn-signout { background: var(--card); border: 1px solid var(--border); color: var(--textSec); border-radius: 99px; padding: 7px 16px; font-size: 12px; font-weight: 600; transition: color 0.2s, border-color 0.2s; }
-#btn-signout:hover { color: var(--text); border-color: var(--borderLt); }
-#btn-install { background: var(--brand-soft); border: 1px solid rgba(46,154,230,.4); color: #cfeafe; border-radius: 99px; padding: 7px 16px; font-size: 12px; font-weight: 700; text-decoration: none; transition: opacity 0.2s; }
-#btn-install:hover { opacity: 0.85; }
-.main-content { padding: 28px 24px; max-width: 1400px; width: 100%; margin: 0 auto; flex: 1; }
-#stats-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
-.stat-card { background: var(--navy); border: 1px solid var(--border); border-radius: 16px; padding: 18px; box-shadow: var(--shadow); }
-.stat-val { font-size: 30px; font-weight: 800; line-height: 1; margin-bottom: 6px; }
-.stat-lbl { font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.8px; color: var(--textSec); }
-.stat-total .stat-val  { background: var(--brand); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
-.stat-online .stat-val { color: var(--green); }
-.stat-offline .stat-val{ color: var(--textSec); }
-.stat-alarm .stat-val  { color: var(--red); }
-#toolbar { margin-bottom: 22px; }
-#search { width: 100%; max-width: 380px; background: var(--navy); border: 1px solid var(--border); border-radius: 99px; padding: 11px 18px; font-size: 14px; color: var(--text); }
-#search::placeholder { color: var(--textDim); }
-#search:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(46,154,230,.12); }
-#device-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; }
-#empty-state { grid-column: 1/-1; text-align: center; padding: 72px 0; color: var(--textSec); }
-#empty-state p { margin-top: 8px; font-size: 14px; }
-.device-card { background: var(--navy); border: 1px solid var(--border); border-radius: 18px; padding: 20px; box-shadow: var(--shadow); transition: transform .2s, border-color 0.2s; }
-.device-card:hover { border-color: var(--borderLt); }
-.device-card.alarming { border-color: rgba(255,107,125,.5); box-shadow: 0 20px 50px -24px rgba(255,107,125,.4); }
-.dc-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
-.dc-name { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
-.dc-sub  { font-size: 12px; color: var(--textSec); }
-.dc-badges { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
-.badge { display: inline-block; padding: 3px 10px; border-radius: 99px; font-size: 10px; font-weight: 700; letter-spacing: 0.5px; border: 1px solid transparent; }
-.badge-online  { background: rgba(74,222,155,.14); color: var(--green); border-color: rgba(74,222,155,.3); }
-.badge-offline { background: rgba(255,255,255,.06); color: var(--textSec); }
-.badge-alarm   { background: rgba(255,107,125,.15); color: var(--red); border-color: rgba(255,107,125,.35); }
-.dc-ids { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; padding: 12px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
-.dc-id { display: flex; gap: 8px; font-size: 12px; }
-.dc-id-lbl { color: var(--textSec); width: 48px; flex-shrink: 0; }
-.dc-id-val { color: var(--text); font-family: ui-monospace, monospace; font-size: 11px; word-break: break-all; }
-.dc-lastseen { font-size: 11px; color: var(--textDim); margin-bottom: 6px; }
-.dc-battery-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-.dc-bat-pill { display: flex; align-items: center; gap: 5px; background: rgba(255,255,255,.05); border: 1px solid var(--border); border-radius: 20px; padding: 2px 8px 2px 6px; font-size: 11px; }
-.dc-bat-icon { font-size: 13px; }
-.dc-bat-val { font-weight: 700; }
-.dc-net-pill { display: flex; align-items: center; gap: 4px; background: rgba(255,255,255,.05); border: 1px solid var(--border); border-radius: 20px; padding: 2px 8px; font-size: 11px; color: var(--textSec); }
-.dc-actions { display: flex; gap: 9px; }
-/* compliance/status tab */
-.comp-row { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--border); }
-.comp-row:last-child { border-bottom: none; }
-.comp-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-.comp-dot.ok  { background: var(--green); box-shadow: 0 0 6px var(--green); }
-.comp-dot.warn { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
-.comp-dot.bad { background: var(--red); box-shadow: 0 0 6px var(--red); }
-.comp-label { font-size: 13px; font-weight: 600; color: var(--text); flex: 1; }
-.comp-val { font-size: 12px; color: var(--textSec); text-align: right; }
-/* usage stats */
-.usage-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,.06); }
-.usage-row:last-child { border-bottom: none; }
-.usage-bar-wrap { flex: 1; background: rgba(255,255,255,.07); border-radius: 4px; height: 5px; overflow: hidden; }
-.usage-bar { height: 5px; background: linear-gradient(90deg,var(--cyan),var(--accent2)); border-radius: 4px; }
-.usage-label { font-size: 12px; color: var(--text); width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.usage-time { font-size: 11px; color: var(--textSec); width: 60px; text-align: right; }
-/* message tab */
-.msg-form { display: flex; flex-direction: column; gap: 12px; }
-.msg-form label { font-size: 11px; color: var(--textSec); font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
-.msg-form input, .msg-form textarea { background: var(--navy); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; color: var(--text); font-size: 14px; resize: vertical; }
-.msg-form input:focus, .msg-form textarea:focus { border-color: var(--cyan); outline: none; }
-.btn-send-msg { background: linear-gradient(135deg,var(--cyan),var(--accent2)); color: #fff; font-weight: 700; border-radius: 12px; padding: 12px 0; font-size: 14px; width: 100%; }
-/* location tab */
-#loc-map { height: 280px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); margin-bottom: 16px; }
-.geo-form { display: flex; flex-direction: column; gap: 10px; }
-.geo-row { display: flex; gap: 10px; }
-.geo-row > div { flex: 1; display: flex; flex-direction: column; gap: 4px; }
-.geo-row label { font-size: 11px; color: var(--textSec); }
-.geo-row input, .geo-select { background: var(--navy); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; color: var(--text); font-size: 13px; }
-.geo-select { width: 100%; }
-.btn-set-geo { background: rgba(139,123,240,.2); color: var(--purple); border: 1px solid rgba(139,123,240,.4); border-radius: 10px; padding: 10px 18px; font-weight: 700; font-size: 13px; }
-.btn-clear-geo { background: rgba(255,107,125,.1); color: var(--red); border: 1px solid rgba(255,107,125,.3); border-radius: 10px; padding: 10px 18px; font-weight: 700; font-size: 13px; }
-.dc-btn { flex: 1; padding: 10px 6px; border-radius: 11px; font-size: 12px; font-weight: 700; text-align: center; transition: transform .15s, opacity 0.2s; }
-.dc-btn:hover { opacity: 0.9; }
-.dc-btn-alarm  { background: rgba(255,193,94,.12); color: var(--yellow); border: 1px solid rgba(255,193,94,.3); }
-.dc-btn-alarm.active { background: var(--yellow); color: #231600; border-color: var(--yellow); }
-.dc-btn-manage { background: var(--brand-soft); color: #cfeafe; border: 1px solid rgba(46,154,230,.35); }
-
-/* ─── Modal ──────────────────────────────────────────────── */
-#dev-modal { display: none; position: fixed; inset: 0; z-index: 100; align-items: flex-end; justify-content: center; }
-#dev-modal.open { display: flex; }
-.modal-backdrop { position: absolute; inset: 0; background: rgba(3,6,14,0.66); backdrop-filter: blur(4px); }
-.modal-panel { position: relative; z-index: 1; background: rgba(13,17,28,.82); border: 1px solid var(--border); border-radius: 22px 22px 0 0; width: 100%; max-width: 700px; max-height: 88vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: var(--shadow); }
-@media (min-width: 720px) { #dev-modal { align-items: center; } .modal-panel { border-radius: 22px; max-height: 85vh; } }
-.modal-hdr { display: flex; align-items: center; justify-content: space-between; padding: 20px 22px; border-bottom: 1px solid var(--border); flex-shrink: 0; gap: 12px; }
-.modal-hdr-info { min-width: 0; flex: 1; }
-#modal-device-name { font-size: 17px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-#modal-device-sub  { font-size: 12px; color: var(--textSec); margin-top: 5px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-#btn-close-modal { background: var(--card); border: 1px solid var(--border); color: var(--textSec); border-radius: 9px; padding: 6px 12px; font-size: 16px; line-height: 1.4; flex-shrink: 0; }
-#btn-close-modal:hover { color: var(--text); }
-.tab-bar { display: flex; overflow-x: auto; border-bottom: 1px solid var(--border); flex-shrink: 0; scrollbar-width: none; padding: 0 12px; }
-.tab-bar::-webkit-scrollbar { display: none; }
-.tab-btn { flex-shrink: 0; padding: 13px 15px; font-size: 13px; font-weight: 600; color: var(--textSec); background: none; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 0.2s, border-color 0.2s; }
-.tab-btn:hover { color: var(--text); }
-.tab-btn.active { color: var(--cyan); border-bottom-color: var(--cyan); }
-.tab-body { overflow-y: auto; flex: 1; padding: 22px; }
-
-/* Commands tab */
-.cmd-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 11px; margin-bottom: 12px; }
-.cmd-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; padding: 20px 8px; border-radius: 14px; font-size: 13px; font-weight: 700; transition: transform .15s, opacity 0.2s; }
-.cmd-btn:hover { opacity: 0.9; }
-.cmd-alarm-off { background: rgba(255,193,94,.1); color: var(--yellow); border: 1px solid rgba(255,193,94,.3); }
-.cmd-alarm-on  { background: var(--yellow); color: #231600; }
-.cmd-lock      { background: rgba(46,154,230,.12); color: var(--cyan); border: 1px solid rgba(46,154,230,.3); }
-.cmd-reboot    { background: rgba(139,123,240,.12); color: var(--purple); border: 1px solid rgba(139,123,240,.3); }
-.cmd-lockdown  { display: flex; align-items: center; gap: 16px; padding: 18px 20px; border-radius: 14px; background: rgba(255,107,125,.1); color: var(--red); border: 1px solid rgba(255,107,125,.3); font-size: 14px; font-weight: 700; width: 100%; text-align: left; transition: opacity 0.2s; }
-.cmd-lockdown:hover { opacity: 0.9; }
-.ld-icon { font-size: 24px; font-weight: 900; flex-shrink: 0; width: 38px; height: 38px; border-radius: 50%; background: rgba(255,107,125,.15); display: flex; align-items: center; justify-content: center; }
-.ld-text {}
-.ld-sub { display: block; font-size: 11px; font-weight: 400; color: rgba(255,107,125,0.72); margin-top: 2px; }
-.cmd-wipe { display: flex; align-items: center; gap: 16px; padding: 18px 20px; border-radius: 14px; background: linear-gradient(135deg,#ff6b7d,#e23b55); color: #fff; border: none; font-size: 14px; font-weight: 700; width: 100%; text-align: left; margin-top: 12px; transition: opacity 0.2s; }
-.cmd-wipe:hover { opacity: 0.92; }
-.cmd-wipe .ld-icon { background: rgba(255,255,255,.18); color: #fff; }
-.cmd-wipe .ld-sub  { color: rgba(255,255,255,.82); }
-
-/* Rename button in modal header */
-.rename-btn { background: none; border: none; color: var(--textSec); font-size: 14px; cursor: pointer; padding: 2px 4px; line-height: 1; }
-.rename-btn:hover { color: var(--cyan); }
-
-/* Pending commands (Commands tab) */
-.pending-cmds { margin-top: 22px; }
-.pending-cmds h3 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--textSec); margin-bottom: 4px; }
-.pending-sub { font-size: 11px; color: var(--textSec); margin-bottom: 10px; }
-.pending-cmd { display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,.25); border: 1px solid var(--border); border-radius: 12px; padding: 11px 13px; margin-bottom: 7px; }
-.pending-cmd-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.pending-cmd-type { font-size: 13px; font-weight: 600; color: var(--text); }
-.pending-cmd-time { font-size: 11px; color: var(--textSec); }
-.pending-cancel { background: rgba(255,107,125,.12); color: var(--red); border: 1px solid rgba(255,107,125,.3); border-radius: 9px; padding: 7px 15px; font-size: 12px; font-weight: 700; flex-shrink: 0; cursor: pointer; }
-.pending-cancel:hover { opacity: 0.85; }
-
-/* PIN length selector (System tab) */
-.pin-select { background: rgba(0,0,0,.25); border: 1px solid var(--border); color: var(--text); border-radius: 10px; padding: 9px 11px; font-size: 13px; flex-shrink: 0; cursor: pointer; }
-.pin-select:focus { border-color: var(--cyan); outline: none; }
-/* Installed Apps tab */
-.app-counts { font-size: 12px; color: var(--textSec); font-weight: 600; }
-.app-badge { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .3px; padding: 2px 8px; border-radius: 99px; margin-left: 6px; vertical-align: middle; }
-.app-badge-allow { background: rgba(74,222,155,.14); color: var(--green); }
-.app-badge-block { background: rgba(255,193,94,.15); color: var(--yellow); }
-.app-badge-hide  { background: rgba(255,107,125,.15); color: var(--red); }
-.app-state { min-width: 104px; }
-
-/* Policy toggles */
-.policy-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--border); gap: 12px; }
-.policy-row:last-child { border-bottom: none; }
-.policy-info { min-width: 0; flex: 1; }
-.policy-label { font-size: 13px; font-weight: 600; color: var(--text); }
-.policy-sub   { font-size: 11px; color: var(--textSec); margin-top: 3px; line-height: 1.45; }
-.toggle { position: relative; display: inline-block; width: 44px; height: 25px; flex-shrink: 0; }
-.toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
-.toggle-track { display: block; width: 44px; height: 25px; border-radius: 99px; background: rgba(255,255,255,.14); cursor: pointer; transition: background 0.2s; }
-.toggle input:checked + .toggle-track { background: linear-gradient(135deg,#1f7fd6,#2fd39a); }
-.toggle-thumb { position: absolute; top: 3px; left: 3px; width: 19px; height: 19px; border-radius: 50%; background: #fff; pointer-events: none; transition: transform 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,.4); }
-.toggle input:checked ~ .toggle-thumb { transform: translateX(19px); }
-
-/* Network tab */
-.net-section { margin-bottom: 26px; }
-.net-section h3 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--textSec); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
-.dns-row { display: flex; gap: 8px; align-items: center; }
-.dns-input { flex: 1; background: rgba(0,0,0,.25); border: 1px solid var(--border); border-radius: 11px; padding: 10px 13px; font-size: 13px; color: var(--text); min-width: 0; }
-.dns-input:focus { border-color: var(--cyan); outline: none; }
-.dns-input::placeholder { color: var(--textDim); }
-.btn-small { padding: 10px 14px; border-radius: 11px; font-size: 12px; font-weight: 700; white-space: nowrap; flex-shrink: 0; }
-.btn-lock-dns  { background: rgba(46,154,230,.14); color: var(--cyan); border: 1px solid rgba(46,154,230,.3); }
-.btn-lock-dns:hover  { opacity: 0.85; }
-.btn-clear-dns { background: var(--card); color: var(--textSec); border: 1px solid var(--border); }
-.btn-clear-dns:hover { color: var(--text); }
-.kiosk-pkg-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; min-height: 24px; }
-.kiosk-pkg-item { display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,.25); border: 1px solid var(--border); border-radius: 10px; padding: 8px 11px; }
-.kiosk-pkg-name { font-size: 12px; font-family: ui-monospace, monospace; color: var(--text); word-break: break-all; }
-.kiosk-pkg-remove { background: none; color: var(--red); font-size: 16px; line-height: 1; padding: 0 4px; flex-shrink: 0; margin-left: 8px; }
-.kiosk-pkg-remove:hover { opacity: 0.7; }
-.kiosk-add-row { display: flex; gap: 8px; }
-.kiosk-add-input { flex: 1; background: rgba(0,0,0,.25); border: 1px solid var(--border); border-radius: 11px; padding: 10px 13px; font-size: 12px; color: var(--text); font-family: ui-monospace, monospace; min-width: 0; }
-.kiosk-add-input:focus { border-color: var(--cyan); outline: none; }
-.kiosk-add-input::placeholder { color: var(--textDim); }
-.btn-add-pkg { background: rgba(46,154,230,.14); color: var(--cyan); border: 1px solid rgba(46,154,230,.3); padding: 10px 15px; border-radius: 11px; font-size: 12px; font-weight: 700; flex-shrink: 0; }
-.btn-add-pkg:hover { opacity: 0.85; }
-
-/* Danger tab */
-.danger-card { background: rgba(255,107,125,.07); border: 1px solid rgba(255,107,125,.28); border-radius: 16px; padding: 22px; }
-.danger-title { font-size: 15px; font-weight: 800; color: var(--red); margin-bottom: 6px; }
-.danger-desc  { font-size: 13px; color: var(--textSec); margin-bottom: 18px; line-height: 1.55; }
-.btn-wipe { background: linear-gradient(135deg,#ff6b7d,#e23b55); color: #fff; border-radius: 12px; padding: 12px 22px; font-size: 14px; font-weight: 700; transition: transform .15s; }
-.btn-wipe:hover { transform: translateY(-1px); }
-
-/* Wipe confirm */
-#wipe-confirm { display: none; position: fixed; inset: 0; z-index: 200; align-items: center; justify-content: center; padding: 24px; }
-#wipe-confirm.open { display: flex; }
-#delete-confirm { display: none; position: fixed; inset: 0; z-index: 200; align-items: center; justify-content: center; padding: 24px; }
-.btn-delete-entry { background: linear-gradient(135deg,#ff6b7d,#e23b55); color: #fff; border-radius: 12px; padding: 12px 22px; font-size: 14px; font-weight: 700; transition: transform .15s; }
-.btn-delete-entry:hover { transform: translateY(-1px); }
-.wipe-backdrop { position: absolute; inset: 0; background: rgba(3,6,14,0.8); backdrop-filter: blur(4px); }
-.wipe-dialog { position: relative; z-index: 1; background: rgba(13,17,28,.9); border: 1px solid rgba(255,107,125,0.4); border-radius: 20px; padding: 30px; max-width: 380px; width: 100%; box-shadow: var(--shadow); }
-.wipe-dialog h2 { font-size: 19px; font-weight: 800; color: var(--red); margin-bottom: 10px; }
-.wipe-dialog p  { font-size: 14px; color: var(--textSec); margin-bottom: 22px; line-height: 1.55; }
-.wipe-btns { display: flex; gap: 10px; }
-.btn-cancel { flex: 1; background: var(--card); border: 1px solid var(--border); color: var(--text); border-radius: 12px; padding: 12px; font-size: 14px; font-weight: 600; }
-.btn-cancel:hover { border-color: var(--borderLt); }
-.btn-confirm-wipe { flex: 1; background: linear-gradient(135deg,#ff6b7d,#e23b55); color: #fff; border-radius: 12px; padding: 12px; font-size: 14px; font-weight: 700; transition: transform .15s; }
-.btn-confirm-wipe:hover { transform: translateY(-1px); }
-
-::-webkit-scrollbar { width: 7px; height: 7px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.28); }
-
-/* ─── Super Admin Panel ──────────────────────────────────── */
-#btn-admin { background: var(--brand-soft); border: 1px solid rgba(139,123,240,.4); color: #c9bdf6; border-radius: 99px; padding: 7px 16px; font-size: 12px; font-weight: 700; letter-spacing: 0.3px; transition: opacity 0.2s; display: none; }
-#btn-admin:hover { opacity: 0.85; }
-.sa-badge { display: inline-block; background: linear-gradient(135deg,#8b7bf0,#2e9ae6); color: #fff; font-size: 10px; font-weight: 800; letter-spacing: 1px; padding: 3px 9px; border-radius: 99px; vertical-align: middle; }
-#s-admin { display: none; flex-direction: column; min-height: 100vh; }
-.admin-content { padding: 28px 24px; max-width: 1400px; width: 100%; margin: 0 auto; flex: 1; }
-.admin-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; flex-wrap: wrap; gap: 12px; }
-.admin-hdr h2 { font-size: 19px; font-weight: 800; display: flex; align-items: center; gap: 10px; }
-.admin-tab-bar { display: flex; gap: 4px; background: var(--navy); border: 1px solid var(--border); border-radius: 13px; padding: 5px; margin-bottom: 22px; width: fit-content; }
-.admin-tab-btn { padding: 9px 20px; border-radius: 9px; font-size: 13px; font-weight: 600; color: var(--textSec); background: none; transition: all 0.2s; }
-.admin-tab-btn.active { background: var(--cardLt); color: var(--text); }
-.admin-tab-btn:hover:not(.active) { color: var(--text); }
-.admin-table-wrap { overflow-x: auto; border-radius: 16px; border: 1px solid var(--border); background: var(--navy); }
-.admin-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.admin-table th { background: rgba(255,255,255,.04); padding: 13px 15px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--textSec); white-space: nowrap; border-bottom: 1px solid var(--border); }
-.admin-table td { padding: 13px 15px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
-.admin-table tr:last-child td { border-bottom: none; }
-.admin-table tbody tr:hover td { background: rgba(255,255,255,0.03); }
-.admin-table .mono { font-family: ui-monospace, monospace; font-size: 12px; color: var(--textSec); }
-.admin-table .action-cell { display: flex; gap: 6px; }
-.at-btn { padding: 6px 11px; border-radius: 8px; font-size: 11px; font-weight: 700; }
-.at-btn-lock { background: rgba(46,154,230,.14); color: var(--cyan); border: 1px solid rgba(46,154,230,.3); }
-.at-btn-alarm { background: rgba(255,193,94,.12); color: var(--yellow); border: 1px solid rgba(255,193,94,.3); }
-.at-btn-alarm.on { background: var(--yellow); color: #231600; }
-.at-btn-manage { background: rgba(139,123,240,.15); color: var(--purple); border: 1px solid rgba(139,123,240,.3); }
-.audit-tag { display: inline-block; padding: 3px 9px; border-radius: 6px; font-size: 11px; font-weight: 700; font-family: ui-monospace, monospace; }
-.audit-LOCK_SCREEN   { background: rgba(46,154,230,.14); color: var(--cyan); }
-.audit-ALARM_ON      { background: rgba(255,107,125,.15); color: var(--red); }
-.audit-ALARM_OFF     { background: rgba(255,255,255,.06); color: var(--textSec); }
-.audit-WIPE          { background: linear-gradient(135deg,#ff6b7d,#e23b55); color: #fff; }
-.audit-NOTIFY_UPDATE { background: rgba(46,154,230,.16); color: var(--cyan); }
-.audit-DELETE_DEVICE { background: linear-gradient(135deg,#ff6b7d,#e23b55); color: #fff; }
-.audit-FULL_LOCKDOWN { background: rgba(255,107,125,.2); color: var(--red); }
-.audit-REBOOT        { background: rgba(139,123,240,.18); color: var(--purple); }
-.audit-POLICY        { background: rgba(74,222,155,.14); color: var(--green); }
-.audit-LOGIN         { background: rgba(74,222,155,.1); color: var(--green); }
-.audit-default       { background: var(--card); color: var(--textSec); }
-.admin-empty { text-align: center; padding: 52px 0; color: var(--textSec); font-size: 14px; }
-.admin-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 22px; }
-
-/* ─── Device Inventory ───────────────────────────────────── */
-.inv-form-card { background: var(--navy); border: 1px solid var(--border); border-radius: 16px; padding: 22px; margin-bottom: 22px; box-shadow: var(--shadow); }
-.inv-form-card h3 { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 16px; }
-.inv-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-@media (max-width: 640px) { .inv-form-grid { grid-template-columns: 1fr; } #stats-strip { grid-template-columns: 1fr 1fr; } }
-.inv-field label { display: block; font-size: 11px; font-weight: 600; color: var(--textSec); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
-.inv-field input { width: 100%; background: rgba(0,0,0,.25); border: 1px solid var(--border); border-radius: 11px; padding: 10px 13px; font-size: 13px; color: var(--text); font-family: ui-monospace, monospace; }
-.inv-field input:focus { border-color: var(--cyan); outline: none; }
-.inv-field input::placeholder { color: var(--textDim); font-family: inherit; }
-.inv-field-sub { font-size: 11px; color: var(--textDim); margin-top: 4px; }
-.inv-form-row { display: flex; gap: 10px; margin-top: 16px; align-items: center; flex-wrap: wrap; }
-.btn-register { background: var(--brand); color: #fff; border-radius: 12px; padding: 11px 22px; font-size: 13px; font-weight: 700; transition: transform .15s; }
-.btn-register:hover { transform: translateY(-1px); }
-.inv-msg { font-size: 13px; min-height: 18px; }
-.token-box { background: rgba(74,222,155,.06); border: 1px solid rgba(74,222,155,0.35); border-radius: 13px; padding: 16px; margin-top: 14px; display: none; }
-.token-box.show { display: block; }
-.token-box-hdr { font-size: 12px; font-weight: 700; color: var(--green); margin-bottom: 8px; }
-.token-val { font-family: ui-monospace, monospace; font-size: 13px; color: var(--text); word-break: break-all; background: rgba(0,0,0,.3); border: 1px solid var(--border); border-radius: 9px; padding: 11px 13px; margin-bottom: 8px; }
-.token-expiry { font-size: 11px; color: var(--textSec); margin-bottom: 10px; }
-.btn-copy { background: var(--green); color: #05140c; border-radius: 9px; padding: 8px 15px; font-size: 12px; font-weight: 700; transition: opacity 0.2s; }
-.btn-copy:hover { opacity: 0.85; }
-.inv-badge-PENDING     { background: rgba(255,193,94,.15); color: var(--yellow); }
-.inv-badge-ENROLLED    { background: rgba(74,222,155,.14); color: var(--green); }
-.inv-badge-BLOCKED     { background: rgba(255,107,125,.15); color: var(--red); }
-.inv-badge-DISENROLLED { background: rgba(255,255,255,.06); color: var(--textSec); }
-.at-btn-block   { background: rgba(255,107,125,.12); color: var(--red); border: 1px solid rgba(255,107,125,.3); }
-.at-btn-unblock { background: rgba(74,222,155,.12); color: var(--green); border: 1px solid rgba(74,222,155,.3); }
-.at-btn-del     { background: var(--card); color: var(--textSec); border: 1px solid var(--border); }
-.token-peek { font-family: ui-monospace, monospace; font-size: 11px; color: var(--textDim); }
-</style>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="manage.css">
+<link rel="stylesheet" href="org.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
-<body>
+<body class="console-page">
+<div class="bg" aria-hidden="true">
+  <span class="orb o1"></span><span class="orb o2"></span><span class="orb o3"></span>
+</div>
+
+<nav class="nav">
+  <a class="brand" href="index.html"><img src="logo-mark.png" alt="" width="28" height="34"> CORE MDM</a>
+  <div class="links">
+    <a href="features.html">Features</a>
+    <a href="demo.html">Try the app</a>
+    <a href="faq.html">FAQ</a>
+    <a href="about.html">About</a>
+    <a href="organizations.html">Organizations</a>
+    <a class="pill ghost-pill active" href="console.html">Manage</a>
+    <a class="pill" href="install.html">Install</a>
+  </div>
+</nav>
+
+<main class="wide console-main">
 
 <!-- ─── Login ──────────────────────────────────────────── -->
-<div id="s-login">
+<div id="s-login" class="cx">
   <div class="login-card animate-slideUp">
-    <a class="logo" href="/" title="Back to coremdm.web.app" style="text-decoration:none;">
-      <div class="logo-mark">C</div>
-      <div class="logo-text">CORE MDM</div>
-    </a>
-    <div class="login-title">Admin Console — Sign In</div>
+    <img class="login-logo" src="logo-mark.png" alt="CORE MDM logo" width="191" height="231">
+    <h1 class="login-h">Manage your <span class="grad">CORE MDM</span></h1>
+    <p class="login-title">Sign in with the same account you used on the phone.</p>
     <div class="field">
-      <label>Email</label>
-      <input type="email" id="inp-email" placeholder="admin@example.com" autocomplete="username">
+      <label for="inp-email">Email</label>
+      <input type="email" id="inp-email" placeholder="you@example.com" autocomplete="username">
     </div>
     <div class="field">
-      <label>Password</label>
+      <label for="inp-pass">Password</label>
       <input type="password" id="inp-pass" placeholder="••••••••" autocomplete="current-password">
     </div>
     <div id="login-msg"></div>
-    <button id="btn-login" class="transition-transform duration-150 hover:scale-[1.02] active:scale-95">Sign In</button>
-    <div class="login-footer" style="justify-content:space-between;">
+    <button id="btn-login" class="hover:scale-[1.02] active:scale-95">Sign in</button>
+    <div class="login-footer">
       <button class="link-btn" id="btn-forgot">Forgot password?</button>
-      <a class="link-btn" href="install.html" style="text-decoration:none;">Enroll a device →</a>
     </div>
+    <p class="login-legal">By signing in you agree to the <a href="terms.html">Terms of Service</a> and <a href="privacy.html">Privacy Policy</a>.</p>
   </div>
   <div id="reset-panel" class="animate-slideUp">
-    <h3>Reset Password</h3>
-    <p>Enter your email and we will send a reset link.</p>
+    <h3>Reset password</h3>
+    <p>Enter your email and we'll send you a reset link.</p>
     <div class="field">
-      <label>Email</label>
-      <input type="email" id="inp-reset-email" placeholder="admin@example.com">
+      <label for="inp-reset-email">Email</label>
+      <input type="email" id="inp-reset-email" placeholder="you@example.com">
     </div>
     <div class="row-btns">
       <button class="btn-sec" id="btn-reset-cancel">Cancel</button>
-      <button class="btn-pri" id="btn-reset-send">Send Reset Link</button>
+      <button class="btn-pri" id="btn-reset-send">Send reset link</button>
     </div>
     <div id="reset-msg"></div>
   </div>
-</div>
-
-<!-- ─── Setup gate ──────────────────────────────────────── -->
-<div id="s-setup">
-  <div class="setup-card animate-slideUp">
-    <a class="logo" href="/" style="text-decoration:none;">
-      <div class="logo-mark">C</div>
-      <div class="logo-text">CORE MDM</div>
-    </a>
-    <div class="login-title">One more step before the console</div>
-    <p style="font-size:13px;color:var(--textSec);line-height:1.6;margin-bottom:18px;text-align:center;">
-      The console shows devices you've enrolled through the Android app.
-      No devices are linked to this account yet.
-    </p>
-    <div>
-      <div class="setup-step">
-        <div class="setup-num">1</div>
-        <div class="setup-step-body">
-          <b>Install CORE MDM on your phone</b>
-          <p>Use the web installer to set up the app as device owner over USB or QR code.</p>
-          <a href="install.html" style="display:inline-block;margin-top:8px;font-size:12px;font-weight:700;color:var(--cyan);text-decoration:none;">Open installer →</a>
-        </div>
-      </div>
-      <div class="setup-step">
-        <div class="setup-num">2</div>
-        <div class="setup-step-body">
-          <b>Sign in to the app with this account</b>
-          <p>Open CORE MDM on the phone and sign in with <span id="setup-email" style="color:var(--text);font-weight:600;"></span>. The device links to your account automatically.</p>
-        </div>
-      </div>
-    </div>
-    <button id="btn-setup-check">I've done it — show my devices</button>
-    <div id="setup-msg"></div>
-    <div class="login-footer" style="justify-content:center;margin-top:14px;">
-      <button class="link-btn" id="btn-setup-signout">Sign out</button>
-    </div>
-  </div>
+  <p class="login-aside">No phone set up yet? <a href="install.html">Install CORE MDM on a phone →</a></p>
 </div>
 
 <!-- ─── App ────────────────────────────────────────────── -->
-<div id="s-app">
-  <header>
-    <a class="hdr-logo" href="/" title="Back to coremdm.web.app" style="text-decoration:none;color:inherit;">
-      <div class="hdr-mark">C</div>
-      <div class="hdr-name">CORE MDM</div>
-    </a>
-    <div style="display:flex;align-items:center;gap:8px;">
-      <a id="btn-install" href="install.html" class="transition-transform duration-150 hover:scale-105 active:scale-95">+ Enroll device</a>
-      <button id="btn-admin" class="transition-transform duration-150 hover:scale-105 active:scale-95" onclick="window._mdm.switchToAdmin()">&#9654; Super Admin</button>
-      <button id="btn-signout" class="transition-transform duration-150 hover:scale-105 active:scale-95">Sign Out</button>
+<div id="s-app" class="cx">
+  <div class="console-bar">
+    <div>
+      <h1 class="console-h">Your devices</h1>
+      <p class="console-sub">Changes reach the phone the moment you make them.</p>
     </div>
-  </header>
+    <div class="console-actions">
+      <button id="btn-admin" class="hover:scale-105 active:scale-95" onclick="window._mdm.switchToAdmin()">&#9654; Super Admin</button>
+      <a class="btn-sec org-link" href="org.html">Organizations</a>
+      <button id="btn-signout" class="hover:scale-105 active:scale-95">Sign out</button>
+    </div>
+  </div>
   <div class="main-content">
     <div id="stats-strip">
-      <div class="stat-card stat-total"><div class="stat-val" id="st-total">0</div><div class="stat-lbl">Total Devices</div></div>
+      <div class="stat-card stat-total"><div class="stat-val" id="st-total">0</div><div class="stat-lbl">Total devices</div></div>
       <div class="stat-card stat-online"><div class="stat-val" id="st-online">0</div><div class="stat-lbl">Online</div></div>
       <div class="stat-card stat-offline"><div class="stat-val" id="st-offline">0</div><div class="stat-lbl">Offline</div></div>
       <div class="stat-card stat-alarm"><div class="stat-val" id="st-alarm">0</div><div class="stat-lbl">Alarming</div></div>
@@ -487,31 +98,35 @@ header { background: rgba(10,13,24,.55); border-bottom: 1px solid var(--border);
 </div>
 
 <!-- ─── Super Admin Panel ──────────────────────────────── -->
-<div id="s-admin">
-  <header>
-    <div class="hdr-logo">
-      <div class="hdr-mark">C</div>
-      <div class="hdr-name">CORE MDM</div>
-      <span class="sa-badge">SUPER ADMIN</span>
+<div id="s-admin" class="cx">
+  <div class="console-bar">
+    <div>
+      <h1 class="console-h">Super Admin <span class="sa-badge">SUPER ADMIN</span></h1>
+      <p class="console-sub">Every device, enrollment and action across the system.</p>
     </div>
-    <div style="display:flex;align-items:center;gap:8px;">
-      <button class="btn-sec" style="font-size:12px;padding:6px 14px;" onclick="window._mdm.switchToDashboard()">&#8592; My Devices</button>
-      <button id="btn-signout-admin">Sign Out</button>
+    <div class="console-actions">
+      <button class="btn-sec" onclick="window._mdm.notifyUpdateAll()">&#128276; Notify devices of update</button>
+      <a class="btn-sec" href="updater.html">Fleet updater</a>
+      <button class="btn-sec" onclick="window._mdm.switchToDashboard()">&#8592; My devices</button>
+      <button id="btn-signout-admin">Sign out</button>
     </div>
-  </header>
+  </div>
   <div class="admin-content">
-    <div class="admin-hdr" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-      <h2>Super Admin Dashboard <span class="sa-badge">SUPER ADMIN</span></h2>
-      <button class="btn-sec" style="font-size:12px;padding:8px 16px;" onclick="window._mdm.notifyUpdateAll()">&#128276; Notify devices of update</button>
-    </div>
     <div class="admin-stats" id="admin-stats"></div>
     <div class="admin-tab-bar" id="admin-tab-bar"></div>
     <div id="admin-panel-body"></div>
   </div>
 </div>
 
+<footer class="muted foot">
+  <span><img src="logo-mark.png" alt="" width="18" height="22"> CORE MDM <small>© 2026 CORE MDM</small></span>
+  <span class="foot-links"><a href="features.html">Features</a><a href="demo.html">Try the app</a><a href="faq.html">FAQ</a><a href="about.html">About</a><a href="organizations.html">Organizations</a><a href="install.html">Install</a><a href="console.html">Manage</a><a href="https://github.com/yybam/coremdm" target="_blank" rel="noopener">GitHub</a><a href="terms.html">Terms</a><a href="privacy.html">Privacy</a><a href="consent.html">Consent</a></span>
+</footer>
+
+</main>
+
 <!-- ─── Device Management Modal ───────────────────────── -->
-<div id="dev-modal">
+<div id="dev-modal" class="cx">
   <div class="modal-backdrop animate-fadeIn" id="modal-backdrop"></div>
   <div class="modal-panel animate-slideUp">
     <div class="modal-hdr">
@@ -519,7 +134,11 @@ header { background: rgba(10,13,24,.55); border-bottom: 1px solid var(--border);
         <div id="modal-device-name">Device</div>
         <div id="modal-device-sub"></div>
       </div>
-      <button id="btn-close-modal" class="transition-transform duration-150 hover:scale-110 active:scale-95">&#x2715;</button>
+      <button id="btn-close-modal" class="hover:scale-110 active:scale-95" aria-label="Close">&#x2715;</button>
+    </div>
+    <div class="modal-search">
+      <input id="settings-search" type="search" placeholder="Search all settings — “wifi”, “whatsapp”, “calls”…"
+        oninput="window._mdm.searchSettings(this.value)" autocomplete="off">
     </div>
     <div class="tab-bar" id="tab-bar"></div>
     <div class="tab-body" id="tab-body"></div>
@@ -527,39 +146,43 @@ header { background: rgba(10,13,24,.55); border-bottom: 1px solid var(--border);
 </div>
 
 <!-- ─── Wipe Confirm Dialog ────────────────────────────── -->
-<div id="wipe-confirm">
+<div id="wipe-confirm" class="cx">
   <div class="wipe-backdrop animate-fadeIn" onclick="cancelWipe()"></div>
   <div class="wipe-dialog animate-slideUp">
-    <h2>Wipe Device?</h2>
+    <h2>Wipe device?</h2>
     <p>This will permanently erase all data on the device. This action cannot be undone.</p>
     <div class="wipe-btns">
-      <button class="btn-cancel transition-transform duration-150 hover:scale-[1.02] active:scale-95" onclick="cancelWipe()">Cancel</button>
-      <button class="btn-confirm-wipe transition-transform duration-150 hover:scale-[1.02] active:scale-95" onclick="executeWipe()">Wipe Device</button>
+      <button class="btn-cancel hover:scale-[1.02] active:scale-95" onclick="cancelWipe()">Cancel</button>
+      <button class="btn-confirm-wipe hover:scale-[1.02] active:scale-95" onclick="executeWipe()">Wipe device</button>
     </div>
   </div>
 </div>
 
-<!-- ─── Delete Device Entry Confirm Dialog ──────────────── -->
-<div id="delete-confirm">
-  <div class="wipe-backdrop animate-fadeIn" onclick="cancelDelete()"></div>
-  <div class="wipe-dialog animate-slideUp">
-    <h2>Delete device entry?</h2>
-    <p>This permanently removes this device and <strong>all of its data</strong> (policies, command history, app inventory) from the console. It stops appearing here and can be re-enrolled cleanly later. This <strong>cannot be undone</strong>, and it does <strong>not</strong> factory-reset the phone.</p>
+<!-- ─── Generic confirm / prompt dialog ────────────────── -->
+<div id="confirm-dlg" class="cx" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+  <div class="wipe-backdrop animate-fadeIn" data-confirm="no"></div>
+  <div class="wipe-dialog confirm-dialog animate-slideUp">
+    <h2 id="confirm-title"></h2>
+    <p id="confirm-body"></p>
+    <input id="confirm-input" class="dns-input confirm-input" type="text" hidden>
     <div class="wipe-btns">
-      <button class="btn-cancel transition-transform duration-150 hover:scale-[1.02] active:scale-95" onclick="cancelDelete()">Cancel</button>
-      <button class="btn-confirm-wipe transition-transform duration-150 hover:scale-[1.02] active:scale-95" onclick="executeDelete()">Delete Permanently</button>
+      <button class="btn-cancel" data-confirm="no">Cancel</button>
+      <button class="btn-confirm" id="confirm-yes" data-confirm="yes">Confirm</button>
     </div>
   </div>
 </div>
+<div id="toast" role="status" aria-live="polite"></div>
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { getFirestore, collection, query, where, orderBy, limit,
-         onSnapshot, doc, updateDoc, deleteDoc, getDoc, getDocs, setDoc,
+         onSnapshot, doc, updateDoc, deleteDoc, getDoc, getDocs,
          addDoc, serverTimestamp, Timestamp, arrayUnion, arrayRemove }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { APP_POLICIES, SYS_POLICIES, HW_POLICIES, BLOCK_POLICIES, CONTROL_POLICIES, NETWORK_POLICIES, SECTIONS,
+         SEARCH_KEYWORDS, orgRule, sectionKey, effectivePolicy, effectiveSection, FILTER_GROUPS } from './policies.js';
 
 const app = initializeApp({
   apiKey:            "AIzaSyCWew6jKeAyEMUWY1DYjuzhxH0jSke3JhE",
@@ -573,7 +196,8 @@ const auth = getAuth(app);
 const db   = getFirestore(app);
 
 // ── State ───────────────────────────────────────────────────
-const SUPER_ADMIN_EMAIL = 'yybamberger1@gmail.com';
+// Keep in step with isSuperAdmin() in firestore.rules.
+const SUPER_ADMIN_EMAILS = ['yybamberger1@gmail.com', 'yybambi23@gmail.com', 'shmuelzevkatz@gmail.com', 'adschochet03@gmail.com'];
 let isSuperAdmin        = false;
 let adminMode           = false;
 let adminTab            = 'devices';
@@ -583,67 +207,77 @@ let unsubInventory      = null;
 let lastTokenPlain      = null;
 
 const devicesMap = {};
+
+// Organization profiles (name + rules) for phones that belong to an org, kept live.
+const orgProfiles = {};
+const orgUnsubs   = {};
+function watchOrg(orgId) {
+  if (!orgId || orgUnsubs[orgId]) return;
+  orgUnsubs[orgId] = onSnapshot(doc(db, 'organizations', orgId, 'public', 'profile'), snap => {
+    orgProfiles[orgId] = snap.exists() ? snap.data() : {};
+    renderCards();
+    if (selectedId && devicesMap[selectedId]?.orgId === orgId) renderTabContent();
+  }, err => console.error('Organization profile error:', err));
+}
+function orgOf(d)      { return d?.orgId ? (orgProfiles[d.orgId] || {}) : null; }
+function orgName(d)    { return orgOf(d)?.name || 'your organization'; }
+function orgRulesOf(d) { return orgOf(d)?.rules || {}; }
+function orgTag(d, rule) {
+  if (!rule) return '';
+  return rule.mode === 'locked'
+    ? `<div class="policy-org policy-org-locked">🔒 Locked by ${esc(orgName(d))}</div>`
+    : `<div class="policy-org">Default from ${esc(orgName(d))} — you can change it</div>`;
+}
 let unsubDevices = null;
+let unsubCommands = null;   // queued commands (devices/{id}/commands) for the open device
+let pendingCommands = [];
 let selectedId   = null;
 let activeTab    = 'commands';
 let wipeTargetId = null;
 let searchQuery  = '';
-let appSearch    = '';
-let unsubCommands  = null;   // live listener for the selected device's command queue
-let pendingCommands = [];    // pending commands for the open device
 
-// ── Policy groups ────────────────────────────────────────────
-const APP_POLICIES = [
-  { key:'installAppsBlocked',    label:'Block App Installation',       sub:'Prevents Play Store installs' },
-  { key:'uninstallAppsBlocked',  label:'Block App Uninstallation',     sub:'Prevents removing installed apps' },
-  { key:'unknownSourcesBlocked', label:'Block Sideloading',            sub:'Blocks unknown-source APK installs' },
-  { key:'playStoreHidden',       label:'Hide Play Store',              sub:'Hides Play Store from launcher' },
-  { key:'browsersHidden',        label:'Hide Browsers',                sub:'Hides Chrome and all installed browsers' },
-  { key:'socialMediaBlocked',    label:'Block Social Media',           sub:'Suspends WhatsApp, Facebook, Instagram, TikTok, Snapchat, X, Messenger' },
-  { key:'cameraDisabled',        label:'Disable Camera',               sub:'Blocks all camera access' },
-  { key:'screenCaptureDisabled', label:'Disable Screen Capture',       sub:'Blocks screenshots and screen recording' },
-];
-const SYS_POLICIES = [
-  { key:'safeBootBlocked',     label:'Prevent Safe Boot',               sub:'Blocks booting into safe mode' },
-  { key:'factoryResetBlocked', label:'Prevent Factory Reset',           sub:'Blocks factory reset from settings' },
-  { key:'debuggingBlocked',    label:'Disable Developer Options & ADB', sub:'Prevents USB debugging access' },
-  { key:'addUserBlocked',      label:'Prevent Multi-User Profiles',     sub:'Blocks adding new user accounts' },
-  { key:'userSwitchBlocked',   label:'Block User Switching',            sub:'Prevents switching between users' },
-  { key:'statusBarDisabled',   label:'Lock Status Bar',                 sub:'Disables pull-down notification bar' },
-];
-const HW_POLICIES = [
-  { key:'wifiConfigBlocked',      label:'Lock Wi-Fi Configuration',      sub:'Prevents changing Wi-Fi settings' },
-  { key:'mobileNetworksBlocked',  label:'Lock Cellular Data Settings',   sub:'Prevents mobile network changes' },
-  { key:'bluetoothConfigBlocked', label:'Lock Bluetooth Settings',       sub:'Prevents Bluetooth configuration' },
-  { key:'vpnBlocked',             label:'Block VPN Configuration',       sub:'Prevents adding or changing VPNs' },
-  { key:'networkResetBlocked',    label:'Block Network Reset',           sub:'Prevents resetting all network settings' },
-  { key:'usbTransferBlocked',     label:'Block USB File Transfer',       sub:'Blocks MTP/USB storage access (API 28+)' },
-  { key:'bluetoothDisabled',      label:'Disable Bluetooth Completely',  sub:'Disables all Bluetooth radio' },
-  { key:'outgoingCallsBlocked',   label:'Block Outgoing Calls',          sub:'Prevents all outgoing phone calls' },
-  { key:'physicalMediaBlocked',   label:'Block Physical Media (SD Card)',sub:'Blocks SD card mounting' },
-  { key:'mdmUninstallProtected',  label:'Protect MDM from Uninstall',   sub:'Prevents CORE MDM app removal' },
-];
+// Setting lists live in policies.js, shared with org.html.
+// One-shot commands: the phone clears the flag (in a transaction) before running it,
+// so anything still `true` is pending and can be cancelled from here.
+const COMMANDS = {
+  lockCommand:         { label:'Lock screen',     audit:'LOCK_SCREEN',   title:'Lock the screen?',      body:d=>`The screen of ${d} will lock right away.` },
+  rebootCommand:       { label:'Reboot',          audit:'REBOOT',        title:'Restart the phone?',     body:d=>`${d} will restart and be offline for about a minute.` },
+  fullLockdownCommand: { label:'Full lockdown',   audit:'FULL_LOCKDOWN', title:'Apply full lockdown?',   body:d=>`All major restrictions will be enabled on ${d}, including camera, status bar and screen capture.` },
+  wipeCommand:         { label:'Wipe',            audit:'WIPE',          title:'Wipe this phone?',       body:d=>`Everything on ${d} will be permanently erased. This cannot be undone.`, danger:true },
+};
+// Six tabs, not nine: things that belong together now live together, with headings inside
+// each tab instead of a tab of their own.
 const TABS = [
-  { id:'commands',   label:'Commands' },
-  { id:'apps',       label:'App Policies' },
-  { id:'installed',  label:'Installed Apps' },
-  { id:'system',     label:'System' },
-  { id:'hardware',   label:'Hardware' },
-  { id:'network',    label:'Network' },
-  { id:'parental',   label:'Parental' },
-  { id:'status',     label:'Status' },
-  { id:'location',   label:'Location' },
-  { id:'message',    label:'Message' },
-  { id:'danger',     label:'Danger', danger: true },
+  { id:'commands', label:'Commands' },
+  { id:'installed',label:'Apps' },        // quick blocks + app sections + every installed app
+  { id:'limits',   label:'Time limits' },
+  { id:'network',  label:'Internet' },    // web-in-apps + DNS + content filter + kiosk
+  { id:'device',   label:'Device' },      // installing apps + system + hardware
+  { id:'location', label:'Location & schedule' }, // map, geofence, schedules, battery, usage
+  { id:'danger',   label:'Danger', danger: true },
 ];
+
+function settingsIndex() {
+  const out = [];
+  const add = (pol, tab, group) => out.push({ ...pol, tab, group, words: SEARCH_KEYWORDS[pol.key] || '' });
+  BLOCK_POLICIES.forEach(p => add(p, 'installed', 'Quick blocks'));
+  APP_POLICIES.forEach(p => add(p, "device", "Installing apps"));
+  CONTROL_POLICIES.forEach(p => add(p, "device", "Keep rules in place"));
+  SYS_POLICIES.forEach(p => add(p, "device", "Keep rules in place"));
+  HW_POLICIES.forEach(p => add(p, "device", "Hardware"));
+  out.push({ key:'webviewGuard', label:'Only allow web pages in chosen apps',
+    sub:"Web pages inside any other app are closed", tab:"network", group:"Internet",
+    words: SEARCH_KEYWORDS.webviewGuard });
+  SECTIONS.forEach(s => out.push({ section:s.id, key:s.id, label:`${s.app} — ${s.label}`,
+    sub:s.description, tab:"installed", group:"Block parts of apps", words:`${s.app} ${s.label} section` }));
+  return out;
+}
+let settingsQuery = '';
 
 // ── Utility ──────────────────────────────────────────────────
 function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-// Friendly name set by the admin, falling back to the device model.
-function dispName(d) { return (d && d.customName) ? d.customName : (d ? d.model : ''); }
-function jsStr(s) { return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
 function timeSince(ms) {
   if (!ms) return 'Never';
   const s = Math.floor((Date.now()-ms)/1000);
@@ -659,6 +293,104 @@ function isOnline(d) {
   return d.status === 'online' && d.lastSeen && (Date.now()-d.lastSeen) < 5*60*1000;
 }
 function deviceRef(id) { return doc(db, 'devices', id); }
+function displayName(d) { return d.name || d.model; }
+function jsStr(s) { return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+function toDevice(id, data) {
+  const cmds = {}, done = {};
+  for (const f of Object.keys(COMMANDS)) {
+    cmds[f] = data[f] === true;
+    done[f] = data[f+'DoneAt']?.toMillis?.() ?? null;
+  }
+  return {
+    id,
+    name:        data.name || data.customName || '',
+    model:       data.model || 'Unknown Device',
+    osVersion:   data.osVersion || '',
+    status:      data.status || 'offline',
+    lastSeen:    data.lastSeen?.toMillis?.() ?? null,
+    alarmActive: data.alarmActive || false,
+    imei:        data.imei || '',
+    serial:      data.serial || '',
+    policies:    data.policies || {},
+    orgId:       data.orgId || null,
+    cmds, done,
+    // `apps` from app 0.8+; older phones reported `installedApps` (same shape)
+    apps:        Array.isArray(data.apps) ? data.apps
+               : Array.isArray(data.installedApps) ? data.installedApps : [],
+    appsUpdatedAt: (data.appsUpdatedAt || data.installedAppsUpdatedAt)?.toMillis?.() ?? null,
+    appVersion:  data.appVersion || '',
+    guardEnabled: data.guardEnabled === true,
+    usageAccess: data.usageAccess,
+    timeUsage:   data.timeUsage || {},
+    batteryLevel:  data.batteryLevel ?? null,
+    isCharging:    data.isCharging ?? null,
+    networkType:   data.networkType || null,
+    wifiRssi:      data.wifiRssi ?? null,
+    lastLat:       data.lastLat ?? null,
+    lastLng:       data.lastLng ?? null,
+    lastLocationAccuracy: data.lastLocationAccuracy ?? null,
+    lastLocationAt: data.lastLocationAt?.toMillis?.() ?? null,
+    usageStats:    Array.isArray(data.usageStats) ? data.usageStats : [],
+    lastInstalledVersion: data.lastInstalledVersion || null,
+    policyAcknowledgedAt: data.policyAcknowledgedAt?.toMillis?.() ?? null,
+  };
+}
+function hasPending(d) { return Object.values(d.cmds || {}).some(Boolean); }
+
+/** Small chips on a device card summarising what's switched on, so you can see it without
+ *  opening the device and walking the tabs. */
+function activeChips(d) {
+  const p = d.policies || {};
+  const chips = [];
+  if (p.whatsappBlocked)    chips.push('WhatsApp off');
+  if (p.socialMediaBlocked) chips.push('Social off');
+  if (p.aiChatsBlocked)     chips.push('AI off');
+  if (p.allCallsBlocked)    chips.push('Calls off');
+  if (p.smsBlocked)         chips.push('SMS off');
+  if (p.remoteOnly)         chips.push('Remote-only');
+  const sections = Array.isArray(p.blockedSections) ? p.blockedSections.length : 0;
+  if (sections)             chips.push(`${sections} section${sections>1?'s':''}`);
+  const limits = p.appTimeLimits ? Object.values(p.appTimeLimits).filter(v => v > 0).length : 0;
+  if (limits)               chips.push(`${limits} timed`);
+  const blocked = Array.isArray(p.blockedPackages) ? p.blockedPackages.length : 0;
+  if (blocked)              chips.push(`${blocked} app${blocked>1?'s':''} blocked`);
+  if (!chips.length) return '<span class="chip chip-none">Nothing blocked</span>';
+  return chips.map(t => `<span class="chip">${esc(t)}</span>`).join('');
+}
+
+// ── Confirm dialog + toast ───────────────────────────────────
+function askConfirm({ title, body, confirmLabel = 'Confirm', danger = false, input = null }) {
+  return new Promise(resolve => {
+    const dlg = document.getElementById('confirm-dlg');
+    const inp = document.getElementById('confirm-input');
+    dlg.querySelector('.confirm-dialog').classList.toggle('danger', danger);
+    document.getElementById('confirm-title').textContent = title;
+    document.getElementById('confirm-body').textContent  = body || '';
+    document.getElementById('confirm-yes').textContent   = confirmLabel;
+    inp.hidden = input == null;
+    if (input != null) { inp.value = input.value || ''; inp.placeholder = input.placeholder || ''; }
+    dlg.classList.add('open');
+    (input != null ? inp : document.getElementById('confirm-yes')).focus();
+    const finish = ok => {
+      dlg.classList.remove('open');
+      dlg.removeEventListener('click', onClick);
+      document.removeEventListener('keydown', onKey);
+      resolve(ok ? (input != null ? inp.value.trim() : true) : (input != null ? null : false));
+    };
+    const onClick = e => { const a = e.target.closest('[data-confirm]'); if (a) finish(a.dataset.confirm === 'yes'); };
+    const onKey   = e => { if (e.key === 'Escape') finish(false); if (e.key === 'Enter') finish(true); };
+    dlg.addEventListener('click', onClick);
+    document.addEventListener('keydown', onKey);
+  });
+}
+let toastTimer = null;
+function toast(msg, kind = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show ' + kind;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.className = ''; }, 3500);
+}
 
 // ── Auth flow ─────────────────────────────────────────────────
 document.getElementById('btn-login').addEventListener('click', async () => {
@@ -697,86 +429,29 @@ document.getElementById('btn-reset-send').addEventListener('click', async () => 
   } catch(e) { msgEl.style.color='var(--red)'; msgEl.textContent=e.message; }
 });
 
-document.getElementById('btn-setup-check').addEventListener('click', async () => {
-  const user = auth.currentUser;
-  if (!user) return;
-  const btn = document.getElementById('btn-setup-check');
-  const msg = document.getElementById('setup-msg');
-  btn.textContent = 'Checking…';
-  btn.disabled = true;
-  msg.textContent = '';
-  try {
-    const snap = await getDocs(
-      query(collection(db, 'devices'), where('ownerId', '==', user.uid), limit(1))
-    );
-    if (snap.empty) {
-      msg.textContent = "No device found yet. Make sure you opened CORE MDM on the phone and signed in with this account.";
-      btn.textContent = "Check again";
-      btn.disabled = false;
-    } else {
-      showApp();
-    }
-  } catch(e) {
-    msg.textContent = 'Error checking — try again.';
-    btn.textContent = "Check again";
-    btn.disabled = false;
-  }
-});
-
-document.getElementById('btn-setup-signout').addEventListener('click', () => signOut(auth));
-
-function showApp() {
-  document.getElementById('s-login').style.display = 'none';
-  document.getElementById('s-setup').style.display = 'none';
-  const appEl = document.getElementById('s-app');
-  appEl.style.display = 'flex';
-  appEl.style.flexDirection = 'column';
-}
-
-function showSetup(email) {
-  document.getElementById('s-login').style.display = 'none';
-  document.getElementById('s-app').style.display   = 'none';
-  const el = document.getElementById('s-setup');
-  el.style.display = 'flex';
-  el.style.flexDirection = 'column';
-  const emailEl = document.getElementById('setup-email');
-  if (emailEl) emailEl.textContent = email || '';
-  document.getElementById('setup-msg').textContent = '';
-  const btn = document.getElementById('btn-setup-check');
-  btn.textContent = "I've done it — show my devices";
-  btn.disabled = false;
-}
-
-onAuthStateChanged(auth, async user => {
+onAuthStateChanged(auth, user => {
   if (user) {
-    isSuperAdmin = user.email === SUPER_ADMIN_EMAIL;
+    isSuperAdmin = SUPER_ADMIN_EMAILS.includes((user.email || '').toLowerCase());
+    document.getElementById('s-login').style.display = 'none';
+    document.getElementById('s-admin').style.display  = 'none';
+    const appEl = document.getElementById('s-app');
+    appEl.style.display = 'flex';
+    appEl.style.flexDirection = 'column';
     document.getElementById('btn-admin').style.display = isSuperAdmin ? 'inline-block' : 'none';
     adminMode = false;
     startDeviceListener(user.uid);
-    if (isSuperAdmin) {
-      showApp();
-      logAudit('LOGIN', null, 'Super admin signed in');
-    } else {
-      const snap = await getDocs(
-        query(collection(db, 'devices'), where('ownerId', '==', user.uid), limit(1))
-      );
-      if (snap.empty) {
-        showSetup(user.email);
-      } else {
-        showApp();
-      }
-    }
+    if (isSuperAdmin) logAudit('LOGIN', null, 'Super admin signed in');
   } else {
     isSuperAdmin = false;
     adminMode    = false;
-    document.getElementById('s-login').style.display  = '';
-    document.getElementById('s-app').style.display    = 'none';
-    document.getElementById('s-setup').style.display  = 'none';
-    document.getElementById('s-admin').style.display  = 'none';
+    document.getElementById('s-login').style.display = '';
+    document.getElementById('s-app').style.display   = 'none';
+    document.getElementById('s-admin').style.display = 'none';
     if (unsubDevices)      { unsubDevices(); unsubDevices = null; }
     if (unsubAdminDevices) { unsubAdminDevices(); unsubAdminDevices = null; }
     if (unsubAuditLog)     { unsubAuditLog(); unsubAuditLog = null; }
     if (unsubInventory)    { unsubInventory(); unsubInventory = null; }
+    for (const k of Object.keys(orgUnsubs)) { orgUnsubs[k](); delete orgUnsubs[k]; delete orgProfiles[k]; }
     closeModal();
   }
 });
@@ -784,43 +459,31 @@ onAuthStateChanged(auth, async user => {
 // ── Device listener ──────────────────────────────────────────
 function startDeviceListener(uid) {
   if (unsubDevices) unsubDevices();
-  Object.keys(devicesMap).forEach(k => delete devicesMap[k]);
   const q = query(collection(db,'devices'), where('ownerId','==',uid));
   unsubDevices = onSnapshot(q, snap => {
     snap.docChanges().forEach(change => {
-      if (change.type === 'removed') { delete devicesMap[change.doc.id]; return; }
-      const data = change.doc.data();
-      devicesMap[change.doc.id] = {
-        id:          change.doc.id,
-        model:       data.model || 'Unknown Device',
-        customName:  data.customName || '',
-        installedApps: Array.isArray(data.installedApps) ? data.installedApps : [],
-        osVersion:   data.osVersion || '',
-        status:      data.status || 'offline',
-        lastSeen:    data.lastSeen?.toMillis?.() ?? null,
-        alarmActive: data.alarmActive || false,
-        imei:        data.imei || '',
-        serial:      data.serial || '',
-        policies:    data.policies || {},
-        batteryLevel:  data.batteryLevel ?? null,
-        isCharging:    data.isCharging ?? null,
-        networkType:   data.networkType || null,
-        wifiRssi:      data.wifiRssi ?? null,
-        lastLat:       data.lastLat ?? null,
-        lastLng:       data.lastLng ?? null,
-        lastLocationAccuracy: data.lastLocationAccuracy ?? null,
-        lastLocationAt: data.lastLocationAt?.toMillis?.() ?? null,
-        usageStats:    Array.isArray(data.usageStats) ? data.usageStats : [],
-        lastInstalledVersion: data.lastInstalledVersion || null,
-        policyAcknowledgedAt: data.policyAcknowledgedAt?.toMillis?.() ?? null,
-      };
+      if (change.type === 'removed') {
+        delete devicesMap[change.doc.id];
+        if (selectedId === change.doc.id) closeModal();
+        return;
+      }
+      const prev = devicesMap[change.doc.id];
+      const next = toDevice(change.doc.id, change.doc.data());
+      // A command the phone picked up: flag went back to false and its DoneAt moved.
+      if (prev) for (const f of Object.keys(COMMANDS)) {
+        if (prev.cmds[f] && !next.cmds[f] && next.done[f] && next.done[f] !== prev.done[f])
+          toast(`${COMMANDS[f].label} done on ${displayName(next)} ✓`, 'ok');
+      }
+      devicesMap[change.doc.id] = next;
+      watchOrg(next.orgId);
     });
-    // Auto-advance from setup screen the moment the first device registers
-    if (document.getElementById('s-setup').style.display !== 'none' && Object.keys(devicesMap).length > 0) {
-      showApp();
-    }
     renderCards();
-    if (selectedId && devicesMap[selectedId]) updateModalHeader(selectedId);
+    if (selectedId && devicesMap[selectedId]) {
+      updateModalHeader(selectedId);
+      // Live tabs refresh so pending/done states update; skip while the user is typing.
+      const typing = document.activeElement?.closest?.('#tab-body input');
+      if (!typing && ['commands', 'installed', 'danger', 'location'].includes(activeTab)) renderTabContent();
+    }
   }, err => console.error('Firestore error:', err));
 }
 
@@ -833,7 +496,7 @@ document.getElementById('search').addEventListener('input', e => {
 function renderCards() {
   const all     = Object.values(devicesMap);
   const shown   = all.filter(d => !searchQuery ||
-    (d.model+d.customName+d.imei+d.serial).toLowerCase().includes(searchQuery));
+    (d.name+d.model+d.imei+d.serial).toLowerCase().includes(searchQuery));
   const online  = all.filter(isOnline).length;
   const alarming= all.filter(d=>d.alarmActive).length;
   document.getElementById('st-total').textContent  = all.length;
@@ -843,7 +506,7 @@ function renderCards() {
 
   const grid = document.getElementById('device-grid');
   if (!shown.length) {
-    grid.innerHTML = `<div id="empty-state"><strong>${searchQuery?'No matching devices':'No devices enrolled'}</strong><p>${searchQuery?'Try a different search.':'Install CORE MDM on a device and sign in with this account.'}</p></div>`;
+    grid.innerHTML = `<div id="empty-state"><strong>${searchQuery?'No matching devices':'No devices enrolled'}</strong><p>${searchQuery?'Try a different search.':'<a href="install.html">Install CORE MDM</a> on a phone and sign in with this account.'}</p></div>`;
     return;
   }
   grid.innerHTML = shown.map(d => {
@@ -851,21 +514,20 @@ function renderCards() {
     const alarm = d.alarmActive;
     return `<div class="device-card${alarm?' alarming':''} animate-fadeIn transition-transform duration-200 hover:-translate-y-0.5">
       <div class="dc-head">
-        <div><div class="dc-name">${esc(dispName(d))}</div><div class="dc-sub">${esc(d.osVersion)}</div></div>
+        <div><div class="dc-name">${esc(displayName(d))}</div><div class="dc-sub">${d.name?esc(d.model)+' · ':''}${esc(d.osVersion)}</div></div>
         <div class="dc-badges">
           <span class="badge ${on?'badge-online':'badge-offline'}">${on?'ONLINE':'OFFLINE'}</span>
           ${alarm?'<span class="badge badge-alarm animate-pulse">ALARM</span>':''}
+          ${hasPending(d)?'<span class="badge badge-pending">PENDING</span>':''}
+          ${d.orgId?`<span class="badge badge-org">${esc(orgName(d))}</span>`:''}
         </div>
       </div>
       <div class="dc-ids">
         ${d.imei?`<div class="dc-id"><span class="dc-id-lbl">IMEI</span><span class="dc-id-val">${esc(d.imei)}</span></div>`:''}
         ${d.serial?`<div class="dc-id"><span class="dc-id-lbl">Serial</span><span class="dc-id-val">${esc(d.serial)}</span></div>`:''}
       </div>
+      <div class="dc-chips">${activeChips(d)}</div>
       <div class="dc-lastseen">Last seen: ${timeSince(d.lastSeen)}</div>
-      <div class="dc-battery-row">
-        ${d.batteryLevel !== null ? `<div class="dc-bat-pill"><span class="dc-bat-icon">${d.isCharging ? '⚡' : (d.batteryLevel > 20 ? '🔋' : '🪫')}</span><span class="dc-bat-val" style="color:${d.batteryLevel > 20 ? 'var(--green)' : 'var(--red)'}">${d.batteryLevel}%</span></div>` : ''}
-        ${d.networkType ? `<div class="dc-net-pill">📶 ${esc(d.networkType)}${d.networkType==='wifi'&&d.wifiRssi ? ` ${d.wifiRssi}dBm` : ''}</div>` : ''}
-      </div>
       <div class="dc-actions">
         <button class="dc-btn dc-btn-alarm${alarm?' active':''} transition-transform duration-150 hover:scale-105 active:scale-95" onclick="window._mdm.toggleAlarm('${d.id}',${!alarm})">${alarm?'Stop Alarm':'Sound Alarm'}</button>
         <button class="dc-btn dc-btn-manage transition-transform duration-150 hover:scale-105 active:scale-95" onclick="window._mdm.openModal('${d.id}')">Manage &rarr;</button>
@@ -878,9 +540,9 @@ function renderCards() {
 function openModal(id) {
   selectedId = id;
   activeTab  = 'commands';
+  startCommandListener(id);
   document.getElementById('dev-modal').style.display = 'flex';
   document.body.style.overflow = 'hidden';
-  startCommandListener(id);
   renderTabBar();
   updateModalHeader(id);
   renderTabContent();
@@ -893,8 +555,152 @@ function closeModal() {
   document.getElementById('dev-modal').style.display = '';
   document.body.style.overflow = '';
 }
-// Live list of pending commands for the open device, so the admin can cancel one
-// before the device runs it.
+function updateModalHeader(id) {
+  const d = devicesMap[id]; if (!d) return;
+  document.getElementById('modal-device-name').innerHTML =
+    `<span class="hdr-name-row"><span style="overflow:hidden;text-overflow:ellipsis">${esc(displayName(d))}</span>`
+    +`<button class="btn-rename" onclick="window._mdm.renameDevice('${esc(id)}')">Rename</button></span>`;
+  const on = isOnline(d);
+  document.getElementById('modal-device-sub').innerHTML =
+    `<span class="badge ${on?'badge-online':'badge-offline'}">${on?'ONLINE':'OFFLINE'}</span>`
+    +(d.alarmActive?'<span class="badge badge-alarm animate-pulse">ALARM</span>':'')
+    +(d.name?`<span>${esc(d.model)}</span>`:'')
+    +`<span>Last seen: ${timeSince(d.lastSeen)}</span>`
+    +(d.appVersion?`<span>CORE MDM v${esc(d.appVersion)}</span>`:'')
+    +(d.guardEnabled?'<span class="badge badge-online">GUARD ON</span>'
+                    :'<span class="badge badge-guard-off">GUARD OFF</span>');
+}
+function renderTabBar() {
+  document.getElementById('tab-bar').innerHTML = TABS.map(t =>
+    `<button class="tab-btn${t.id===activeTab?' active':''} transition-colors duration-150" onclick="window._mdm.switchTab('${t.id}')">`
+    +(t.danger?`<span style="color:var(--red)">${t.label}</span>`:t.label)
+    +'</button>'
+  ).join('');
+}
+function switchTab(id) {
+  activeTab = id;
+  // Leaving search when a tab is picked keeps the two from fighting over the body
+  settingsQuery = "";
+  const box = document.getElementById("settings-search"); if (box) box.value = "";
+  renderTabBar();
+  renderTabContent();
+  document.getElementById('tab-body').scrollTop = 0;
+}
+
+/** Results for the modal's settings search, drawn in place of the active tab. */
+function renderSearchResults(d, p) {
+  const q = settingsQuery.trim().toLowerCase();
+  const hits = settingsIndex().filter(s =>
+    `${s.label} ${s.sub} ${s.words} ${s.group}`.toLowerCase().includes(q));
+  if (!hits.length) return `<div class="apps-meta" style="padding:26px 0;text-align:center">Nothing matches “${esc(settingsQuery)}”.</div>`;
+  const blockedSections = new Set(Array.isArray(p.blockedSections) ? p.blockedSections : []);
+  return hits.map(s => {
+    const on = s.section ? blockedSections.has(s.section) : !!p[s.key];
+    const handler = s.section
+      ? `window._mdm.setSection('${esc(d.id)}','${s.section}',this.checked,this)`
+      : `window._mdm.setPolicy('${esc(d.id)}','${s.key}',this.checked,this)`;
+    return `<div class="policy-row">
+      <div class="policy-info">
+        <div class="policy-label">${esc(s.label)}</div>
+        <div class="policy-sub">${esc(s.sub)}</div>
+        <div class="search-group">${esc(s.group)}</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" ${on?'checked':''} onchange="${handler}">
+        <span class="toggle-track"></span><span class="toggle-thumb"></span>
+      </label>
+    </div>`;
+  }).join('');
+}
+function searchSettings(v) {
+  settingsQuery = v;
+  const body = document.getElementById('tab-body');
+  const d = devicesMap[selectedId];
+  if (!d) return;
+  const results = document.getElementById('search-results');
+  const html = settingsQuery.trim() ? renderSearchResults(d, d.policies || {}) : '';
+  if (settingsQuery.trim()) {
+    if (results) results.innerHTML = html;
+    else body.insertAdjacentHTML('afterbegin', `<div id="search-results">${html}</div>`);
+    // Hide the tab's own content while results are showing
+    body.querySelectorAll(':scope > *:not(#search-results)').forEach(el => el.style.display = 'none');
+  } else {
+    if (results) results.remove();
+    body.querySelectorAll(':scope > *').forEach(el => el.style.display = '');
+  }
+}
+
+function renderTabContent() {
+  if (!selectedId || !devicesMap[selectedId]) return;
+  const d = devicesMap[selectedId];
+  const p = d.policies || {};
+  let html = '';
+  switch (activeTab) {
+    case 'commands': html = renderCommandsTab(d); break;
+    case 'installed':html = renderInstalledTab(d, p); break;
+    case 'limits':   html = renderLimitsTab(d, p); break;
+    case 'network':  html = renderWebviewTab(d, p) + renderNetworkTab(d.id, p); break;
+    case 'device':   html = renderDeviceTab(d, p); break;
+    case 'location': html = renderLocationTab(d) + renderScheduleSections(d.id, p) + renderStatusSections(d); break;
+    case 'danger':   html = renderDangerTab(d); break;
+  }
+  document.getElementById('tab-body').innerHTML = `<div class="animate-fadeIn">${remoteOnlyBanner(d, p)}${html}</div>`;
+  if (activeTab === 'location') setTimeout(() => initLocationMap(d), 50);
+}
+
+/** Remote-only mode locks the app on the phone, so the way back out is shown on every tab. */
+function remoteOnlyBanner(d, p) {
+  if (!effectivePolicy(p, orgRulesOf(d), 'remoteOnly')) return '';
+  const locked = orgRule(orgRulesOf(d), 'remoteOnly')?.mode === 'locked';
+  return `<div class="remote-only-banner">
+    <div>
+      <strong>Remote-only mode is on.</strong>
+      The CORE MDM app on this phone is locked — settings can only be changed here.
+    </div>
+    ${locked
+      ? `<span class="apps-meta">Locked by ${esc(orgName(d))}</span>`
+      : `<button onclick="window._mdm.setPolicy('${esc(d.id)}','remoteOnly',false)" class="btn-small btn-lock-dns">Turn off</button>`}
+  </div>`;
+}
+
+function pendingLabel(label) {
+  return `<span><span class="spin"></span>${esc(label)} pending…</span><small>Waiting for the phone · tap to cancel</small>`;
+}
+function cmdButton(d, field, cls) {
+  const c = COMMANDS[field];
+  return d.cmds[field]
+    ? `<button class="cmd-btn cmd-pending" onclick="window._mdm.cancelCommand('${d.id}','${field}')">${pendingLabel(c.label)}</button>`
+    : `<button class="cmd-btn ${cls} transition-transform duration-150 hover:scale-105 active:scale-95" onclick="window._mdm.sendCommand('${d.id}','${field}')">${esc(c.label)}</button>`;
+}
+function renderCommandsTab(d) {
+  const id    = d.id;
+  const alarm = d.alarmActive;
+  const ld = d.cmds.fullLockdownCommand
+    ? `<button class="cmd-lockdown cmd-pending" onclick="window._mdm.cancelCommand('${id}','fullLockdownCommand')">
+         <div class="ld-icon">!</div>
+         <div class="ld-text"><span class="spin"></span>Full lockdown pending…<span class="ld-sub">Waiting for the phone · tap to cancel</span></div>
+       </button>`
+    : `<button class="cmd-lockdown transition-transform duration-150 hover:scale-[1.01] active:scale-95" onclick="window._mdm.sendCommand('${id}','fullLockdownCommand')">
+         <div class="ld-icon">!</div>
+         <div class="ld-text">Apply Full Lockdown<span class="ld-sub">Enables all restrictions, disables camera, status bar, screen capture</span></div>
+       </button>`;
+  return `
+  <div class="cmd-grid">
+    <button class="cmd-btn ${alarm?'cmd-alarm-on':'cmd-alarm-off'} transition-transform duration-150 hover:scale-105 active:scale-95" onclick="window._mdm.toggleAlarm('${id}',${!alarm})">
+      ${alarm?'Stop Alarm':'Sound Alarm'}
+    </button>
+    ${cmdButton(d, 'lockCommand', 'cmd-lock')}
+    ${cmdButton(d, 'rebootCommand', 'cmd-reboot')}
+  </div>
+  ${ld}
+  <p class="cmd-note">If the phone is offline, commands wait until it reconnects — you can cancel them any time before then.</p>
+  ${renderPendingQueue(id)}
+  ${renderMessageSection(id)}`;
+}
+
+// ── Queued commands (devices/{id}/commands) ──────────────────────────────────
+// Messages and app updates go through the queue: each is a document the phone claims in a
+// transaction, so it runs once and can be cancelled while still pending.
 function startCommandListener(id) {
   if (unsubCommands) unsubCommands();
   pendingCommands = [];
@@ -906,115 +712,224 @@ function startCommandListener(id) {
     if (selectedId === id && activeTab === 'commands') renderTabContent();
   }, err => console.error('command listener error:', err));
 }
-function updateModalHeader(id) {
-  const d = devicesMap[id]; if (!d) return;
-  const nameEl = document.getElementById('modal-device-name');
-  nameEl.innerHTML = `${esc(dispName(d))} <button class="rename-btn" title="Rename device" onclick="window._mdm.renameDevice('${jsStr(id)}')">&#9998;</button>`;
-  const on = isOnline(d);
-  document.getElementById('modal-device-sub').innerHTML =
-    `<span class="badge ${on?'badge-online':'badge-offline'}">${on?'ONLINE':'OFFLINE'}</span>`
-    +(d.alarmActive?'<span class="badge badge-alarm animate-pulse">ALARM</span>':'')
-    +`<span>Last seen: ${timeSince(d.lastSeen)}</span>`;
-}
-function renderTabBar() {
-  document.getElementById('tab-bar').innerHTML = TABS.map(t =>
-    `<button class="tab-btn${t.id===activeTab?' active':''} transition-colors duration-150" onclick="window._mdm.switchTab('${t.id}')">`
-    +(t.danger?`<span style="color:var(--red)">${t.label}</span>`:t.label)
-    +'</button>'
-  ).join('');
-}
-function switchTab(id) {
-  activeTab = id;
-  renderTabBar();
-  renderTabContent();
-  document.getElementById('tab-body').scrollTop = 0;
-}
-
-function renderTabContent() {
-  if (!selectedId || !devicesMap[selectedId]) return;
-  const d = devicesMap[selectedId];
-  const p = d.policies || {};
-  let html = '';
-  switch (activeTab) {
-    case 'commands':  html = renderCommandsTab(d); break;
-    case 'apps':      html = renderPoliciesTab(d.id, p, APP_POLICIES); break;
-    case 'installed': html = renderInstalledAppsTab(d, p); break;
-    case 'system':    html = renderPoliciesTab(d.id, p, SYS_POLICIES) + renderPinPolicy(d.id, p); break;
-    case 'hardware':  html = renderPoliciesTab(d.id, p, HW_POLICIES); break;
-    case 'network':   html = renderNetworkTab(d.id, p); break;
-    case 'parental':  html = renderParentalTab(d.id, p); break;
-    case 'status':    html = renderStatusTab(d); break;
-    case 'location':  html = renderLocationTab(d); break;
-    case 'message':   html = renderMessageTab(d.id); break;
-    case 'danger':    html = renderDangerTab(d); break;
-  }
-  document.getElementById('tab-body').innerHTML = `<div class="animate-fadeIn">${html}</div>`;
-  if (activeTab === 'location') setTimeout(() => initLocationMap(d), 50);
-}
-
-function renderCommandsTab(d) {
-  const id    = d.id;
-  const alarm = d.alarmActive;
-  return `
-  <div class="cmd-grid">
-    <button class="cmd-btn ${alarm?'cmd-alarm-on':'cmd-alarm-off'} transition-transform duration-150 hover:scale-105 active:scale-95" onclick="window._mdm.toggleAlarm('${id}',${!alarm})">
-      ${alarm?'Stop Alarm':'Sound Alarm'}
-    </button>
-    <button class="cmd-btn cmd-lock transition-transform duration-150 hover:scale-105 active:scale-95" onclick="window._mdm.sendLock('${id}')">Lock Screen</button>
-    <button class="cmd-btn cmd-reboot transition-transform duration-150 hover:scale-105 active:scale-95" onclick="window._mdm.sendReboot('${id}')">Reboot</button>
-  </div>
-  <button class="cmd-lockdown transition-transform duration-150 hover:scale-[1.01] active:scale-95" onclick="window._mdm.sendFullLockdown('${id}')">
-    <div class="ld-icon">!</div>
-    <div class="ld-text">Apply Full Lockdown<span class="ld-sub">Enables all restrictions, disables camera, status bar, screen capture</span></div>
-  </button>
-  <button class="cmd-wipe transition-transform duration-150 hover:scale-[1.01] active:scale-95" onclick="window._mdm.confirmWipe('${id}')">
-    <div class="ld-icon">&#9003;</div>
-    <div class="ld-text">Wipe Device<span class="ld-sub">Factory reset — erases all data on the phone. Cannot be undone.</span></div>
-  </button>
-  ${renderPendingCommands(id)}`;
-}
-
-const CMD_LABELS = { lock:'Lock Screen', reboot:'Reboot', wipe:'Wipe Device', lockdown:'Full Lockdown', update_notify:'Update Notification' };
-function renderPendingCommands(id) {
+const QUEUE_LABELS = { lock:'Lock screen', reboot:'Reboot', wipe:'Wipe', lockdown:'Full lockdown',
+  update_notify:'Update notification', install_update:'Install update', check_update:'Check for update',
+  show_message:'Message' };
+function renderPendingQueue(id) {
   if (!pendingCommands.length) return '';
   return `
   <div class="pending-cmds">
-    <h3>Pending Commands</h3>
-    <p class="pending-sub">Waiting for the device to pick them up. Cancel before it does.</p>
+    <h3>Queued for the phone</h3>
+    <p class="pending-sub">Waiting for the phone to pick them up. Cancel before it does.</p>
     ${pendingCommands.map(c => `
       <div class="pending-cmd">
         <div class="pending-cmd-info">
-          <span class="pending-cmd-type">${esc(CMD_LABELS[c.type] || c.type)}</span>
+          <span class="pending-cmd-type">${esc(QUEUE_LABELS[c.type] || c.type)}${c.type==='show_message'&&c.title?` — ${esc(c.title)}`:''}</span>
           <span class="pending-cmd-time">${c.createdAt?.toMillis?.() ? timeSince(c.createdAt.toMillis()) : 'just now'}</span>
         </div>
-        <button class="pending-cancel" onclick="window._mdm.cancelCommand('${jsStr(id)}','${jsStr(c.id)}')">Cancel</button>
+        <button class="pending-cancel" onclick="window._mdm.cancelQueued('${jsStr(id)}','${jsStr(c.id)}')">Cancel</button>
       </div>`).join('')}
   </div>`;
 }
+function renderMessageSection(id) {
+  return `
+  <div class="net-section" style="margin-top:22px">
+    <h3>Send a message to the phone</h3>
+    <p class="apps-meta">Pops up a full-screen alert on the phone — it shows even on the lock screen.</p>
+    <div class="msg-form">
+      <div><label for="msg-title">Title</label>
+        <input id="msg-title" type="text" placeholder="Message from Administrator" maxlength="80"></div>
+      <div><label for="msg-text">Message</label>
+        <textarea id="msg-text" rows="3" placeholder="Enter your message…" maxlength="500"></textarea></div>
+      <button class="btn-send-msg" onclick="window._mdm.sendMessage('${jsStr(id)}')">Send message</button>
+    </div>
+  </div>`;
+}
 
-function renderPoliciesTab(id, p, policies) {
-  return policies.map(pol => `
+// ── Location & schedule tab ──────────────────────────────────────────────────
+// Switches that live only on this page (not in policies.js), so confirm dialogs can name them.
+const LOCAL_POLICIES = [
+  { key:'locationTrackingEnabled',  label:'Location tracking' },
+  { key:'screenTimeEnabled',        label:'Daily screen-time window' },
+  { key:'scheduledLockdownEnabled', label:'Scheduled lockdown' },
+  { key:'dummyBrowserEnabled',      label:'Block all web traffic (dummy browser)' },
+];
+let _leafletMap = null;
+function toggleRow(id, key, on, label, sub) {
+  return `<div class="policy-row">
+    <div class="policy-info"><div class="policy-label">${esc(label)}</div><div class="policy-sub">${esc(sub)}</div></div>
+    <label class="toggle">
+      <input type="checkbox" ${on?'checked':''} onchange="window._mdm.setPolicy('${jsStr(id)}','${key}',this.checked,this)">
+      <span class="toggle-track"></span><span class="toggle-thumb"></span>
+    </label>
+  </div>`;
+}
+function timeRange(id, startKey, startVal, startLabel, endKey, endVal, endLabel) {
+  return `<div class="time-range">
+    <label>${esc(startLabel)}<input type="time" class="time-in time-start" value="${esc(startVal)}"
+      onchange="window._mdm.setPolicyValue('${jsStr(id)}','${startKey}',this.value)"></label>
+    <label>${esc(endLabel)}<input type="time" class="time-in time-end" value="${esc(endVal)}"
+      onchange="window._mdm.setPolicyValue('${jsStr(id)}','${endKey}',this.value)"></label>
+  </div>`;
+}
+function renderLocationTab(d) {
+  const p = d.policies || {};
+  const hasLoc = d.lastLat !== null && d.lastLng !== null;
+  const gf = p.geofence || {};
+  return `
+  <div class="net-section">
+    <h3>Last known location</h3>
+    ${hasLoc
+      ? `<p class="apps-meta">${d.lastLat.toFixed(6)}, ${d.lastLng.toFixed(6)}
+           ${d.lastLocationAccuracy ? `· ±${Math.round(d.lastLocationAccuracy)} m` : ''} · ${timeSince(d.lastLocationAt)}</p>
+         <div id="loc-map"></div>`
+      : '<p class="apps-meta">No location yet. Turn on location tracking below, then wait for the phone to check in.</p>'}
+    ${toggleRow(d.id, 'locationTrackingEnabled', !!p.locationTrackingEnabled, 'Location tracking',
+       'The phone reports its GPS position every few minutes. Permission is granted automatically on Device Owner phones.')}
+  </div>
+  <div class="net-section">
+    <h3>Geofence</h3>
+    <p class="apps-meta">When the phone leaves this area, something happens automatically.</p>
+    <div class="geo-form">
+      <div class="geo-row">
+        <div><label for="gf-lat">Latitude</label><input id="gf-lat" type="number" step="any" placeholder="40.7128" value="${esc(gf.lat??'')}"></div>
+        <div><label for="gf-lng">Longitude</label><input id="gf-lng" type="number" step="any" placeholder="-74.0060" value="${esc(gf.lng??'')}"></div>
+      </div>
+      <div class="geo-row">
+        <div><label for="gf-radius">Radius (metres)</label><input id="gf-radius" type="number" min="50" placeholder="200" value="${esc(gf.radius||200)}"></div>
+        <div><label for="gf-action">When it leaves</label>
+          <select id="gf-action" class="geo-select">
+            <option value="lock"    ${(gf.action||'lock')==='lock'?'selected':''}>Lock the phone</option>
+            <option value="alarm"   ${gf.action==='alarm'?'selected':''}>Sound the alarm</option>
+            <option value="message" ${gf.action==='message'?'selected':''}>Show a message</option>
+          </select></div>
+      </div>
+      <div class="geo-row"><div><label for="gf-msg">Message (optional)</label>
+        <input id="gf-msg" type="text" placeholder="This phone has left the allowed area" value="${esc(gf.message||'')}"></div></div>
+      <div class="row-btns">
+        <button class="btn-pri" onclick="window._mdm.setGeofence('${jsStr(d.id)}')">${gf.enabled?'Update geofence':'Turn on geofence'}</button>
+        ${gf.enabled?`<button class="btn-sec" onclick="window._mdm.clearGeofence('${jsStr(d.id)}')">Turn off</button>`:''}
+      </div>
+      ${gf.enabled?`<p class="geo-on">Geofence on · ${esc(gf.radius||200)} m · ${esc(gf.action||'lock')}</p>`:''}
+    </div>
+  </div>`;
+}
+function renderScheduleSections(id, p) {
+  return `
+  <div class="net-section">
+    <h3>Screen time</h3>
+    ${toggleRow(id, 'screenTimeEnabled', !!p.screenTimeEnabled, 'Daily screen-time window',
+       'The phone locks at the end time every day and can be used again from the start time.')}
+    ${timeRange(id, 'screenTimeStart', p.screenTimeStart||'07:00', 'Usable from', 'screenTimeEnd', p.screenTimeEnd||'21:00', 'Locks at')}
+  </div>
+  <div class="net-section">
+    <h3>Scheduled lockdown</h3>
+    ${toggleRow(id, 'scheduledLockdownEnabled', !!p.scheduledLockdownEnabled, 'Scheduled lockdown',
+       'Locks the phone at the lock time every day; it can be unlocked with the PIN after the unlock time.')}
+    ${timeRange(id, 'scheduledLockdownStart', p.scheduledLockdownStart||'07:00', 'Unlock at', 'scheduledLockdownEnd', p.scheduledLockdownEnd||'22:00', 'Lock at')}
+  </div>`;
+}
+function fmtMs(ms) {
+  if (!ms) return '0m';
+  const h = Math.floor(ms / 3600000), m = Math.floor((ms % 3600000) / 60000);
+  return h ? `${h}h ${m}m` : `${m}m`;
+}
+function renderStatusSections(d) {
+  const stats = d.usageStats || [];
+  const maxMs = stats.length ? Math.max(...stats.map(s => s.usageMs || 0)) || 1 : 1;
+  const now = Date.now();
+  const ackAge = d.policyAcknowledgedAt ? now - d.policyAcknowledgedAt : null;
+  const rows = [
+    { label:'Online', ok: isOnline(d), val: d.lastSeen ? timeSince(d.lastSeen) : 'Never seen' },
+    { label:'Rules applied', ok: ackAge !== null && ackAge < 24*3600000, val: ackAge !== null ? timeSince(d.policyAcknowledgedAt) : 'Never' },
+    { label:'CORE MDM version', ok: !!(d.appVersion || d.lastInstalledVersion), val: d.appVersion || d.lastInstalledVersion || 'Unknown' },
+  ];
+  if (d.batteryLevel !== null) rows.unshift({ label:'Battery', ok: d.batteryLevel > 20, bad: d.batteryLevel <= 20,
+    val: `${d.batteryLevel}%${d.isCharging ? ' · charging' : ''}` });
+  if (d.networkType) rows.splice(1, 0, { label:'Network', ok:true,
+    val: `${d.networkType}${d.networkType==='wifi'&&d.wifiRssi ? ` · ${d.wifiRssi} dBm` : ''}` });
+  return `
+  <div class="net-section">
+    <h3>Phone status</h3>
+    ${rows.map(r => `<div class="comp-row"><div class="comp-dot ${r.ok?'ok':r.bad?'bad':'warn'}"></div>
+      <div class="comp-label">${esc(r.label)}</div><div class="comp-val">${esc(r.val)}</div></div>`).join('')}
+  </div>
+  <div class="net-section">
+    <h3>App usage (last 24 h)</h3>
+    ${stats.length ? stats.slice(0, 15).map(s => `
+      <div class="usage-row">
+        <div class="usage-label" title="${esc(s.pkg)}">${esc(s.label||s.pkg)}</div>
+        <div class="usage-bar-wrap"><div class="usage-bar" style="width:${Math.round(((s.usageMs||0)/maxMs)*100)}%"></div></div>
+        <div class="usage-time">${fmtMs(s.usageMs)}</div>
+      </div>`).join('')
+      : '<p class="apps-meta">No usage data yet. Usage access must be allowed on the phone (CORE MDM → Location &amp; Tracking).</p>'}
+  </div>`;
+}
+function initLocationMap(d) {
+  const el = document.getElementById('loc-map');
+  if (!el || d.lastLat === null || d.lastLng === null || typeof L === 'undefined') return;
+  if (_leafletMap) { _leafletMap.remove(); _leafletMap = null; }
+  _leafletMap = L.map(el).setView([d.lastLat, d.lastLng], 15);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap', maxZoom: 19,
+  }).addTo(_leafletMap);
+  L.marker([d.lastLat, d.lastLng]).addTo(_leafletMap)
+    .bindPopup(`<b>${esc(displayName(d))}</b><br>${timeSince(d.lastLocationAt)}`).openPopup();
+  const gf = d.policies?.geofence;
+  if (gf?.enabled && gf.lat != null && gf.lng != null) {
+    L.circle([gf.lat, gf.lng], { radius: gf.radius || 200, color:'#2fd39a', fillOpacity: 0.12 }).addTo(_leafletMap);
+  }
+}
+
+function policyRow(id, p, pol) {
+  const d = devicesMap[id];
+  const rules = orgRulesOf(d);
+  const rule = orgRule(rules, pol.key);
+  const locked = rule?.mode === 'locked';
+  return `
   <div class="policy-row">
     <div class="policy-info">
       <div class="policy-label">${esc(pol.label)}</div>
       <div class="policy-sub">${esc(pol.sub)}</div>
+      ${pol.warn?`<div class="policy-warn">${esc(pol.warn)}</div>`:''}
+      ${orgTag(d, rule)}
     </div>
-    <label class="toggle">
-      <input type="checkbox" ${p[pol.key]?'checked':''} onchange="window._mdm.setPolicy('${esc(id)}','${pol.key}',this.checked)">
+    <label class="toggle${locked?' toggle-locked':''}">
+      <input type="checkbox" ${effectivePolicy(p, rules, pol.key)?'checked':''} ${locked?'disabled':''} onchange="window._mdm.setPolicy('${esc(id)}','${pol.key}',this.checked,this)">
       <span class="toggle-track"></span><span class="toggle-thumb"></span>
     </label>
-  </div>`).join('');
+  </div>`;
+}
+function renderPoliciesTab(id, p, policies) {
+  return policies.map(pol => policyRow(id, p, pol)).join('');
 }
 
+/** Everything about the phone itself: installing apps, keeping the rules in place, hardware. */
+function renderDeviceTab(d, p) {
+  const group = (title, list, note) => `
+    <div class="net-section">
+      <h3>${esc(title)}</h3>
+      ${note ? `<p class="apps-meta">${note}</p>` : ''}
+      ${renderPoliciesTab(d.id, p, list)}
+    </div>`;
+  return group('Installing and removing apps', APP_POLICIES)
+       + renderInstallers(d, p)
+       + group('Keep these rules in place', [...CONTROL_POLICIES, ...SYS_POLICIES],
+           'Stops the phone’s own Settings being used to undo what you set here.')
+       + group('Hardware', HW_POLICIES)
+       + renderPinPolicy(d.id, p);
+}
+
+/** Minimum lock-screen PIN, also used as the minimum for the CORE MDM app's own PIN. */
 function renderPinPolicy(id, p) {
   const cur = Number(p.pinMinLength) || 4;
   return `
   <div class="net-section">
-    <h3>Lock-Screen PIN</h3>
-    <div class="policy-row" style="border:none;padding-top:0;">
+    <h3>Lock-screen PIN</h3>
+    <div class="policy-row">
       <div class="policy-info">
         <div class="policy-label">Minimum PIN length</div>
-        <div class="policy-sub">Requires a numeric lock-screen PIN of at least this many digits (needs Device Owner)</div>
+        <div class="policy-sub">A numeric lock-screen PIN of at least this many digits (needs Device Owner)</div>
       </div>
       <select class="pin-select" onchange="window._mdm.setPinLen('${jsStr(id)}',this.value)">
         ${[4,6,8].map(n=>`<option value="${n}" ${cur===n?'selected':''}>${n} digits</option>`).join('')}
@@ -1023,81 +938,313 @@ function renderPinPolicy(id, p) {
   </div>`;
 }
 
-function renderInstalledAppsTab(d, p) {
-  const apps      = Array.isArray(d.installedApps) ? d.installedApps : [];
-  const hidden    = new Set(Array.isArray(p.blockedApps)   ? p.blockedApps   : []); // removed from launcher
-  const suspended = new Set(Array.isArray(p.suspendedApps) ? p.suspendedApps : []); // visible but can't open
-  if (!apps.length) {
-    return `<div class="net-section"><h3>Installed Apps</h3>
-      <p class="policy-sub">No app list reported yet. The device uploads its installed apps the next time it checks in — reopen this tab in a moment.</p></div>`;
-  }
-  const stateOf = pkg => suspended.has(pkg) ? 'block' : (hidden.has(pkg) ? 'hide' : 'allow');
-  const rank = { block:0, hide:1, allow:2 };
-  const sorted = apps.slice().sort((a,b) => {
-    const r = rank[stateOf(a.pkg)] - rank[stateOf(b.pkg)];
-    return r || (a.label||a.pkg||'').toLowerCase().localeCompare((b.label||b.pkg||'').toLowerCase());
-  });
-  const nBlock = apps.filter(a=>stateOf(a.pkg)==='block').length;
-  const nHide  = apps.filter(a=>stateOf(a.pkg)==='hide').length;
-  const nAllow = apps.length - nBlock - nHide;
-  const stBadge = st => st==='block'
-      ? '<span class="app-badge app-badge-block">Blocked</span>'
-      : st==='hide' ? '<span class="app-badge app-badge-hide">Hidden</span>'
-      : '<span class="app-badge app-badge-allow">Allowed</span>';
+/** Which apps may install other apps, for "Only chosen apps can install apps". */
+function renderInstallers(d, p) {
+  const on = effectivePolicy(p, orgRulesOf(d), 'installerAllowlistOn');
+  const allowed = new Set(Array.isArray(p.allowedInstallers) ? p.allowedInstallers : []);
+  const q = appFilter.toLowerCase();
+  const apps = d.apps
+    .filter(a => !q || (a.label+' '+a.pkg).toLowerCase().includes(q))
+    .sort((a, b) => (allowed.has(b.pkg) - allowed.has(a.pkg)) || a.label.localeCompare(b.label));
+  const rows = apps.map(a => `
+    <div class="app-row">
+      <div class="app-info">
+        <div class="app-label">${esc(a.label)}${a.system?'<span class="app-tag app-tag-sys">SYSTEM</span>':''}</div>
+        <div class="app-pkg">${esc(a.pkg)}</div>
+      </div>
+      <label class="toggle" title="Allow this app to install apps">
+        <input type="checkbox" ${allowed.has(a.pkg)?'checked':''}
+          onchange="window._mdm.setInstallerAllowed('${esc(d.id)}','${esc(a.pkg)}',this.checked,this)">
+        <span class="toggle-track"></span><span class="toggle-thumb"></span>
+      </label>
+    </div>`).join('');
   return `
   <div class="net-section">
-    <h3>Installed Apps (${apps.length})</h3>
-    <p class="policy-sub" style="margin-bottom:10px">For each app choose <b>Allowed</b>, <b>Blocked</b> (stays visible but won't open) or <b>Hidden</b> (removed from the launcher). Blocking and hiding require Device Owner.</p>
-    <div class="app-counts">${nAllow} allowed · ${nBlock} blocked · ${nHide} hidden</div>
-    <input class="dns-input" id="app-search" style="margin:10px 0 14px" placeholder="Search apps…" value="${esc(appSearch)}" oninput="window._mdm.appSearchInput(this.value)">
-    <div id="app-list">
-    ${sorted.map(a => {
-      const pkg = a.pkg || ''; const label = a.label || pkg; const st = stateOf(pkg);
-      const search = (label+' '+pkg).toLowerCase();
-      return `<div class="policy-row" data-search="${esc(search)}">
-        <div class="policy-info">
-          <div class="policy-label">${esc(label)} ${stBadge(st)}</div>
-          <div class="policy-sub" style="font-family:monospace">${esc(pkg)}${a.version?(' · v'+esc(a.version)):''}</div>
-        </div>
-        <select class="pin-select app-state" onchange="window._mdm.setAppState('${jsStr(d.id)}','${jsStr(pkg)}',this.value)">
-          <option value="allow" ${st==='allow'?'selected':''}>Allowed</option>
-          <option value="block" ${st==='block'?'selected':''}>Blocked</option>
-          <option value="hide"  ${st==='hide'?'selected':''}>Hidden</option>
-        </select>
-      </div>`;
-    }).join('')}
-    </div>
+    <h3>Apps allowed to install apps${allowed.size?` (${allowed.size})`:''}</h3>
+    <p class="apps-meta">${on
+      ? 'Only these apps can add new apps. Anything installed by another app is removed straight away. CORE MDM is always allowed.'
+      : 'Used when "Only chosen apps can install apps" is on. For the Play Store, pick Google Play Store.'}</p>
+    ${d.apps.length
+      ? `<input class="dns-input app-search" type="search" placeholder="Search apps…" value="${esc(appFilter)}" oninput="window._mdm.filterApps(this.value,'inst-list')">
+         <div id="inst-list">${rows || '<div class="apps-meta">No matching apps.</div>'}</div>`
+      : '<div class="apps-meta">No app list yet — it appears once the phone runs CORE MDM v0.0.41 or newer and comes online.</div>'}
   </div>`;
 }
-function appSearchInput(v) {
-  appSearch = v || '';
-  const q = appSearch.toLowerCase();
-  document.querySelectorAll('#app-list .policy-row').forEach(row => {
-    const s = row.getAttribute('data-search') || '';
-    row.style.display = (!q || s.includes(q)) ? '' : 'none';
-  });
+
+let appFilter = '';
+function renderInstalledTab(d, p) {
+  const custom = new Set(Array.isArray(p.blockedPackages) ? p.blockedPackages : []);
+  const hiddenSet = new Set([...(Array.isArray(p.hiddenPackages) ? p.hiddenPackages : []),
+                             ...(Array.isArray(p.blockedApps) ? p.blockedApps : [])]);
+  const q = appFilter.toLowerCase();
+  const apps = d.apps.filter(a => !q || (a.label+' '+a.pkg).toLowerCase().includes(q));
+  const rows = apps.map(a => {
+    const byRule = a.blocked && !custom.has(a.pkg);
+    return `<div class="app-row">
+      <div class="app-info">
+        <div class="app-label">${esc(a.label)}${a.system?'<span class="app-tag app-tag-sys">SYSTEM</span>':''}${byRule?'<span class="app-tag app-tag-rule">BLOCKED BY RULE</span>':''}${a.hidden?'<span class="app-tag app-tag-sys">HIDDEN</span>':''}</div>
+        <div class="app-pkg">${esc(a.pkg)}</div>
+      </div>
+      <div class="app-actions">
+        <button class="btn-hide${hiddenSet.has(a.pkg)?' on':''}" title="${hiddenSet.has(a.pkg)?'Show this app again':'Hide this app from the home screen'}"
+          onclick="window._mdm.setAppHidden('${esc(d.id)}','${esc(a.pkg)}',${!hiddenSet.has(a.pkg)})">${hiddenSet.has(a.pkg)?'Hidden':'Hide'}</button>
+        <label class="toggle" title="Block this app">
+          <input type="checkbox" ${custom.has(a.pkg)?'checked':''} onchange="window._mdm.setAppBlocked('${esc(d.id)}','${esc(a.pkg)}',this.checked,this)">
+          <span class="toggle-track"></span><span class="toggle-thumb"></span>
+        </label>
+      </div>
+    </div>`;
+  }).join('');
+  return `
+  ${guardBanner(d)}
+  <div class="net-section">
+    <h3>Quick blocks</h3>
+    ${BLOCK_POLICIES.map(pol => policyRow(d.id, p, pol)).join('')}
+  </div>
+  ${renderSections(d, p)}
+  <div class="net-section">
+    <h3>Installed apps${d.apps.length?` (${d.apps.length})`:''}</h3>
+    <p class="apps-meta">${d.appsUpdatedAt?`Reported by the phone ${timeSince(d.appsUpdatedAt)}. `:''}<strong>Hide</strong> takes an app off the home screen. The switch <strong>blocks</strong> it — it's paused on the phone and can't be opened.</p>
+    ${d.apps.length
+      ? `<input class="dns-input app-search" type="search" placeholder="Search apps…" value="${esc(appFilter)}" oninput="window._mdm.filterApps(this.value)">
+         <div id="app-list">${rows || '<div class="apps-meta">No matching apps.</div>'}</div>`
+      : '<div class="apps-meta">No app list yet — it appears once the phone runs CORE MDM v0.0.41 or newer and comes online.</div>'}
+  </div>`;
 }
 
-function setPinLen(id, val) {
-  setPolicyField(id, 'pinMinLength', Number(val));
-  logAudit('POLICY', id, `pinMinLength=${val} on ${dispName(devicesMap[id]) || id}`);
+/** Warning strip when rules are set that only the screen guard can carry out. */
+function guardBanner(d) {
+  const needs = (Array.isArray(d.policies.blockedSections) && d.policies.blockedSections.length)
+    || d.policies.webviewGuard;
+  if (!needs || d.guardEnabled) return '';
+  return `<div class="guard-warn">
+    <strong>Screen guard is off on this phone.</strong>
+    The blocks below need it. On the phone, open CORE MDM &rarr; <em>Blocking &amp; Access</em> &rarr;
+    <em>Screen guard</em> and switch it on. Whole-app blocks above still work without it.
+  </div>`;
 }
-async function setAppState(id, pkg, state) {
-  // blockedApps = hidden (removed from launcher); suspendedApps = blocked (can't open)
-  const u = {};
-  if (state === 'hide')       { u['policies.blockedApps']   = arrayUnion(pkg);  u['policies.suspendedApps'] = arrayRemove(pkg); }
-  else if (state === 'block') { u['policies.suspendedApps'] = arrayUnion(pkg);  u['policies.blockedApps']   = arrayRemove(pkg); }
-  else                        { u['policies.blockedApps']   = arrayRemove(pkg); u['policies.suspendedApps'] = arrayRemove(pkg); }
-  try {
-    await updateDoc(deviceRef(id), u);
-    logAudit('POLICY', id, `app ${pkg} → ${state} on ${dispName(devicesMap[id]) || id}`);
-  } catch(e) { alert('Failed to update app: ' + e.message); }
+
+/** Per-app section blocks (WhatsApp Status, Reels, Shorts…). */
+function renderSections(d, p) {
+  const rules = orgRulesOf(d);
+  const groups = {};
+  for (const s of SECTIONS) (groups[s.app] ||= []).push(s);
+  const body = Object.entries(groups).map(([app, list]) => `
+    <div class="sect-group">
+      <div class="sect-app">${esc(app)}</div>
+      ${list.map(s => `
+      <div class="policy-row">
+        <div class="policy-info">
+          <div class="policy-label">${esc(s.label)}</div>
+          <div class="policy-sub">${esc(s.description)}</div>
+          ${orgTag(d, orgRule(rules, sectionKey(s.id)))}
+        </div>
+        <label class="toggle${orgRule(rules, sectionKey(s.id))?.mode === 'locked' ? ' toggle-locked' : ''}">
+          <input type="checkbox" ${effectiveSection(p, rules, s.id)?'checked':''} ${orgRule(rules, sectionKey(s.id))?.mode === 'locked' ? 'disabled' : ''} onchange="window._mdm.setSection('${esc(d.id)}','${s.id}',this.checked,this)">
+          <span class="toggle-track"></span><span class="toggle-thumb"></span>
+        </label>
+      </div>`).join('')}
+    </div>`).join('');
+  return `
+  <div class="net-section">
+    <h3>Block parts of an app</h3>
+    <p class="apps-meta">Blocks one section while the rest of the app keeps working — chats still work with Status blocked.
+      Needs the screen guard on the phone. Detection follows each app's layout, so a redesign can need an update.</p>
+    ${body}
+  </div>`;
+}
+
+/** Daily minute allowances per app. */
+function renderLimitsTab(d, p) {
+  const limits = (p.appTimeLimits && typeof p.appTimeLimits === 'object') ? p.appTimeLimits : {};
+  const usage  = (d.timeUsage && typeof d.timeUsage === 'object') ? d.timeUsage : {};
+  const set = Object.entries(limits).filter(([,m]) => m > 0);
+  const q = appFilter.toLowerCase();
+  const apps = d.apps.filter(a => !q || (a.label+' '+a.pkg).toLowerCase().includes(q));
+
+  const usageWarn = d.usageAccess === false
+    ? `<div class="guard-warn"><strong>Usage access is off on this phone.</strong>
+        Time limits need it. On the phone, open CORE MDM &rarr; <em>Time limits</em> and tap
+        <em>Turn on</em>.</div>` : '';
+
+  const current = set.length ? set.map(([pkg, mins]) => {
+    const app = d.apps.find(a => a.pkg === pkg);
+    const used = usage[pkg] ?? null;
+    const over = used !== null && used >= mins;
+    return `<div class="app-row">
+      <div class="app-info">
+        <div class="app-label">${esc(app?.label || pkg)}${over?'<span class="app-tag app-tag-rule">PAUSED TODAY</span>':''}</div>
+        <div class="app-pkg">${esc(pkg)}</div>
+        ${used !== null ? `<div class="limit-used">${used} of ${mins} min used today</div>` : ''}
+      </div>
+      <div class="limit-edit">
+        <input class="limit-input" type="number" min="0" max="1440" value="${mins}"
+          onchange="window._mdm.setLimit('${esc(d.id)}','${esc(pkg)}',this.value,this)">
+        <span class="limit-unit">min/day</span>
+        <button class="kiosk-pkg-remove" title="Remove limit"
+          onclick="window._mdm.setLimit('${esc(d.id)}','${esc(pkg)}',0)">&#x2715;</button>
+      </div>
+    </div>`;
+  }).join('') : '<div class="apps-meta">No time limits set.</div>';
+
+  const addRows = apps.filter(a => !(a.pkg in limits)).map(a => `
+    <div class="app-row">
+      <div class="app-info">
+        <div class="app-label">${esc(a.label)}</div>
+        <div class="app-pkg">${esc(a.pkg)}</div>
+      </div>
+      <div class="limit-edit">
+        <input class="limit-input" type="number" min="0" max="1440" placeholder="60"
+          onchange="window._mdm.setLimit('${esc(d.id)}','${esc(a.pkg)}',this.value,this)">
+        <span class="limit-unit">min/day</span>
+      </div>
+    </div>`).join('');
+
+  return `
+  ${usageWarn}
+  <div class="net-section">
+    <h3>Daily allowances${set.length?` (${set.length})`:''}</h3>
+    <p class="apps-meta">When an app runs out of time it's paused until after midnight. Time is counted by Android itself, however the app was opened.</p>
+    ${current}
+  </div>
+  <div class="net-section">
+    <h3>Add a limit</h3>
+    ${d.apps.length
+      ? `<input class="dns-input app-search" type="search" placeholder="Search apps…" value="${esc(appFilter)}" oninput="window._mdm.filterApps(this.value,'limit-list')">
+         <div id="limit-list">${addRows || '<div class="apps-meta">No other apps.</div>'}</div>`
+      : '<div class="apps-meta">No app list yet — it appears once the phone runs CORE MDM v0.0.41 or newer and comes online.</div>'}
+  </div>`;
+}
+
+/** Which apps may show web pages inside themselves. */
+function renderWebviewTab(d, p) {
+  const guardOn = effectivePolicy(p, orgRulesOf(d), 'webviewGuard');
+  const guardRule = orgRule(orgRulesOf(d), 'webviewGuard');
+  const allowed = new Set(Array.isArray(p.webviewAllowedPackages) ? p.webviewAllowedPackages : []);
+  const q = appFilter.toLowerCase();
+  const apps = d.apps.filter(a => !q || (a.label+' '+a.pkg).toLowerCase().includes(q));
+  const rows = apps.map(a => `
+    <div class="app-row">
+      <div class="app-info">
+        <div class="app-label">${esc(a.label)}${a.system?'<span class="app-tag app-tag-sys">SYSTEM</span>':''}</div>
+        <div class="app-pkg">${esc(a.pkg)}</div>
+      </div>
+      <label class="toggle" title="Allow web pages inside this app">
+        <input type="checkbox" ${allowed.has(a.pkg)?'checked':''} ${guardOn?'':'disabled'}
+          onchange="window._mdm.setWebviewAllowed('${esc(d.id)}','${esc(a.pkg)}',this.checked,this)">
+        <span class="toggle-track"></span><span class="toggle-thumb"></span>
+      </label>
+    </div>`).join('');
+  return `
+  ${guardBanner(d)}
+  <div class="net-section">
+    <h3>Web pages inside apps</h3>
+    <div class="policy-row">
+      <div class="policy-info">
+        <div class="policy-label">Only allow the apps I choose</div>
+        <div class="policy-sub">Web pages opened inside any other app are closed. Normal browsers are unaffected — block those under App Policies.</div>
+        ${orgTag(d, guardRule)}
+      </div>
+      <label class="toggle${guardRule?.mode === 'locked' ? ' toggle-locked' : ''}">
+        <input type="checkbox" ${guardOn?'checked':''} ${guardRule?.mode === 'locked' ? 'disabled' : ''} onchange="window._mdm.setPolicy('${esc(d.id)}','webviewGuard',this.checked,this)">
+        <span class="toggle-track"></span><span class="toggle-thumb"></span>
+      </label>
+    </div>
+    ${p.webviewDisabled ? '<p class="policy-warn">"Block WebView" is on under Quick blocks, which turns web pages off in every app regardless of this list.</p>' : ''}
+  </div>
+  <div class="net-section">
+    <h3>Allowed apps${allowed.size?` (${allowed.size})`:''}</h3>
+    <p class="apps-meta">${guardOn
+      ? 'These apps may show web pages inside themselves. Everything else is closed.'
+      : 'Turn the switch above on to choose which apps may show web pages.'}</p>
+    ${d.apps.length
+      ? `<input class="dns-input app-search" type="search" placeholder="Search apps…" value="${esc(appFilter)}" oninput="window._mdm.filterApps(this.value,'wv-list')">
+         <div id="wv-list">${rows || '<div class="apps-meta">No matching apps.</div>'}</div>`
+      : '<div class="apps-meta">No app list yet — it appears once the phone runs CORE MDM v0.0.41 or newer and comes online.</div>'}
+  </div>`;
+}
+function filterApps(v, listId = 'app-list') {
+  appFilter = v;
+  const d = devicesMap[selectedId]; if (!d) return;
+  // Re-render just the list so the search box keeps focus
+  const tmp = document.createElement('div');
+  tmp.innerHTML = listId === "wv-list" ? renderWebviewTab(d, d.policies)
+    : listId === "inst-list" ? renderInstallers(d, d.policies)
+    : listId === "limit-list" ? renderLimitsTab(d, d.policies)
+    : renderInstalledTab(d, d.policies);
+  const list = tmp.querySelector('#' + listId);
+  if (list) document.getElementById(listId).innerHTML = list.innerHTML;
+}
+
+/** The content filter's own settings — the same ones as the Filter screen in the app. */
+function renderFilterDetails(id, p) {
+  const e = esc(id);
+  const toggle = (label, sub, on, handler) => `
+    <div class="policy-row">
+      <div class="policy-info">
+        <div class="policy-label">${esc(label)}</div>
+        ${sub ? `<div class="policy-sub">${esc(sub)}</div>` : ''}
+      </div>
+      <label class="toggle">
+        <input type="checkbox" ${on?'checked':''} onchange="${handler}">
+        <span class="toggle-track"></span><span class="toggle-thumb"></span>
+      </label>
+    </div>`;
+  const groupsOff = new Set(Array.isArray(p.filterGroupsOff) ? p.filterGroupsOff : []);
+  const domains = (key, empty) => {
+    const list = Array.isArray(p[key]) ? p[key] : [];
+    return `<div class="domain-list">${list.length
+      ? list.map(dm => `<span class="domain-chip">${esc(dm)}<button title="Remove" onclick="window._mdm.removeDomain('${e}','${key}','${esc(dm)}')">&#x2715;</button></span>`).join('')
+      : `<span class="apps-meta">${empty}</span>`}</div>
+      <div class="dns-row">
+        <input class="dns-input" id="add-${key}" type="text" placeholder="example.com" autocomplete="off"
+          onkeydown="if(event.key==='Enter')window._mdm.addDomain('${e}','${key}')">
+        <button class="btn-small btn-lock-dns" onclick="window._mdm.addDomain('${e}','${key}')">+ Add</button>
+      </div>`;
+  };
+  const textField = (key, value, placeholder, button) => `
+    <div class="dns-row">
+      <input class="dns-input" id="field-${key}" type="text" value="${esc(value || '')}" placeholder="${esc(placeholder)}" autocomplete="off">
+      <button class="btn-small btn-lock-dns" onclick="window._mdm.saveFilterText('${e}','${key}')">${button}</button>
+    </div>`;
+  return `
+  <div class="net-section">
+    <h3>Content filter settings</h3>
+    <p class="apps-meta">These apply while the content filter above is on.</p>
+    ${toggle('Block subdomains too', 'Blocking example.com also blocks www.example.com, m.example.com…',
+        p.filterSubdomains !== false, `window._mdm.setFilterBool('${e}','filterSubdomains',this.checked,this)`)}
+    ${toggle('Built-in blocklist', 'The blocklist that comes with CORE MDM',
+        p.filterDefaultList !== false, `window._mdm.setFilterBool('${e}','filterDefaultList',this.checked,this)`)}
+    <div class="sect-app" style="margin-top:12px">Site groups</div>
+    ${FILTER_GROUPS.map(g => toggle(g.label, '', !groupsOff.has(g.id),
+        `window._mdm.setFilterGroup('${e}','${g.id}',this.checked,this)`)).join('')}
+  </div>
+  <div class="net-section">
+    <h3>Always blocked sites</h3>
+    ${domains('filterBlocked', 'None — add a site to block it on this phone.')}
+  </div>
+  <div class="net-section">
+    <h3>Always allowed sites</h3>
+    <p class="apps-meta">Never blocked, even when a list above includes them.</p>
+    ${domains('filterAllowed', 'None.')}
+  </div>
+  <div class="net-section">
+    <h3>Filter DNS server</h3>
+    <p class="apps-meta">Where allowed lookups are sent. ${p.filterDns ? '' : 'The phone uses 1.1.1.1 unless you set one.'}</p>
+    ${textField('filterDns', p.filterDns, '1.1.1.1', 'Save')}
+  </div>
+  <div class="net-section">
+    <h3>Import a blocklist</h3>
+    <p class="apps-meta">A hosts-file or domain-list URL. The phone downloads it and blocks everything in it. Clear the box and save to remove it.</p>
+    ${textField('filterListUrl', p.filterListUrl, 'https://example.com/hosts.txt', 'Save')}
+  </div>`;
 }
 
 function renderNetworkTab(id, p) {
-  const dnsHost        = p.privateDnsHost     || '';
-  const filterOn       = p.filterRunning      || false;
-  const dummyBrowserOn = p.dummyBrowserEnabled || false;
+  const dnsHost  = p.privateDnsHost || '';
+  const d = devicesMap[id];
+  const filterOn = effectivePolicy(p, orgRulesOf(d), 'filterRunning');
+  const filterRule = orgRule(orgRulesOf(d), 'filterRunning');
   const pkgs     = Array.isArray(p.kioskPackages) ? p.kioskPackages : [];
   return `
   <div class="net-section">
@@ -1115,32 +1262,26 @@ function renderNetworkTab(id, p) {
       <div class="policy-info">
         <div class="policy-label">Enable Content Filter</div>
         <div class="policy-sub">Starts the DNS VPN filter on the device — VPN permission must be pre-granted on device</div>
+        ${orgTag(d, filterRule)}
       </div>
-      <label class="toggle">
-        <input type="checkbox" ${filterOn?'checked':''} onchange="window._mdm.setPolicy('${esc(id)}','filterRunning',this.checked)">
+      <label class="toggle${filterRule?.mode === 'locked' ? ' toggle-locked' : ''}">
+        <input type="checkbox" ${filterOn?'checked':''} ${filterRule?.mode === 'locked' ? 'disabled' : ''} onchange="window._mdm.setPolicy('${esc(id)}','filterRunning',this.checked)">
         <span class="toggle-track"></span><span class="toggle-thumb"></span>
       </label>
     </div>
   </div>
+  ${renderFilterDetails(id, p)}
   <div class="net-section">
-    <h3>Dummy Browser</h3>
-    <div class="policy-row" style="border:none;padding-top:0;">
-      <div class="policy-info">
-        <div class="policy-label">Enable Dummy Browser</div>
-        <div class="policy-sub">Routes all web traffic through a local VPN — every request returns DNS/connection errors (ERR_NAME_NOT_RESOLVED, ERR_TIMED_OUT). The MDM app stays connected. Toggle on/off remotely.</div>
-      </div>
-      <label class="toggle">
-        <input type="checkbox" ${dummyBrowserOn?'checked':''} onchange="window._mdm.setPolicy('${esc(id)}','dummyBrowserEnabled',this.checked)">
-        <span class="toggle-track"></span><span class="toggle-thumb"></span>
-      </label>
-    </div>
+    <h3>Dummy browser</h3>
+    ${toggleRow(id, 'dummyBrowserEnabled', !!p.dummyBrowserEnabled, 'Block all web traffic',
+       'Routes the phone’s traffic through a VPN that answers every request with an error. Turns off the content filter while on — only one VPN can run.')}
   </div>
   <div class="net-section">
     <h3>Kiosk Allowed Packages</h3>
     <p style="font-size:12px;color:var(--textSec);margin-bottom:12px;">Apps allowed to run in kiosk/lock-task mode. Kiosk mode must be activated on the device.</p>
     <div class="kiosk-pkg-list" id="kiosk-pkg-list">
       ${pkgs.length
-        ? pkgs.map(pkg=>`<div class="kiosk-pkg-item"><span class="kiosk-pkg-name">${esc(pkg)}</span><button class="kiosk-pkg-remove" onclick="window._mdm.removePkg('${jsStr(id)}','${jsStr(pkg)}')" title="Remove">&#x2715;</button></div>`).join('')
+        ? pkgs.map(pkg=>`<div class="kiosk-pkg-item"><span class="kiosk-pkg-name">${esc(pkg)}</span><button class="kiosk-pkg-remove" onclick="window._mdm.removePkg('${esc(id)}','${esc(pkg)}')" title="Remove">&#x2715;</button></div>`).join('')
         : '<div style="font-size:12px;color:var(--textDim);padding:4px 0;">No packages added yet</div>'}
     </div>
     <div class="kiosk-add-row">
@@ -1150,305 +1291,22 @@ function renderNetworkTab(id, p) {
   </div>`;
 }
 
-function renderParentalTab(id, p) {
-  const screenOn    = p.screenTimeEnabled  || false;
-  const startTime   = p.screenTimeStart    || '07:00';
-  const endTime     = p.screenTimeEnd      || '21:00';
-  const emailBlocked = p.emailBlocked      || false;
-  const smsBlocked   = p.smsBlocked        || false;
-  return `
-  <div class="net-section">
-    <h3>Screen Time</h3>
-    <div class="policy-row" style="border:none;padding-top:0;">
-      <div class="policy-info">
-        <div class="policy-label">Enable Screen Time Limits</div>
-        <div class="policy-sub">Locks the device at the end time daily. Device can be unlocked again after the start time.</div>
-      </div>
-      <label class="toggle">
-        <input type="checkbox" ${screenOn?'checked':''} onchange="window._mdm.setPolicy('${esc(id)}','screenTimeEnabled',this.checked)">
-        <span class="toggle-track"></span><span class="toggle-thumb"></span>
-      </label>
-    </div>
-    <div style="display:flex;gap:12px;margin-top:10px;">
-      <div style="flex:1;">
-        <div style="font-size:11px;color:var(--textSec);margin-bottom:4px;">Available from</div>
-        <input type="time" value="${esc(startTime)}" style="width:100%;background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--green);font-size:18px;font-weight:700;"
-          onchange="window._mdm.setPolicy('${esc(id)}','screenTimeStart',this.value)">
-      </div>
-      <div style="flex:1;">
-        <div style="font-size:11px;color:var(--textSec);margin-bottom:4px;">Locks at</div>
-        <input type="time" value="${esc(endTime)}" style="width:100%;background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--red);font-size:18px;font-weight:700;"
-          onchange="window._mdm.setPolicy('${esc(id)}','screenTimeEnd',this.value)">
-      </div>
-    </div>
-  </div>
-  <div class="net-section">
-    <h3>Communication</h3>
-    <div class="policy-row">
-      <div class="policy-info">
-        <div class="policy-label">Block Email Apps</div>
-        <div class="policy-sub">Hides Gmail, Outlook and other email clients from the device launcher</div>
-      </div>
-      <label class="toggle">
-        <input type="checkbox" ${emailBlocked?'checked':''} onchange="window._mdm.setPolicy('${esc(id)}','emailBlocked',this.checked)">
-        <span class="toggle-track"></span><span class="toggle-thumb"></span>
-      </label>
-    </div>
-    <div class="policy-row" style="border:none;">
-      <div class="policy-info">
-        <div class="policy-label">Block Text Messaging (SMS)</div>
-        <div class="policy-sub">Blocks SMS/MMS at the OS level and hides messaging apps — requires Device Owner</div>
-      </div>
-      <label class="toggle">
-        <input type="checkbox" ${smsBlocked?'checked':''} onchange="window._mdm.setPolicy('${esc(id)}','smsBlocked',this.checked)">
-        <span class="toggle-track"></span><span class="toggle-thumb"></span>
-      </label>
-    </div>
-  </div>
-  <div class="net-section">
-    <h3>Scheduled Lockdown</h3>
-    <div class="policy-row" style="border:none;padding-top:0;">
-      <div class="policy-info">
-        <div class="policy-label">Enable Scheduled Lockdown</div>
-        <div class="policy-sub">Locks the device at the "Lock at" time every day. Device can be unlocked by PIN after the "Unlock at" time.</div>
-      </div>
-      <label class="toggle">
-        <input type="checkbox" ${p.scheduledLockdownEnabled?'checked':''} onchange="window._mdm.setPolicy('${esc(id)}','scheduledLockdownEnabled',this.checked)">
-        <span class="toggle-track"></span><span class="toggle-thumb"></span>
-      </label>
-    </div>
-    <div style="display:flex;gap:12px;margin-top:10px;">
-      <div style="flex:1;">
-        <div style="font-size:11px;color:var(--textSec);margin-bottom:4px;">Unlock at</div>
-        <input type="time" value="${esc(p.scheduledLockdownStart||'07:00')}" style="width:100%;background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--green);font-size:18px;font-weight:700;"
-          onchange="window._mdm.setPolicy('${esc(id)}','scheduledLockdownStart',this.value)">
-      </div>
-      <div style="flex:1;">
-        <div style="font-size:11px;color:var(--textSec);margin-bottom:4px;">Lock at</div>
-        <input type="time" value="${esc(p.scheduledLockdownEnd||'22:00')}" style="width:100%;background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--red);font-size:18px;font-weight:700;"
-          onchange="window._mdm.setPolicy('${esc(id)}','scheduledLockdownEnd',this.value)">
-      </div>
-    </div>
-  </div>`;
-}
-
-function renderStatusTab(d) {
-  const bat    = d.batteryLevel;
-  const charge = d.isCharging;
-  const net    = d.networkType;
-  const rssi   = d.wifiRssi;
-  const stats  = d.usageStats || [];
-  const maxMs  = stats.length ? Math.max(...stats.map(s => s.usageMs || 0)) : 1;
-  function fmtMs(ms) {
-    if (!ms) return '0m';
-    const h = Math.floor(ms / 3600000); const m = Math.floor((ms % 3600000) / 60000);
-    return h ? `${h}h ${m}m` : `${m}m`;
-  }
-  return `
-  <div class="net-section">
-    <h3>Battery &amp; Network</h3>
-    ${bat !== null ? `
-    <div class="comp-row">
-      <div class="comp-dot ${bat > 20 ? 'ok' : 'bad'}"></div>
-      <div class="comp-label">Battery</div>
-      <div class="comp-val">${bat}% ${charge ? '⚡ Charging' : ''}</div>
-    </div>` : '<p class="policy-sub">No battery data yet — reported on next heartbeat.</p>'}
-    ${net ? `
-    <div class="comp-row">
-      <div class="comp-dot ok"></div>
-      <div class="comp-label">Network</div>
-      <div class="comp-val">${esc(net)}${net==='wifi'&&rssi ? ` · ${rssi} dBm` : ''}</div>
-    </div>` : ''}
-  </div>
-  <div class="net-section">
-    <h3>Compliance</h3>
-    ${renderComplianceRows(d)}
-  </div>
-  <div class="net-section">
-    <h3>App Usage (last 24h)</h3>
-    ${stats.length ? `
-    <div id="usage-list">
-      ${stats.slice(0,15).map(s => `
-      <div class="usage-row">
-        <div class="usage-label" title="${esc(s.pkg)}">${esc(s.label||s.pkg)}</div>
-        <div class="usage-bar-wrap"><div class="usage-bar" style="width:${Math.round((s.usageMs/maxMs)*100)}%"></div></div>
-        <div class="usage-time">${fmtMs(s.usageMs)}</div>
-      </div>`).join('')}
-    </div>` : '<p class="policy-sub">No usage data yet. Usage stats permission must be granted on the device — open Location &amp; Tracking in the CORE MDM app.</p>'}
-  </div>`;
-}
-
-function renderComplianceRows(d) {
-  const p         = d.policies || {};
-  const now       = Date.now();
-  const ackAge    = d.policyAcknowledgedAt ? now - d.policyAcknowledgedAt : null;
-  const seenAge   = d.lastSeen ? now - d.lastSeen : null;
-  const rows = [
-    {
-      label: 'Online',
-      ok: isOnline(d),
-      val: d.lastSeen ? timeSince(d.lastSeen) : 'Never seen',
-    },
-    {
-      label: 'Policy Applied',
-      ok: ackAge !== null && ackAge < 24 * 3600000,
-      val: ackAge !== null ? timeSince(d.policyAcknowledgedAt) : 'Never',
-    },
-    {
-      label: 'APK Version',
-      ok: !!d.lastInstalledVersion,
-      val: d.lastInstalledVersion || 'Unknown',
-    },
-  ];
-  return rows.map(r => `
-  <div class="comp-row">
-    <div class="comp-dot ${r.ok?'ok':'warn'}"></div>
-    <div class="comp-label">${esc(r.label)}</div>
-    <div class="comp-val">${esc(r.val)}</div>
-  </div>`).join('');
-}
-
-let _leafletMap = null;
-function renderLocationTab(d) {
-  const hasLoc = d.lastLat !== null && d.lastLng !== null;
-  const gf = d.policies?.geofence || {};
-  return `
-  <div class="net-section">
-    <h3>Last Known Location</h3>
-    ${hasLoc
-      ? `<p style="font-size:12px;color:var(--textSec);margin-bottom:10px">
-           ${d.lastLat.toFixed(6)}, ${d.lastLng.toFixed(6)}
-           ${d.lastLocationAccuracy ? `· ±${Math.round(d.lastLocationAccuracy)}m` : ''}
-           · ${timeSince(d.lastLocationAt)}
-         </p>
-         <div id="loc-map"></div>`
-      : '<p class="policy-sub">No location data yet. Enable "Location Tracking" in policies below, then wait for the device to check in.</p>'}
-  </div>
-  <div class="net-section">
-    <h3>Location Tracking Policy</h3>
-    <div class="policy-row" style="border:none;padding-top:0;">
-      <div class="policy-info">
-        <div class="policy-label">Enable GPS Tracking</div>
-        <div class="policy-sub">Device sends GPS coordinates every 5 minutes. Location permission is auto-granted on Device Owner devices.</div>
-      </div>
-      <label class="toggle">
-        <input type="checkbox" ${d.policies?.locationTrackingEnabled?'checked':''}
-          onchange="window._mdm.setPolicy('${esc(d.id)}','locationTrackingEnabled',this.checked)">
-        <span class="toggle-track"></span><span class="toggle-thumb"></span>
-      </label>
-    </div>
-  </div>
-  <div class="net-section">
-    <h3>Geofence Alert</h3>
-    <p style="font-size:12px;color:var(--textSec);margin-bottom:14px">When the device leaves the defined radius, trigger an action automatically.</p>
-    <div class="geo-form">
-      <div class="geo-row">
-        <div><label>Latitude</label><input id="gf-lat" type="number" step="any" placeholder="e.g. 40.7128" value="${esc(gf.lat||'')}"></div>
-        <div><label>Longitude</label><input id="gf-lng" type="number" step="any" placeholder="e.g. -74.0060" value="${esc(gf.lng||'')}"></div>
-      </div>
-      <div class="geo-row">
-        <div><label>Radius (meters)</label><input id="gf-radius" type="number" min="50" placeholder="200" value="${esc(gf.radius||200)}"></div>
-        <div><label>On Exit Action</label>
-          <select id="gf-action" class="geo-select">
-            <option value="lock"    ${(gf.action||'lock')==='lock'   ?'selected':''}>Lock Device</option>
-            <option value="alarm"   ${gf.action==='alarm'  ?'selected':''}>Sound Alarm</option>
-            <option value="message" ${gf.action==='message'?'selected':''}>Show Message</option>
-          </select>
-        </div>
-      </div>
-      <div><label style="font-size:11px;color:var(--textSec)">Alert Message (optional)</label>
-        <input id="gf-msg" type="text" placeholder="Device has left the allowed area" value="${esc(gf.message||'')}">
-      </div>
-      <div style="display:flex;gap:10px;margin-top:4px;">
-        <button class="btn-set-geo" onclick="window._mdm.setGeofence('${esc(d.id)}')">${gf.enabled?'Update Geofence':'Enable Geofence'}</button>
-        ${gf.enabled?`<button class="btn-clear-geo" onclick="window._mdm.clearGeofence('${esc(d.id)}')">Disable Geofence</button>`:''}
-      </div>
-      ${gf.enabled?`<p style="font-size:11px;color:var(--green);margin-top:4px">✓ Geofence active · radius ${esc(gf.radius||200)}m · action: ${esc(gf.action||'lock')}</p>`:''}
-    </div>
-  </div>`;
-}
-
-function initLocationMap(d) {
-  if (d.lastLat === null || d.lastLng === null) return;
-  const el = document.getElementById('loc-map');
-  if (!el) return;
-  if (_leafletMap) { _leafletMap.remove(); _leafletMap = null; }
-  _leafletMap = L.map(el).setView([d.lastLat, d.lastLng], 15);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap',
-    maxZoom: 19,
-  }).addTo(_leafletMap);
-  L.marker([d.lastLat, d.lastLng])
-    .addTo(_leafletMap)
-    .bindPopup(`<b>${esc(dispName(d))}</b><br>${d.lastLat.toFixed(5)}, ${d.lastLng.toFixed(5)}<br>${timeSince(d.lastLocationAt)}`)
-    .openPopup();
-  const gf = d.policies?.geofence;
-  if (gf?.enabled && gf.lat && gf.lng) {
-    L.circle([gf.lat, gf.lng], { radius: gf.radius||200, color:'#8b7bf0', fillOpacity:0.12 }).addTo(_leafletMap);
-  }
-}
-
-async function setGeofence(id) {
-  const lat    = parseFloat(document.getElementById('gf-lat')?.value);
-  const lng    = parseFloat(document.getElementById('gf-lng')?.value);
-  const radius = parseFloat(document.getElementById('gf-radius')?.value) || 200;
-  const action = document.getElementById('gf-action')?.value || 'lock';
-  const msg    = document.getElementById('gf-msg')?.value || '';
-  if (isNaN(lat) || isNaN(lng)) { alert('Enter valid lat/lng coordinates.'); return; }
-  try {
-    await updateDoc(deviceRef(id), {
-      'policies.geofence': { enabled: true, lat, lng, radius, action, message: msg }
-    });
-  } catch(e) { alert('Failed to set geofence: ' + e.message); }
-}
-async function clearGeofence(id) {
-  try {
-    await updateDoc(deviceRef(id), { 'policies.geofence': { enabled: false } });
-  } catch(e) { alert('Failed to clear geofence: ' + e.message); }
-}
-
-function renderMessageTab(id) {
-  return `
-  <div class="net-section">
-    <h3>Send Message to Device</h3>
-    <p style="font-size:12px;color:var(--textSec);margin-bottom:16px">Pops up a fullscreen alert on the device — works even from the lock screen.</p>
-    <div class="msg-form">
-      <div>
-        <label>Title</label>
-        <input id="msg-title" type="text" placeholder="Message from Administrator" maxlength="80">
-      </div>
-      <div>
-        <label>Message</label>
-        <textarea id="msg-text" rows="4" placeholder="Enter your message here…" maxlength="500"></textarea>
-      </div>
-      <button class="btn-send-msg" onclick="window._mdm.sendMessage('${esc(id)}')">📢 Send Message</button>
-    </div>
-  </div>`;
-}
-
-async function sendMessage(id) {
-  const title = (document.getElementById('msg-title')?.value || '').trim() || 'Message from Administrator';
-  const text  = (document.getElementById('msg-text')?.value  || '').trim();
-  try {
-    await enqueueCommand(id, 'show_message', { title, text });
-    logAudit('SEND_MESSAGE', id, `"${title}" → ${dispName(devicesMap[id]) || id}`);
-    document.getElementById('msg-title').value = '';
-    document.getElementById('msg-text').value  = '';
-    alert('Message sent! The device will display it within seconds.');
-  } catch(e) { alert('Failed to send message: ' + e.message); }
-}
-
 function renderDangerTab(d) {
+  const wipe = d.cmds.wipeCommand
+    ? `<button class="btn-cancel" onclick="window._mdm.cancelCommand('${d.id}','wipeCommand')"><span class="spin"></span>Wipe pending — cancel</button>`
+    : `<button class="btn-wipe transition-transform duration-150 hover:scale-[1.02] active:scale-95" onclick="window._mdm.sendCommand('${d.id}','wipeCommand')">Wipe Device</button>`;
   return `
   <div class="danger-card">
     <div class="danger-title">Wipe Device</div>
-    <div class="danger-desc">Permanently erase all data on <strong>${esc(d.model)}</strong> and restore it to factory settings. This action cannot be undone.</div>
-    <button class="btn-wipe transition-transform duration-150 hover:scale-[1.02] active:scale-95" onclick="window._mdm.confirmWipe('${d.id}')">Wipe Device</button>
+    <div class="danger-desc">Permanently erase all data on <strong>${esc(displayName(d))}</strong> and restore it to factory settings. This action cannot be undone.</div>
+    ${wipe}
   </div>
-  <div class="danger-card" style="margin-top:16px;">
-    <div class="danger-title">Delete From Console</div>
-    <div class="danger-desc">Permanently remove <strong>${esc(dispName(d))}</strong> and all of its data (policies, command history, app inventory) from the console. The device stops appearing here and can be re-enrolled cleanly in the future with no leftover state. This does <strong>not</strong> wipe or unmanage the phone itself — use Wipe Device first if you need that. This cannot be undone.</div>
-    <button class="btn-delete-entry transition-transform duration-150 hover:scale-[1.02] active:scale-95" onclick="window._mdm.confirmDelete('${d.id}')">Delete Device Entry</button>
+  <div class="danger-card">
+    <div class="danger-title">Remove from account</div>
+    <div class="danger-desc">Deletes <strong>${esc(displayName(d))}</strong> from your devices. The phone signs out of CORE MDM the next time it's online; restrictions already on the phone stay until it's set up again.</div>
+    ${d.orgId
+      ? `<p class="policy-org policy-org-locked">🔒 This phone belongs to ${esc(orgName(d))}. Only its organization admin can remove it.</p>`
+      : `<button class="btn-wipe transition-transform duration-150 hover:scale-[1.02] active:scale-95" onclick="window._mdm.removeDevice('${d.id}')">Remove device</button>`}
   </div>`;
 }
 
@@ -1457,126 +1315,333 @@ document.getElementById('btn-close-modal').addEventListener('click', closeModal)
 
 // ── Firestore commands ───────────────────────────────────────
 async function setField(id, field, val) {
-  try { await updateDoc(deviceRef(id), { [field]: val }); }
-  catch(e) { console.error('setField error:', e); alert('Command failed: '+e.message); }
+  try { await updateDoc(deviceRef(id), { [field]: val }); return true; }
+  catch(e) { console.error('setField error:', e); toast('Command failed: '+e.message, 'bad'); return false; }
 }
 async function setPolicyField(id, key, val) {
-  try { await updateDoc(deviceRef(id), { [`policies.${key}`]: val }); }
-  catch(e) { console.error('setPolicyField error:', e); alert('Policy update failed: '+e.message); }
+  try { await updateDoc(deviceRef(id), { [`policies.${key}`]: val }); return true; }
+  catch(e) { console.error('setPolicyField error:', e); toast('Policy update failed: '+e.message, 'bad'); return false; }
 }
+function nameOf(id) { const d = devicesMap[id]; return d ? displayName(d) : id; }
 
-// Queue a command the device will pick up. Returns the new command's id.
-// Queued commands start as 'pending' and can be cancelled before the device runs them.
-async function enqueueCommand(id, type, extra = {}) {
-  const ref = await addDoc(collection(db, 'devices', id, 'commands'), {
-    type,
-    state:     'pending',
-    createdAt: serverTimestamp(),
-    issuedBy:  auth.currentUser?.email || null,
-    ...extra,
-  });
-  return ref.id;
+async function toggleAlarm(id, val) {
+  const ok = await askConfirm(val
+    ? { title:'Sound the alarm?', body:`${nameOf(id)} will play a loud alarm until you stop it.`, confirmLabel:'Sound alarm' }
+    : { title:'Stop the alarm?', body:`The alarm on ${nameOf(id)} will stop.`, confirmLabel:'Stop alarm' });
+  if (!ok) return;
+  if (await setField(id, 'alarmActive', val)) toast(val ? 'Alarm on — sounding when the phone is online' : 'Alarm stopped');
+  logAudit(val ? 'ALARM_ON' : 'ALARM_OFF', id, nameOf(id));
 }
-
-// Super-admin: tell every enrolled device an update is available. Enqueues an
-// `update_notify` command (with version + link) to each device — the app's command
-// listener shows the same notification the FCM push would. Console-controllable,
-// no server/FCM credentials needed.
-async function notifyUpdateAll() {
-  const version = (prompt('Announce which version is available? (e.g. 0.4.7)') || '').trim();
-  if (!version) return;
-  const url = (prompt('Download / installer link for this update:', 'https://coremdm.web.app/install') || 'https://coremdm.web.app/install').trim();
-  let snap;
-  try { snap = await getDocs(collection(db, 'devices')); }
-  catch(e) { alert('Could not load devices: ' + e.message); return; }
-  const ids = snap.docs.map(d => d.id);
-  if (!ids.length) { alert('No enrolled devices.'); return; }
-  if (!confirm(`Notify ${ids.length} device(s) that v${version} is available?\nEach gets an "update available" notification with a Download button.`)) return;
-  let ok = 0, fail = 0;
-  for (const id of ids) {
-    try { await enqueueCommand(id, 'update_notify', { version, url }); ok++; }
-    catch(e) { fail++; }
-  }
-  logAudit('NOTIFY_UPDATE', null, `announced v${version} to ${ok} device(s)${fail ? ` (${fail} failed)` : ''}`);
-  alert(`Queued update notification for ${ok} device(s)${fail ? `, ${fail} failed` : ''}.\nOnline devices show it within seconds; others on next reconnect.`);
-}
-async function cancelCommand(id, cmdId) {
+async function sendCommand(id, field) {
+  const c = COMMANDS[field];
+  const ok = await askConfirm({ title:c.title, body:c.body(nameOf(id)), confirmLabel:c.label, danger:!!c.danger });
+  if (!ok) return;
   try {
-    await updateDoc(doc(db, 'devices', id, 'commands', cmdId), { state: 'cancelled' });
-    logAudit('CANCEL_CMD', id, `cancelled command on ${dispName(devicesMap[id]) || id}`);
-  } catch(e) { alert('Could not cancel: ' + e.message); }
+    await updateDoc(deviceRef(id), { [field]: true, [field+'At']: serverTimestamp() });
+    toast(`${c.label} sent — waiting for ${nameOf(id)}`);
+    logAudit(c.audit, id, nameOf(id));
+  } catch(e) { toast('Command failed: '+e.message, 'bad'); }
 }
+async function cancelCommand(id, field) {
+  const c = COMMANDS[field];
+  const ok = await askConfirm({ title:`Cancel ${c.label.toLowerCase()}?`, body:`The pending ${c.label.toLowerCase()} for ${nameOf(id)} will be cancelled if the phone hasn't picked it up yet.`, confirmLabel:'Cancel command' });
+  if (!ok) return;
+  if (!devicesMap[id]?.cmds[field]) { toast(`Too late — the phone already ran ${c.label.toLowerCase()}`, 'bad'); return; }
+  if (await setField(id, field, false)) toast(`${c.label} cancelled`, 'ok');
+  logAudit(c.audit+'_CANCEL', id, nameOf(id));
+}
+// Admin table shortcut
+function sendLock(id) { return sendCommand(id, 'lockCommand'); }
 
-function toggleAlarm(id, val)  {
-  setField(id, 'alarmActive', val);
-  logAudit(val ? 'ALARM_ON' : 'ALARM_OFF', id, dispName(devicesMap[id]) || id);
+async function setPolicy(id, key, val, el) {
+  if (orgRule(orgRulesOf(devicesMap[id]), key)?.mode === 'locked') {
+    toast(`Locked by ${orgName(devicesMap[id])}`, 'bad');
+    if (el) el.checked = !val;
+    return;
+  }
+  const pol = [...APP_POLICIES, ...SYS_POLICIES, ...HW_POLICIES, ...BLOCK_POLICIES, ...CONTROL_POLICIES,
+               ...NETWORK_POLICIES, ...LOCAL_POLICIES].find(p => p.key === key);
+  const label = pol?.label || key;
+  const ok = await askConfirm({
+    title: `${val ? 'Turn on' : 'Turn off'}: ${label}?`,
+    body: (pol?.warn && val ? pol.warn + ' ' : '') + `This changes ${nameOf(id)} as soon as it's online.`,
+    confirmLabel: val ? 'Turn on' : 'Turn off',
+  });
+  if (!ok) { if (el) el.checked = !val; return; }
+  if (await setPolicyField(id, key, val)) toast(`${label}: ${val ? 'on' : 'off'}`, 'ok');
+  else if (el) el.checked = !val;
+  logAudit('POLICY', id, `${key}=${val} on ${nameOf(id)}`);
 }
-async function sendLock(id)    {
-  try { await enqueueCommand(id, 'lock'); logAudit('LOCK_SCREEN', id, dispName(devicesMap[id]) || id); }
-  catch(e) { alert('Command failed: ' + e.message); }
+async function setAppBlocked(id, pkg, blocked, el) {
+  const app = devicesMap[id]?.apps.find(a => a.pkg === pkg);
+  const label = app?.label || pkg;
+  const ok = await askConfirm({
+    title: blocked ? `Block ${label}?` : `Unblock ${label}?`,
+    body: blocked ? `${label} will be paused on ${nameOf(id)} and can't be opened.` : `${label} will work normally again on ${nameOf(id)}.`,
+    confirmLabel: blocked ? 'Block' : 'Unblock',
+  });
+  if (!ok) { if (el) el.checked = !blocked; return; }
+  try {
+    await updateDoc(deviceRef(id), { 'policies.blockedPackages': blocked ? arrayUnion(pkg) : arrayRemove(pkg) });
+    toast(`${label} ${blocked ? 'blocked' : 'unblocked'}`, 'ok');
+    logAudit('POLICY', id, `${blocked ? 'block' : 'unblock'} ${pkg} on ${nameOf(id)}`);
+  } catch(e) { if (el) el.checked = !blocked; toast('Failed: '+e.message, 'bad'); }
 }
-async function sendReboot(id)  {
-  try { await enqueueCommand(id, 'reboot'); logAudit('REBOOT', id, dispName(devicesMap[id]) || id); }
-  catch(e) { alert('Command failed: ' + e.message); }
+async function setSection(id, sectionId, blocked, el) {
+  if (orgRule(orgRulesOf(devicesMap[id]), sectionKey(sectionId))?.mode === 'locked') {
+    toast(`Locked by ${orgName(devicesMap[id])}`, 'bad');
+    if (el) el.checked = !blocked;
+    return;
+  }
+  const s = SECTIONS.find(x => x.id === sectionId);
+  const name = s ? `${s.app} ${s.label}` : sectionId;
+  const d = devicesMap[id];
+  const guardNote = (blocked && d && !d.guardEnabled)
+    ? ' The screen guard is off on this phone, so this only takes effect once it is switched on there.' : '';
+  const ok = await askConfirm({
+    title: blocked ? `Block ${name}?` : `Unblock ${name}?`,
+    body: (blocked ? `${name} will close when someone opens it. The rest of ${s?.app || 'the app'} keeps working.`
+                   : `${name} will work normally again.`) + guardNote,
+    confirmLabel: blocked ? 'Block' : 'Unblock',
+  });
+  if (!ok) { if (el) el.checked = !blocked; return; }
+  try {
+    await updateDoc(deviceRef(id), {
+      'policies.blockedSections': blocked ? arrayUnion(sectionId) : arrayRemove(sectionId),
+      'policies.sectionsAllowed': blocked ? arrayRemove(sectionId) : arrayUnion(sectionId),
+    });
+    toast(`${name} ${blocked ? 'blocked' : 'unblocked'}`, 'ok');
+    logAudit('POLICY', id, `${blocked ? 'block' : 'unblock'} section ${sectionId} on ${nameOf(id)}`);
+  } catch(e) { if (el) el.checked = !blocked; toast('Failed: '+e.message, 'bad'); }
+}
+async function setLimit(id, pkg, minutes, el) {
+  const mins = Math.max(0, Math.min(1440, parseInt(minutes, 10) || 0));
+  const app = devicesMap[id]?.apps.find(a => a.pkg === pkg);
+  const label = app?.label || pkg;
+  const ok = await askConfirm(mins > 0
+    ? { title:`Limit ${label} to ${mins} min a day?`, confirmLabel:'Set limit',
+        body:`Once ${label} has been used for ${mins} minutes in a day it's paused until after midnight.` }
+    : { title:`Remove the limit on ${label}?`, confirmLabel:'Remove limit',
+        body:`${label} can be used without a daily limit.` });
+  if (!ok) { if (el) el.value = mins > 0 ? '' : el.value; return; }
+  try {
+    // deleteField would need another import; 0 means "no limit" to the phone and reads clearly here
+    await updateDoc(deviceRef(id), { [`policies.appTimeLimits.${pkg}`]: mins });
+    toast(mins > 0 ? `${label}: ${mins} min a day` : `Limit removed from ${label}`, 'ok');
+    logAudit('POLICY', id, `time limit ${pkg}=${mins}min on ${nameOf(id)}`);
+  } catch(e) { toast('Failed: '+e.message, 'bad'); }
+}
+async function setWebviewAllowed(id, pkg, allowed, el) {
+  const app = devicesMap[id]?.apps.find(a => a.pkg === pkg);
+  const label = app?.label || pkg;
+  const ok = await askConfirm({
+    title: allowed ? `Allow web pages in ${label}?` : `Block web pages in ${label}?`,
+    body: allowed ? `${label} may show web pages inside itself.`
+                  : `Web pages opened inside ${label} will be closed.`,
+    confirmLabel: allowed ? 'Allow' : 'Block',
+  });
+  if (!ok) { if (el) el.checked = !allowed; return; }
+  try {
+    await updateDoc(deviceRef(id), { 'policies.webviewAllowedPackages': allowed ? arrayUnion(pkg) : arrayRemove(pkg) });
+    toast(`Web pages in ${label}: ${allowed ? 'allowed' : 'blocked'}`, 'ok');
+    logAudit('POLICY', id, `webview ${allowed ? 'allow' : 'block'} ${pkg} on ${nameOf(id)}`);
+  } catch(e) { if (el) el.checked = !allowed; toast('Failed: '+e.message, 'bad'); }
+}
+async function setInstallerAllowed(id, pkg, allowed, el) {
+  const app = devicesMap[id]?.apps.find(a => a.pkg === pkg);
+  const label = app?.label || pkg;
+  const ok = await askConfirm({
+    title: allowed ? `Let ${label} install apps?` : `Stop ${label} installing apps?`,
+    body: allowed ? `${label} may add new apps to ${nameOf(id)}.`
+                  : `New apps installed by ${label} will be removed from ${nameOf(id)} while "Only chosen apps can install apps" is on.`,
+    confirmLabel: allowed ? 'Allow' : 'Stop',
+  });
+  if (!ok) { if (el) el.checked = !allowed; return; }
+  try {
+    await updateDoc(deviceRef(id), { 'policies.allowedInstallers': allowed ? arrayUnion(pkg) : arrayRemove(pkg) });
+    toast(`${label}: ${allowed ? 'may install apps' : 'can no longer install apps'}`, 'ok');
+    logAudit('POLICY', id, `installer ${allowed ? 'allow' : 'block'} ${pkg} on ${nameOf(id)}`);
+  } catch(e) { if (el) el.checked = !allowed; toast('Failed: '+e.message, 'bad'); }
 }
 async function renameDevice(id) {
   const d = devicesMap[id]; if (!d) return;
-  const current = d.customName || '';
-  const name = prompt('Device name (leave blank to use the model):', current);
-  if (name === null) return;               // cancelled
+  const name = await askConfirm({ title:'Rename device', body:`Give ${displayName(d)} a name you'll recognise.`,
+    confirmLabel:'Save', input:{ value:d.name || '', placeholder:d.model } });
+  if (name == null) return;
   try {
-    await updateDoc(deviceRef(id), { customName: name.trim() });
-    logAudit('RENAME', id, `renamed to "${name.trim() || d.model}"`);
-    updateModalHeader(id);
-  } catch(e) { alert('Rename failed: ' + e.message); }
+    await updateDoc(deviceRef(id), { name: name.slice(0, 60), customName: name.slice(0, 60) });
+    toast(name ? `Renamed to ${name}` : 'Name cleared', 'ok');
+  } catch(e) { toast('Rename failed: ' + e.message, 'bad'); }
 }
-async function sendFullLockdown(id)  {
-  if (!confirm('Apply full lockdown to this device? All major restrictions will be enabled immediately.')) return;
-  // Write the command AND sync all lockdown policy values to Firestore so the
-  // policies map stays consistent. Without this, the next single-policy change
-  // from the web would trigger applyRemotePolicies with stale (false) values
-  // and silently revert the lockdown (camera, status bar, screen capture, etc.).
-  const lockdownPolicies = {
-    'policies.safeBootBlocked':        true,
-    'policies.factoryResetBlocked':    true,
-    'policies.debuggingBlocked':       true,
-    'policies.addUserBlocked':         true,
-    'policies.installAppsBlocked':     true,
-    'policies.unknownSourcesBlocked':  true,
-    'policies.uninstallAppsBlocked':   true,
-    'policies.wifiConfigBlocked':      true,
-    'policies.bluetoothConfigBlocked': true,
-    'policies.mobileNetworksBlocked':  true,
-    'policies.statusBarDisabled':      true,
-    'policies.screenCaptureDisabled':  true,
-    'policies.cameraDisabled':         true,
-    fullLockdownCommand:               true,
-  };
+async function removeDevice(id) {
+  const ok = await askConfirm({ title:'Remove this device?', danger:true, confirmLabel:'Remove',
+    body:`${nameOf(id)} will be deleted from your account and signs out of CORE MDM next time it's online. You can add it back by signing in on the phone again.` });
+  if (!ok) return;
   try {
-    await updateDoc(deviceRef(id), lockdownPolicies);
-    await enqueueCommand(id, 'lockdown');
-    logAudit('FULL_LOCKDOWN', id, dispName(devicesMap[id]) || id);
-  } catch(e) {
-    console.error('sendFullLockdown error:', e);
-    alert('Full lockdown failed: ' + e.message);
+    logAudit('DEVICE_REMOVED', id, nameOf(id));
+    // Commands first, while the device doc still exists — the commands delete rule reads its ownerId.
+    const cmds = await getDocs(collection(db, 'devices', id, 'commands'));
+    await Promise.all(cmds.docs.map(c => deleteDoc(c.ref)));
+    await deleteDoc(deviceRef(id));
+    closeModal();
+    toast('Device removed', 'ok');
+  } catch(e) { toast('Remove failed: '+e.message, 'bad'); }
+}
+async function setPolicyValue(id, key, val) {
+  if (await setPolicyField(id, key, val)) toast('Saved', 'ok');
+  logAudit('POLICY', id, `${key}=${val} on ${nameOf(id)}`);
+}
+async function setPinLen(id, len) {
+  const n = Number(len);
+  if (await setPolicyField(id, 'pinMinLength', n)) toast(`Minimum PIN: ${n} digits`, 'ok');
+  logAudit('POLICY', id, `pinMinLength=${n} on ${nameOf(id)}`);
+}
+async function setGeofence(id) {
+  const lat    = parseFloat(document.getElementById('gf-lat')?.value);
+  const lng    = parseFloat(document.getElementById('gf-lng')?.value);
+  const radius = Math.max(50, parseFloat(document.getElementById('gf-radius')?.value) || 200);
+  const action = document.getElementById('gf-action')?.value || 'lock';
+  const message = (document.getElementById('gf-msg')?.value || '').trim();
+  if (isNaN(lat) || isNaN(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+    toast('Enter a valid latitude and longitude', 'bad'); return;
+  }
+  if (await setPolicyField(id, 'geofence', { enabled: true, lat, lng, radius, action, message })) {
+    toast('Geofence on', 'ok');
+    logAudit('POLICY', id, `geofence ${lat},${lng} r=${radius} ${action} on ${nameOf(id)}`);
   }
 }
-function setPolicy(id, key, val) {
-  setPolicyField(id, key, val);
-  logAudit('POLICY', id, `${key}=${val} on ${devicesMap[id]?.model || id}`);
+async function clearGeofence(id) {
+  if (await setPolicyField(id, 'geofence', { enabled: false })) toast('Geofence off', 'ok');
+  logAudit('POLICY', id, `geofence off on ${nameOf(id)}`);
+}
+// Queue a command the phone picks up from devices/{id}/commands. Returns its id.
+async function enqueueCommand(id, type, extra = {}) {
+  const ref = await addDoc(collection(db, 'devices', id, 'commands'), {
+    type, state: 'pending', createdAt: serverTimestamp(),
+    issuedBy: auth.currentUser?.email || null, ...extra,
+  });
+  return ref.id;
+}
+async function cancelQueued(id, cmdId) {
+  try {
+    await updateDoc(doc(db, 'devices', id, 'commands', cmdId), { state: 'cancelled' });
+    toast('Cancelled', 'ok');
+    logAudit('CANCEL_CMD', id, `cancelled queued command on ${nameOf(id)}`);
+  } catch(e) { toast('Could not cancel: ' + e.message, 'bad'); }
+}
+async function sendMessage(id) {
+  const title = (document.getElementById('msg-title')?.value || '').trim() || 'Message from Administrator';
+  const text  = (document.getElementById('msg-text')?.value  || '').trim();
+  if (!text) { toast('Write a message first', 'bad'); return; }
+  try {
+    await enqueueCommand(id, 'show_message', { title, text });
+    logAudit('SEND_MESSAGE', id, `"${title}" → ${nameOf(id)}`);
+    document.getElementById('msg-title').value = '';
+    document.getElementById('msg-text').value  = '';
+    toast('Message sent — it shows on the phone within seconds', 'ok');
+  } catch(e) { toast('Failed to send: ' + e.message, 'bad'); }
+}
+// Super admin: tell every enrolled phone an update is available (update_notify command).
+async function notifyUpdateAll() {
+  if (!isSuperAdmin) return;
+  const version = await askConfirm({ title:'Announce an update', confirmLabel:'Next',
+    body:'Which version is available? (e.g. 0.8.0)', input:{ placeholder:'0.8.0' } });
+  if (!version) return;
+  const url = await askConfirm({ title:'Download link', confirmLabel:'Next',
+    body:'Where should the notification’s Download button go?', input:{ value:'https://coremdm.org/install' } });
+  if (!url) return;
+  let snap;
+  try { snap = await getDocs(collection(db, 'devices')); }
+  catch(e) { toast('Could not load devices: ' + e.message, 'bad'); return; }
+  const ids = snap.docs.map(d => d.id);
+  if (!ids.length) { toast('No enrolled devices', 'bad'); return; }
+  const ok = await askConfirm({ title:`Notify ${ids.length} device(s)?`, confirmLabel:'Notify',
+    body:`Each phone shows an "update available" notification for v${version} with a Download button.` });
+  if (!ok) return;
+  let sent = 0, failed = 0;
+  for (const id of ids) {
+    try { await enqueueCommand(id, 'update_notify', { version, url }); sent++; } catch(e) { failed++; }
+  }
+  logAudit('NOTIFY_UPDATE', null, `announced v${version} to ${sent} device(s)${failed ? ` (${failed} failed)` : ''}`);
+  toast(`Queued for ${sent} device(s)${failed ? `, ${failed} failed` : ''}`, failed ? 'bad' : 'ok');
 }
 function lockDns(id) {
   const host = (document.getElementById('dns-host-input')?.value || '').trim();
   if (!host) { alert('Enter a DNS hostname first.'); return; }
   setPolicyField(id, 'privateDnsHost', host);
-  logAudit('POLICY', id, `privateDnsHost=${host} on ${devicesMap[id]?.model || id}`);
 }
 function clearDns(id) {
   const inp = document.getElementById('dns-host-input');
   if (inp) inp.value = '';
   setPolicyField(id, 'privateDnsHost', '');
-  logAudit('POLICY', id, `privateDnsHost cleared on ${devicesMap[id]?.model || id}`);
 }
+// ── Content filter details and hidden apps (synced both ways with the phone) ──
+async function setFilterBool(id, key, val, el) {
+  const label = key === 'filterSubdomains' ? 'Block subdomains too' : 'Built-in blocklist';
+  if (await setPolicyField(id, key, val)) {
+    toast(`${label}: ${val ? 'on' : 'off'}`, 'ok');
+    logAudit('POLICY', id, `${key}=${val} on ${nameOf(id)}`);
+  } else if (el) el.checked = !val;
+}
+async function setFilterGroup(id, group, on, el) {
+  const g = FILTER_GROUPS.find(x => x.id === group);
+  try {
+    await updateDoc(deviceRef(id), { 'policies.filterGroupsOff': on ? arrayRemove(group) : arrayUnion(group) });
+    toast(`${g?.label || group}: ${on ? 'blocked' : 'not blocked'}`, 'ok');
+    logAudit('POLICY', id, `filter group ${group} ${on ? 'on' : 'off'} on ${nameOf(id)}`);
+  } catch(e) { if (el) el.checked = !on; toast('Failed: '+e.message, 'bad'); }
+}
+/** "https://www.Example.com/page" → "www.example.com"; null when it isn't a domain. */
+function cleanDomain(v) {
+  const d = String(v || '').trim().toLowerCase().replace(/^[a-z]+:\/\//, '').replace(/[\/?#:].*$/, '').replace(/\.$/, '');
+  return /^([a-z0-9-]+\.)+[a-z0-9-]{2,}$/.test(d) ? d : null;
+}
+async function addDomain(id, key) {
+  const inp = document.getElementById('add-' + key);
+  const domain = cleanDomain(inp?.value);
+  if (!domain) { toast('Enter a site like example.com', 'bad'); return; }
+  try {
+    await updateDoc(deviceRef(id), { [`policies.${key}`]: arrayUnion(domain) });
+    toast(`${domain} ${key === 'filterBlocked' ? 'blocked' : 'always allowed'}`, 'ok');
+    logAudit('POLICY', id, `${key} + ${domain} on ${nameOf(id)}`);
+  } catch(e) { toast('Failed: '+e.message, 'bad'); }
+}
+async function removeDomain(id, key, domain) {
+  try {
+    await updateDoc(deviceRef(id), { [`policies.${key}`]: arrayRemove(domain) });
+    toast(`${domain} removed`, 'ok');
+    logAudit('POLICY', id, `${key} - ${domain} on ${nameOf(id)}`);
+  } catch(e) { toast('Failed: '+e.message, 'bad'); }
+}
+async function saveFilterText(id, key) {
+  const raw = (document.getElementById('field-' + key)?.value || '').trim();
+  if (key === 'filterDns' && raw && !/^[\w.:-]+$/.test(raw)) { toast('Enter a DNS server address like 1.1.1.1', 'bad'); return; }
+  if (key === 'filterListUrl' && raw && !/^https:\/\/\S+$/.test(raw)) { toast('Enter a link starting with https://', 'bad'); return; }
+  if (key === 'filterDns' && !raw) { toast('Enter a DNS server address', 'bad'); return; }
+  if (await setPolicyField(id, key, raw)) {
+    toast(key === 'filterDns' ? `DNS server set to ${raw}` : raw ? 'Blocklist will be downloaded by the phone' : 'Imported blocklist removed', 'ok');
+    logAudit('POLICY', id, `${key}=${raw} on ${nameOf(id)}`);
+  }
+}
+async function setAppHidden(id, pkg, hidden) {
+  const app = devicesMap[id]?.apps.find(a => a.pkg === pkg);
+  const label = app?.label || pkg;
+  const ok = await askConfirm({
+    title: hidden ? `Hide ${label}?` : `Show ${label} again?`,
+    body: hidden ? `${label} disappears from ${nameOf(id)}'s home screen and app list. Its data is kept.`
+                 : `${label} comes back on ${nameOf(id)}'s home screen.`,
+    confirmLabel: hidden ? 'Hide' : 'Show',
+  });
+  if (!ok) return;
+  try {
+    await updateDoc(deviceRef(id), hidden
+      ? { 'policies.hiddenPackages': arrayUnion(pkg) }
+      : { 'policies.hiddenPackages': arrayRemove(pkg), 'policies.blockedApps': arrayRemove(pkg) });
+    toast(`${label} ${hidden ? 'hidden' : 'visible again'}`, 'ok');
+    logAudit('POLICY', id, `${hidden ? 'hide' : 'unhide'} ${pkg} on ${nameOf(id)}`);
+  } catch(e) { toast('Failed: '+e.message, 'bad'); }
+}
+
 async function addPkg(id) {
   const inp = document.getElementById('kiosk-pkg-input');
   const pkg = (inp?.value || '').trim();
@@ -1600,46 +1665,9 @@ function cancelWipe() {
 }
 async function executeWipe() {
   if (!wipeTargetId) return;
-  const id = wipeTargetId;
-  try {
-    await enqueueCommand(id, 'wipe');
-    logAudit('WIPE', id, dispName(devicesMap[id]) || id);
-  } catch(e) { alert('Wipe command failed: ' + e.message); }
+  logAudit('WIPE', wipeTargetId, devicesMap[wipeTargetId]?.model || wipeTargetId);
+  await setField(wipeTargetId, 'wipeCommand', true);
   cancelWipe();
-  closeModal();
-}
-
-// ── Delete device entry (permanent, removes all its Firestore data) ──
-let deleteTargetId = null;
-function confirmDelete(id) {
-  deleteTargetId = id;
-  document.getElementById('delete-confirm').style.display = 'flex';
-}
-function cancelDelete() {
-  deleteTargetId = null;
-  document.getElementById('delete-confirm').style.display = '';
-}
-async function executeDelete() {
-  if (!deleteTargetId) return;
-  const id   = deleteTargetId;
-  const name = dispName(devicesMap[id]) || id;
-  const btn  = document.querySelector('#delete-confirm .btn-confirm-wipe');
-  if (btn) { btn.disabled = true; btn.textContent = 'Deleting…'; }
-  try {
-    // Delete the command subcollection FIRST — while the parent device doc still
-    // exists, because the commands delete rule checks the parent's ownerId — then
-    // delete the device document itself so no orphaned data is left behind.
-    const cmds = await getDocs(collection(db, 'devices', id, 'commands'));
-    await Promise.all(cmds.docs.map(c => deleteDoc(c.ref)));
-    await deleteDoc(doc(db, 'devices', id));
-    logAudit('DELETE_DEVICE', id, `deleted ${name} and all its data from the console`);
-    // The devices onSnapshot listener removes the card automatically.
-  } catch(e) {
-    alert('Delete failed: ' + e.message);
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = 'Delete Permanently'; }
-  }
-  cancelDelete();
   closeModal();
 }
 
@@ -1716,7 +1744,7 @@ function loadAdminDevices() {
     devices.sort((a,b) => (b.lastSeenMs||0)-(a.lastSeenMs||0));
 
     const total   = devices.length;
-    const online  = devices.filter(d => d.status === 'online' && d.lastSeenMs && (Date.now()-d.lastSeenMs) < 300_000).length;
+    const online  = devices.filter(d => d.status === 'online' && d.lastSeenMs && (Date.now()-d.lastSeenMs) < 180_000).length;
     const alarming = devices.filter(d => d.alarmActive).length;
     document.getElementById('admin-stats').innerHTML = `
       <div class="stat-card stat-total"><div class="stat-val">${total}</div><div class="stat-lbl">Total Devices</div></div>
@@ -1735,7 +1763,7 @@ function loadAdminDevices() {
             <th>Device</th><th>OS</th><th>Status</th><th>Owner</th><th>IMEI / Serial</th><th>Last Seen</th><th>Actions</th>
           </tr></thead>
           <tbody>${devices.map(d => {
-            const on    = d.status === 'online' && d.lastSeenMs && (Date.now()-d.lastSeenMs) < 300_000;
+            const on    = d.status === 'online' && d.lastSeenMs && (Date.now()-d.lastSeenMs) < 180_000;
             const alarm = d.alarmActive;
             return `<tr>
               <td><strong>${esc(d.model||'Unknown')}</strong></td>
@@ -1775,7 +1803,8 @@ function loadAuditLog() {
             <th>Timestamp</th><th>Action</th><th>User</th><th>Device</th><th>Details</th>
           </tr></thead>
           <tbody>${logs.map(l => {
-              const dt = l.ts ? new Date(l.ts).toLocaleString() : '—';
+            const tagClass = `audit-${l.action}` in document.styleSheets[0] ? `audit-${l.action}` : 'audit-default';
+            const dt = l.ts ? new Date(l.ts).toLocaleString() : '—';
             return `<tr>
               <td style="font-size:11px;color:var(--textSec);white-space:nowrap;">${dt}</td>
               <td><span class="audit-tag audit-${esc(l.action||'')}">${esc(l.action||'')}</span></td>
@@ -1794,12 +1823,14 @@ function loadAuditLog() {
 // Opens Manage modal while in admin view (syncs devicesMap entry first)
 function adminManage(id) {
   if (!devicesMap[id]) {
-    getDoc(doc(db, 'devices', id)).then(snap => {
-      if (!snap.exists()) { alert('Device not found.'); return; }
-      const data = snap.data();
-      devicesMap[id] = { id, model: data.model||'Unknown', customName: data.customName||'', installedApps: Array.isArray(data.installedApps)?data.installedApps:[], osVersion: data.osVersion||'', status: data.status||'offline', lastSeen: data.lastSeen?.toMillis?.()||null, alarmActive: data.alarmActive||false, imei: data.imei||'', serial: data.serial||'', policies: data.policies||{}, batteryLevel: data.batteryLevel??null, isCharging: data.isCharging??null, networkType: data.networkType||null, wifiRssi: data.wifiRssi??null, lastLat: data.lastLat??null, lastLng: data.lastLng??null, lastLocationAccuracy: data.lastLocationAccuracy??null, lastLocationAt: data.lastLocationAt?.toMillis?.()??null, usageStats: Array.isArray(data.usageStats)?data.usageStats:[], lastInstalledVersion: data.lastInstalledVersion||null, policyAcknowledgedAt: data.policyAcknowledgedAt?.toMillis?.()??null };
-      openModal(id);
-    }).catch(e => alert('Failed to load device: ' + e.message));
+    // device might not be in devicesMap if it belongs to another owner
+    // fetch it first, then open modal
+    import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js').then(({getDoc, doc: fsDoc}) => {
+      getDoc(fsDoc(db, 'devices', id)).then(snap => {
+        if (snap.exists()) devicesMap[id] = toDevice(id, snap.data());
+        openModal(id);
+      });
+    });
   } else {
     openModal(id);
   }
@@ -1837,7 +1868,7 @@ function validateImeiLuhn(imei) {
 function loadInventory() {
   document.getElementById('admin-stats').innerHTML = '';
   document.getElementById('admin-panel-body').innerHTML = `
-    <div class="inv-form-card" style="background:rgba(77,210,240,0.05);border-color:rgba(77,210,240,0.25);margin-bottom:16px;">
+    <div class="inv-form-card inv-info">
       <h3 style="color:var(--cyan);">Standard Enrollment (no setup required)</h3>
       <p style="font-size:13px;color:var(--textSec);line-height:1.6;margin-bottom:0;">
         Install <strong style="color:var(--text);">CORE MDM</strong> on any Android device, create or sign in with a Firebase account,
@@ -1969,23 +2000,17 @@ async function preRegisterDevice() {
 
   try {
     msgEl.textContent = 'Saving…';
-    // device_inventory/{imei} — super admin only (main record)
-    await setDoc(docRef, {
-      imei,
-      tenantId,
-      enrollmentStatus: 'PENDING',
-      enrollmentToken: token,
-      enrollmentTokenExpiresAt: Timestamp.fromDate(expiresAt),
-      enrolledAt: null,
-      createdBy: auth.currentUser?.email || '',
-      createdAt: serverTimestamp(),
-    });
-    // enrollment_tokens/{token} — any auth user can read (the random token is the secret)
-    await setDoc(doc(db, 'enrollment_tokens', token), {
-      imei,
-      expiresAt: Timestamp.fromDate(expiresAt),
-      createdAt: serverTimestamp(),
-    });
+    await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js')
+      .then(({ setDoc }) => setDoc(docRef, {
+        imei,
+        tenantId,
+        enrollmentStatus: 'PENDING',
+        enrollmentToken: token,
+        enrollmentTokenExpiresAt: Timestamp.fromDate(expiresAt),
+        enrolledAt: null,
+        createdBy: auth.currentUser?.email || '',
+        createdAt: serverTimestamp(),
+      }));
 
     lastTokenPlain = token;
     document.getElementById('inv-token-val').textContent = token;
@@ -2023,18 +2048,11 @@ async function copyInvToken(docId) {
 async function renewInvToken(docId) {
   const token     = generateEnrollmentToken();
   const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000);
-  const expTs     = Timestamp.fromDate(expiresAt);
   try {
     await updateDoc(doc(db, 'device_inventory', docId), {
       enrollmentToken: token,
-      enrollmentTokenExpiresAt: expTs,
+      enrollmentTokenExpiresAt: Timestamp.fromDate(expiresAt),
       enrollmentStatus: 'PENDING',
-    });
-    // Write new lookup doc (old token doc becomes stale but harmless — cross-check validates)
-    await setDoc(doc(db, 'enrollment_tokens', token), {
-      imei: docId,
-      expiresAt: expTs,
-      createdAt: serverTimestamp(),
     });
     lastTokenPlain = token;
     const tokenBox = document.getElementById('inv-token-box');
@@ -2097,19 +2115,18 @@ async function deleteInvRecord(docId) {
 
 // ── Global exposure ──────────────────────────────────────────
 window._mdm = {
-  openModal, switchTab, toggleAlarm, sendLock, sendReboot,
-  sendFullLockdown, setPolicy, lockDns, clearDns, addPkg, removePkg, confirmWipe, confirmDelete, notifyUpdateAll,
-  renameDevice, cancelCommand, setPinLen, setAppState, appSearchInput,
+  openModal, switchTab, toggleAlarm, sendLock, sendCommand, cancelCommand,
+  setPolicy, setAppBlocked, setSection, setWebviewAllowed, setInstallerAllowed, setLimit,
+  setFilterBool, setFilterGroup, addDomain, removeDomain, saveFilterText, setAppHidden, filterApps, searchSettings, renameDevice, removeDevice,
+  setPolicyValue, setPinLen, setGeofence, clearGeofence, sendMessage, cancelQueued, notifyUpdateAll,
+  lockDns, clearDns, addPkg, removePkg, confirmWipe,
   switchToAdmin, switchToDashboard, switchAdminTab, adminManage,
   preRegisterDevice, copyLastToken, copyInvToken,
   renewInvToken, markEnrolled, markDisenrolled,
   blockInvDevice, unblockInvDevice, deleteInvRecord,
-  sendMessage, setGeofence, clearGeofence,
 };
 window.cancelWipe  = cancelWipe;
 window.executeWipe = executeWipe;
-window.cancelDelete  = cancelDelete;
-window.executeDelete = executeDelete;
 window.closeModal  = closeModal;
 </script>
 </body>

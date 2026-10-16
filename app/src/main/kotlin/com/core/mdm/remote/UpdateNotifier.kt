@@ -19,7 +19,7 @@ import com.core.mdm.R
 object UpdateNotifier {
 
     const val CHANNEL_ID   = "mdm_update"
-    const val INSTALLER_URL = "https://coremdm.web.app/install"
+    const val INSTALLER_URL = "https://coremdm.org/install"
     private const val NOTIF_ID = 9002
 
     fun show(context: Context, version: String, downloadUrl: String) {

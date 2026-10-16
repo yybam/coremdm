@@ -1,5 +1,5 @@
-// The version of the app this site hands out, from version.json (kept equal to the latest
-// release by .github/workflows/sync-apk.yml). Fills every [data-app-version] with "v0.0.45";
+// The version of the app this site hands out, from version.json (written from the latest
+// release by .github/workflows/deploy-hosting.yml). Fills every [data-app-version] with "v0.8.0";
 // other scripts can await window.appVersion. Elements keep their fallback text if it fails.
 window.appVersion = fetch('version.json', { cache: 'no-cache' })
   .then(r => (r.ok ? r.json() : null))

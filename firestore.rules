@@ -2,33 +2,115 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function isSuperAdmin() {
-      return request.auth != null
-          && request.auth.token.email == 'yybamberger1@gmail.com';
+    function isSignedIn() {
+      return request.auth != null;
     }
 
-    match /devices/{deviceId} {
-      allow create: if request.auth != null
-                    && request.resource.data.ownerId == request.auth.uid;
+    function myEmail() {
+      return request.auth.token.email.lower();
+    }
 
-      // Owner, super-admin, or the device itself (matched via deviceUid) can read.
+    // Super admins see and control every device. Matched by email alone — CORE MDM has no email
+    // verification (requiring it locked unverified admins out), so each of these addresses must
+    // already have a CORE MDM account or someone could register it.
+    // Keep in step with SUPER_ADMIN_EMAILS in public/console.html, public/updater.html and storage.rules.
+    function isSuperAdmin() {
+      return isSignedIn()
+          && request.auth.token.email in ['yybamberger1@gmail.com', 'yybambi23@gmail.com',
+                                          'shmuelzevkatz@gmail.com', 'adschochet03@gmail.com'];
+    }
+
+    // ── Organizations ──────────────────────────────────────────────────────────
+    //   organizations/{orgId}                 ownerEmail, adminEmails[] (lowercase, owner included),
+    //                                         joinCode, createdAt, createdBy        — admins only
+    //   organizations/{orgId}/public/profile  name, message, logo (data: URL),
+    //                                         rules { policyKey: { mode: 'locked'|'default', value } }
+    //                                         — readable by any signed-in phone (orgId is random)
+    //   joinCodes/{code}                      orgId — fetched only by exact code, never listed
+    //   devices/{id}.orgId                    the org a phone belongs to
+
+    function orgDoc(orgId) {
+      return get(/databases/$(database)/documents/organizations/$(orgId));
+    }
+
+    function isOrgAdmin(orgId) {
+      return isSignedIn() && myEmail() in orgDoc(orgId).data.adminEmails;
+    }
+
+    match /organizations/{orgId} {
+      allow read: if isSuperAdmin()
+                  || (isSignedIn() && myEmail() in resource.data.adminEmails);
+
+      // Only super admins create or delete organizations.
+      allow create, delete: if isSuperAdmin();
+
+      // Owner: manage the admin list (and can't remove themselves) and the join code.
+      // Other admins: only the join code.
+      allow update: if isSuperAdmin()
+        || (isSignedIn() && resource.data.ownerEmail == myEmail()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['adminEmails', 'joinCode'])
+            && resource.data.ownerEmail in request.resource.data.adminEmails)
+        || (isOrgAdmin(orgId)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['joinCode']));
+
+      match /public/{docId} {
+        allow get: if isSignedIn();
+        allow write: if isSuperAdmin() || isOrgAdmin(orgId);
+      }
+    }
+
+    match /joinCodes/{code} {
+      allow get: if isSignedIn();
+      allow create: if code.size() >= 8
+                    && (isSuperAdmin() || isOrgAdmin(request.resource.data.orgId));
+      allow delete: if isSuperAdmin() || isOrgAdmin(resource.data.orgId);
+    }
+
+    // ── Devices ────────────────────────────────────────────────────────────────
+
+    match /devices/{deviceId} {
+      function oldOrg() { return resource.data.get('orgId', null); }
+      function newOrg() { return request.resource.data.get('orgId', null); }
+
+      // A phone may enter an org only with that org's join code, or because the org's owner
+      // is the signed-in account.
+      function mayEnterOrg(orgId) {
+        return orgId == null
+          || get(/databases/$(database)/documents/joinCodes/$(request.resource.data.joinCode)).data.orgId == orgId
+          || orgDoc(orgId).data.ownerEmail == myEmail();
+      }
+
+      // Outside an org: may join one (rules above). Inside one: may not leave or switch.
+      function orgChangeAllowed() {
+        return (oldOrg() == null && mayEnterOrg(newOrg()))
+            || (oldOrg() != null && newOrg() == oldOrg());
+      }
+
+      allow create: if request.auth != null
+                    && request.resource.data.ownerId == request.auth.uid
+                    && mayEnterOrg(newOrg());
+
+      // Owner, super-admin, the device itself (matched via deviceUid), or its org's admins can read.
       allow read: if request.auth != null
                   && (resource.data.ownerId == request.auth.uid
                       || isSuperAdmin()
                       || resource.data.deviceUid == request.auth.uid);
+      allow read: if oldOrg() != null && isOrgAdmin(oldOrg());
 
       allow update: if request.auth != null
                     && (
-                      // Owner or super-admin can change anything
-                      resource.data.ownerId == request.auth.uid
-                      || isSuperAdmin()
+                      // Super-admin can change anything
+                      isSuperAdmin()
+                      // Owner can change anything, except leaving or switching organization
+                      || (resource.data.ownerId == request.auth.uid && orgChangeAllowed())
                       // The device itself (matched by deviceUid) can update any field
                       // except ownerId — this covers command ACK (resetting lockCommand etc.)
-                      // and heartbeat writes.
+                      // and heartbeat writes. Same organization limits as the owner.
                       || (
                         resource.data.deviceUid == request.auth.uid
                         && !request.resource.data.diff(resource.data).affectedKeys()
                              .hasAny(['ownerId'])
+                        && orgChangeAllowed()
                       )
                       // Bootstrap: any authenticated user may write device-info and heartbeat
                       // fields before deviceUid is set. If deviceUid is included it must
@@ -52,12 +134,20 @@ service cloud.firestore {
                       )
                     );
 
+      // Org admins: only take a phone out of their org — nothing else on it.
+      allow update: if oldOrg() != null && isOrgAdmin(oldOrg())
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['orgId', 'joinCode'])
+                    && newOrg() == null;
+
+      // Deleting would let a phone escape its org, so only phones outside an org can be deleted.
       allow delete: if request.auth != null
-                    && resource.data.ownerId == request.auth.uid;
+                    && resource.data.ownerId == request.auth.uid
+                    && oldOrg() == null;
     }
 
-    // Per-device command queue. Owner/super-admin dispatch and cancel commands; the device
-    // (matched via its parent doc's deviceUid) reads them and marks them executed.
+    // Per-device command queue (messages, app updates, queued lock/reboot/wipe). Owner/super-admin
+    // dispatch and cancel commands; the device (matched via its parent doc's deviceUid) reads
+    // them and marks them executed.
     match /devices/{deviceId}/commands/{cmdId} {
       function parentDevice() {
         return get(/databases/$(database)/documents/devices/$(deviceId)).data;

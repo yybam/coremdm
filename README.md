@@ -4,53 +4,60 @@ An Android Mobile Device Management (MDM) app with a Firebase-powered cloud remo
 
 > **Status: Beta.** Still under active development — expect rough edges and breaking changes between releases.
 
-**Live Web Console:** [https://coremdm.web.app](https://coremdm.web.app)
-**Latest release:** [v0.4.2](https://github.com/yybam/coremdm/releases/latest) (app version 40.0)
+**Website & console:** [https://coremdm.org](https://coremdm.org) · console at [/console](https://coremdm.org/console)
+**App version in this branch:** 0.8.0 (versionCode 57) · [latest release](https://github.com/yybam/coremdm/releases/latest)
 
 ---
 
 ## Features
 
-### Android App
-- Device Owner / Device Admin mode via Android Device Policy Manager
-- Firebase Auth — **email/password and Google Sign-In**
-- Auto-enrolls device to Firestore on sign-in (works for brand-new devices)
-- Optional **enrollment-token** provisioning flow (pre-register a device by IMEI)
-- Foreground service (`MdmCommandService`) keeps a persistent Firestore connection and
-  **re-attaches automatically** if the connection drops
-- Executes all remote commands and policy changes in real time
-- **Mandatory PIN lock** on every app open, with an admin-configurable minimum length (4/6/8)
-- In-app dashboard with local policy controls
-- **Content filter via DNS VPN** (`DnsVpnService`) — on a Device Owner device it
-  self-authorizes (registers as always-on VPN), so the console toggle works with no
-  on-device consent tap
-- Per-app management: hide / suspend individual apps; one-tap **social-media block**
-- Installed-app inventory synced to the console
-- Kiosk / lock-task mode management
-- Telemetry screen
-- Dark-themed Jetpack Compose UI
+### Android app
+- Device Owner / Device Admin mode via Android Device Policy Manager; **QR provisioning**
+  (Android 12+ setup screens included) or USB install from the web installer
+- Firebase Auth — **email/password and Google Sign-In**; auto-enrolls on sign-in, optional
+  enrollment-token provisioning (pre-register a device by IMEI)
+- Foreground service (`MdmCommandService`) keeps a persistent Firestore connection, runs remote
+  commands and applies policies in real time; re-attaches automatically if the connection drops
+- **Content filter** (`vpn/`): local DNS VPN with 10 bundled blocklist groups
+  (`app/src/main/assets/blocklists/`, built by `tools/build-blocklists.mjs`), IPv6-aware
+  subdomain matching, Private DNS guard, always-on with no Stop button; on Device Owner phones the
+  console switches it on with no on-device tap
+- **Screen guard** (accessibility service): blocks parts of apps — WhatsApp Status/Channels,
+  Instagram Reels/Stories/Explore, YouTube Shorts, TikTok feed… — and limits web pages inside apps
+- **App blocking**: WhatsApp, social media and AI chats in one switch each (apps paused, sites
+  blocked), any single app paused or hidden, "only chosen apps can install apps"
+- **Daily app time limits**, kiosk / lock-task mode, screen-time window, scheduled lockdown
+- **Location tracking and geofencing** (lock, alarm or message when a phone leaves an area)
+- Battery, network and app-usage reporting; pop-up **messages** from the console
+- **Organizations**: phones join with a code; an org can lock or default settings and brand the lock screen
+- **Remote-only mode**: locks the app on the phone so settings change only from the console
+- Mandatory **PIN lock** (admin-configurable minimum length 4/6/8)
+- **Self-update**: checks this repo's GitHub releases, or installs an APK pushed from the console;
+  only installs the same app, a higher version, signed with the same key
+- Jetpack Compose UI: tile hub with the "Glass" look shared with the website
 
-### Web Admin Console
-- Real-time device list with online/offline status
-- **Rename** any device to a friendly name
-- Per-device management modal with 7 tabs:
+### Web console (`/console`)
+Device cards with online status, what's switched on, and search across every setting. Per-device tabs:
 
 | Tab | What you can control |
 |-----|----------------------|
-| **Commands** | Sound alarm, Lock screen, Reboot, Full lockdown — queued commands show as **Pending** with a **Cancel** button until the device runs them |
-| **App Policies** | Block installs/uninstalls/sideloading, hide Play Store & browsers, **block social media**, disable camera & screen capture |
-| **Installed Apps** | Every app the device reports (name, package, version), each set to **Allowed / Blocked** (suspended — visible but won't open) **/ Hidden** (removed from the launcher), with search and status counts |
-| **System** | Prevent safe boot / factory reset / debugging, block add-user & user-switch, lock status bar, **set minimum lock-screen PIN length** |
-| **Hardware** | Lock Wi-Fi/Bluetooth/cellular/VPN settings, block USB transfer, disable Bluetooth radio, block outgoing calls, block SD card, protect MDM from uninstall |
-| **Network** | Enforce Private DNS hostname, toggle content filter VPN, manage kiosk allowed packages |
-| **Danger** | Wipe device (with confirmation) |
+| **Commands** | Alarm, lock, reboot, full lockdown (pending until the phone runs them, cancellable); send a message |
+| **Apps** | Quick blocks (WhatsApp, social media, AI chats, in-app browsers), parts of apps, every installed app — hide or block |
+| **Time limits** | Daily minutes per app, with today's usage |
+| **Internet** | Web pages inside apps (per-app allow list), Private DNS, content filter + site groups / allow & block lists, dummy browser, kiosk apps |
+| **Device** | Installing apps (+ installer allow list), keep-rules-in-place (factory reset, safe boot, ADB, app settings, calls, SMS, hotspot, email…), hardware, lock-screen PIN length |
+| **Location & schedule** | Map + location tracking, geofence, screen-time window, scheduled lockdown, battery/network/compliance, app usage |
+| **Danger** | Wipe, remove from account |
+
+Plus **Organizations** (`/org`) and a **Super Admin** view (all devices, activity log, device inventory,
+fleet update notification, `/updater` for pushing an APK to the fleet).
 
 ---
 
 ## Architecture
 
 ```
-Browser (coremdm.web.app)
+Browser (coremdm.org)
     │  writes Firestore documents / queues commands
     ▼
 Firebase Firestore  /devices/{deviceId}  (+ /devices/{deviceId}/commands)
@@ -193,7 +200,7 @@ In this repo both deploy automatically via GitHub Actions (`deploy-hosting.yml`,
 
 ### 5. Use the web console
 
-Open [https://coremdm.web.app](https://coremdm.web.app), sign in with the **same** account
+Open [https://coremdm.org/console](https://coremdm.org/console), sign in with the **same** account
 used on the device. Your enrolled devices appear immediately. Click **Manage** on any device.
 
 ---
@@ -266,7 +273,8 @@ remain there for history.
 
 | Version | Notes |
 |---------|-------|
-| [v0.4.2](https://github.com/yybam/coremdm/releases/tag/v0.4.2) | **Current.** Per-app Allow / Block (suspend) / Hide in the Installed Apps tab; full front-end site at coremdm.web.app with the console at /console.html; centered logo |
+| 0.8.0 (unreleased) | Merge of the MainLoop321 app + site line — see [CHANGELOG](CHANGELOG.md) |
+| [v0.4.2](https://github.com/yybam/coremdm/releases/tag/v0.4.2) | Per-app Allow / Block (suspend) / Hide in the Installed Apps tab; full front-end site with the console at /console.html; centered logo |
 | [v0.4.1](https://github.com/yybam/coremdm/releases/tag/v0.4.1) | Content filter auto-authorizes its VPN on Device Owner devices (toggle works from the console with no on-device tap) |
 | [v0.4.0](https://github.com/yybam/coremdm/releases/tag/v0.4.0) | Cancellable command queue, device rename, installed-apps tab, social-media block, per-app hide, configurable minimum PIN length |
 | [v0.3.2](https://github.com/yybam/coremdm/releases/tag/v0.3.2) | Fixed enrollment of brand-new devices (PERMISSION_DENIED now falls through to create) |
@@ -286,7 +294,7 @@ remain there for history.
 | Android app | Kotlin, Jetpack Compose, Android Device Policy Manager |
 | Backend | Firebase Firestore (real-time), Firebase Auth |
 | Web console | Vanilla JS ES modules, Firebase JS SDK 10.12.2 |
-| Hosting | Firebase Hosting (`coremdm.web.app`) |
+| Hosting | Firebase Hosting (`coremdm.org`, also `coremdm.web.app`) |
 | Build / CI | Gradle 8, Android Gradle Plugin, GitHub Actions |
 
 ---

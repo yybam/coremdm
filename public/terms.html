@@ -3,83 +3,171 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Terms of Service — CORE MDM</title>
-<meta name="description" content="The terms for using CORE MDM, including acceptable use, beta status, and limitations.">
-<link rel="icon" type="image/png" href="/favicon.png">
+<title>Terms of Service · CORE MDM</title>
+<meta name="description" content="The terms for using the CORE MDM app, web installer and web console.">
+<link rel="icon" type="image/png" href="favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="bg" aria-hidden="true"><span class="orb o1"></span><span class="orb o2"></span><span class="orb o3"></span></div>
+<div class="bg" aria-hidden="true">
+  <span class="orb o1"></span><span class="orb o2"></span><span class="orb o3"></span>
+</div>
 
 <nav class="nav">
-  <a class="brand" href="/"><svg class="cmark nav" viewBox="0 0 24 24" aria-hidden="true"><text x="12" y="12.5" text-anchor="middle" dominant-baseline="central" font-weight="800" font-size="15" fill="#fff">C</text></svg> CORE MDM</a>
+  <a class="brand" href="index.html"><img src="logo-mark.png" alt="" width="28" height="34"> CORE MDM</a>
   <div class="links">
     <a href="features.html">Features</a>
-    <a href="demo.html">Demo</a>
+    <a href="demo.html">Try the app</a>
     <a href="faq.html">FAQ</a>
     <a href="about.html">About</a>
-    <a href="https://github.com/yybam/coremdm" target="_blank" rel="noopener">GitHub</a>
+    <a href="organizations.html">Organizations</a>
     <a class="pill ghost-pill" href="console.html">Manage</a>
     <a class="pill" href="install.html">Install</a>
   </div>
 </nav>
 
-<main class="narrow">
-  <header class="hero page-hero">
+<main>
+  <header class="page-hero">
     <p class="eyebrow">Legal</p>
     <h1>Terms of <span class="grad">Service</span></h1>
-    <p class="updated">Last updated: 7 October 2026 · CORE MDM is in beta</p>
+    <p class="updated">Last updated 16 October 2026</p>
   </header>
 
-  <section class="glass prose">
-    <h2>1. Acceptance</h2>
-    <p>By installing or using CORE MDM — the Android app, the web installer, or the web console (together, the "Service") — you agree to these Terms. If you don't agree, don't use the Service.</p>
-
-    <h2>2. Who may use it</h2>
-    <p>You may use CORE MDM only to manage Android devices that <b>you own or are lawfully authorized to manage</b>. You are responsible for having the authority to enroll and control each device, and for complying with all laws that apply to you and to the people who use the devices.</p>
-
-    <h2>3. Acceptable use</h2>
-    <p>CORE MDM is a device-management tool. You agree <b>not</b> to use it to:</p>
+  <section class="glass summary">
+    <h2>The short version</h2>
     <ul>
-      <li>secretly monitor, deceive, stalk, harass or harm any person;</li>
-      <li>manage a device without the authority to do so, or against the law;</li>
-      <li>install it on a device you don't own or aren't responsible for without the informed agreement required by law and by our <a href="consent.html">Consent Policy</a>;</li>
-      <li>interfere with, probe or attack the Service or its infrastructure, except for good-faith security research reported responsibly.</li>
+      <li>Only manage phones you own or have the right to manage, and make sure the people using them know.</li>
+      <li>Never use CORE MDM to secretly monitor or control someone.</li>
+      <li>CORE MDM makes powerful changes to a phone. A wipe can't be undone, and some rules can lock you out if you lose access to your account.</li>
+      <li>Keep your password safe. Anyone who has it can control your phones.</li>
     </ul>
-    <p>Managing a device gives real power over it — including locking and wiping. Use it responsibly and transparently with the people who use the device.</p>
-
-    <h2>4. Your account and devices</h2>
-    <p>You're responsible for your sign-in credentials and for the activity under your account. Devices are tied to the account that signed in on them; keep that account secure. You're responsible for the rules you apply and their effects, including loss of access or data from a lock or wipe.</p>
-
-    <h2>5. Beta software — no warranty</h2>
-    <p>CORE MDM is provided <b>"as is" and "as available"</b>, without warranties of any kind, express or implied, including fitness for a particular purpose and non-infringement. It is beta software and may contain bugs, change, or be interrupted. You use it at your own risk.</p>
-
-    <h2>6. Limitation of liability</h2>
-    <p>To the maximum extent permitted by law, the project, its contributors and maintainers are not liable for any indirect, incidental, special or consequential damages, or for any loss of data, devices, profits or access, arising from your use of the Service.</p>
-
-    <h2>7. Third-party services</h2>
-    <p>The Service uses Google Firebase for authentication and data. Your use of those underlying services is also subject to Google's terms. See our <a href="privacy.html">Privacy Policy</a> for what data is involved.</p>
-
-    <h2>8. Changes and termination</h2>
-    <p>We may update these Terms or the Service at any time. Continued use after a change means you accept it. You may stop using the Service at any time by removing CORE MDM from your devices and signing out of the console.</p>
-
-    <h2>9. Contact</h2>
-    <p>Questions about these Terms? Open an issue on <a href="https://github.com/yybam/coremdm/issues/new" target="_blank" rel="noopener">GitHub</a>.</p>
-
-    <p class="fine">This document is provided for a beta, open-source project and is not legal advice. If you deploy CORE MDM in an organization, review your own legal and regulatory obligations.</p>
   </section>
 
+  <nav class="glass toc" aria-label="Contents">
+    <a href="#agree">Agreeing</a><a href="#service">The Service</a><a href="#account">Your account</a>
+    <a href="#devices">Devices you manage</a><a href="#use">Acceptable use</a><a href="#risks">Important risks</a>
+    <a href="#fees">Fees</a><a href="#software">Our software</a><a href="#availability">Availability</a>
+    <a href="#termination">Ending use</a><a href="#disclaimer">Disclaimer</a><a href="#liability">Liability</a>
+    <a href="#indemnity">Indemnity</a><a href="#law">Governing law</a><a href="#changes">Changes</a><a href="#contact">Contact</a>
+  </nav>
+
+  <article class="glass doc">
+    <section id="agree">
+      <h2>1. Agreeing to these terms</h2>
+      <p>These terms are an agreement between you and CORE MDM USA, based in the United States ("CORE MDM", "we", "us") for your use of the CORE MDM app, web installer and web console (together, "the Service"). By creating an account, installing CORE MDM or using the console, you agree to these terms and to our <a href="privacy.html">Privacy Policy</a>. If you use the Service for an organisation, you agree on its behalf and confirm you're authorised to do so.</p>
+      <p>You must be at least 18, or the age of majority where you live, to create an account.</p>
+    </section>
+
+    <section id="service">
+      <h2>2. The Service</h2>
+      <p>CORE MDM lets you install a device-management app on Android phones, set it as device owner, and then apply rules and send commands to those phones from a web console. Features may change as we improve the Service.</p>
+    </section>
+
+    <section id="account">
+      <h2>3. Your account</h2>
+      <ul>
+        <li>Give accurate information and keep your email address up to date. It's how you recover your account.</li>
+        <li>Keep your password private and use one you don't use anywhere else. You're responsible for everything done through your account.</li>
+        <li>Tell us straight away if you think someone else has accessed your account.</li>
+      </ul>
+    </section>
+
+    <section id="devices">
+      <h2>4. Devices you may manage</h2>
+      <p>You may only install CORE MDM on, and manage, a phone that:</p>
+      <ul>
+        <li>you own; or</li>
+        <li>you are legally allowed to manage, for example as an employer managing company phones, a school managing its own devices, or a parent or guardian managing their child's phone.</li>
+      </ul>
+      <p>You are responsible for telling the people who use a managed phone that it is managed, and for getting any consent the law requires in your country. <b>You must never use CORE MDM to secretly monitor, track or control another adult, or any phone without the permission of its owner.</b></p>
+    </section>
+
+    <section id="use">
+      <h2>5. Acceptable use</h2>
+      <p>You must not:</p>
+      <ul>
+        <li>use the Service to harass, stalk, threaten or harm anyone, or to break any law;</li>
+        <li>try to access devices, accounts or data that aren't yours;</li>
+        <li>interfere with, overload or try to break the security of the Service;</li>
+        <li>copy, resell or offer the Service to others as your own, except as allowed by the open-source licences of its components;</li>
+        <li>use the Service to lock, hold or wipe a phone to pressure or punish someone.</li>
+      </ul>
+      <p>We may suspend accounts or remove devices that break these rules.</p>
+    </section>
+
+    <section id="risks">
+      <h2>6. Important risks: please read</h2>
+      <p>CORE MDM uses Android's device-owner controls. They are powerful by design, and they are hard to reverse.</p>
+      <ul>
+        <li><b>Setup:</b> becoming device owner usually requires a factory-reset phone, or removing every account from it. <b>Back up anything you need first.</b></li>
+        <li><b>Lock-out:</b> rules such as blocking factory reset, safe mode, USB debugging or uninstalling can leave you unable to change or remove CORE MDM without your account. If you lose access to your account, we may not be able to help you regain control of the phone.</li>
+        <li><b>Wipe is permanent:</b> the wipe command erases everything on the phone. It cannot be undone, and we cannot recover the data.</li>
+        <li><b>Removed apps lose their data:</b> when "only chosen apps can install apps" is on, apps installed by any other app are uninstalled automatically, and their data is deleted with them.</li>
+        <li><b>Commands and phone behaviour:</b> alarms, locks, reboots and restrictions affect the person using the phone. Consider their safety. For example, blocking calls may stop them phoning for help, although emergency calls are normally still allowed by Android.</li>
+        <li><b>Different brands behave differently:</b> some manufacturers, including Samsung, add their own protections. Changing apps or settings can cause them to re-enable apps, activate Factory Reset Protection or, in rare cases, stop the phone starting up normally.</li>
+        <li><b>Content filter:</b> no filter blocks everything. Some content may get through, and some legitimate content may be blocked.</li>
+      </ul>
+      <p>Try new rules on one phone before using them on many. You use these features at your own risk.</p>
+    </section>
+
+    <section id="fees">
+      <h2>7. Fees</h2>
+      <p>CORE MDM is currently free to use. If we introduce paid plans, we'll tell you the price before you're charged, and you won't pay for anything you didn't agree to.</p>
+    </section>
+
+    <section id="software">
+      <h2>8. Our software</h2>
+      <p>We give you a personal, non-exclusive, non-transferable right to use the CORE MDM app and console to manage your devices under these terms. The CORE MDM name and logo belong to us. Parts of the software are open source and are covered by their own licences. Nothing in these terms limits your rights under those licences.</p>
+    </section>
+
+    <section id="availability">
+      <h2>9. Availability</h2>
+      <p>We work to keep the Service running, but we can't promise it will always be available, fast or error-free. It depends on the internet, on third-party services such as Google Firebase, and on the phone being online. Commands sent while a phone is offline are applied when it reconnects. We may change, pause or stop features. If we stop the Service entirely, we'll give reasonable notice where we can.</p>
+    </section>
+
+    <section id="termination">
+      <h2>10. Ending your use</h2>
+      <p>You can stop using the Service at any time: remove your devices from management, uninstall CORE MDM (or factory reset the phones), and ask us to delete your account. We may suspend or close your account if you break these terms, if the law requires it, or to protect other users or the Service. Sections 6 and 11 to 14 continue to apply after your use ends.</p>
+    </section>
+
+    <section id="disclaimer">
+      <h2>11. Disclaimer</h2>
+      <p class="caps">The Service is provided "as is" and "as available". To the fullest extent the law allows, we disclaim all warranties, express or implied, including fitness for a particular purpose, merchantability and non-infringement. We do not promise the Service will meet your needs or will block all unwanted content or activity.</p>
+    </section>
+
+    <section id="liability">
+      <h2>12. Limitation of liability</h2>
+      <p class="caps">To the fullest extent the law allows, we are not liable for any indirect, incidental, special or consequential loss, or for loss of data, devices, profits or business, arising from your use of the Service. This includes data erased by a wipe and phones that can no longer be changed or reset. Our total liability for any claim is limited to the amount you paid us, if any, in the 12 months before the claim.</p>
+      <p>Nothing in these terms limits liability that can't be limited by law, such as for death or personal injury caused by negligence, or for fraud.</p>
+    </section>
+
+    <section id="indemnity">
+      <h2>13. Indemnity</h2>
+      <p>If someone makes a claim against us because of phones you managed, how you used the Service, or your breach of these terms or the law, you agree to cover our reasonable costs and losses from that claim.</p>
+    </section>
+
+    <section id="law">
+      <h2>14. Governing law</h2>
+      <p>These terms are governed by the laws that apply where CORE MDM operates. If you're a consumer, you keep any protections the laws of your own country give you.</p>
+    </section>
+
+    <section id="changes">
+      <h2>15. Changes to these terms</h2>
+      <p>We may update these terms. If a change is significant, we'll update the date above and tell account holders before it takes effect. If you keep using the Service after that, you accept the new terms. If you don't agree, stop using the Service.</p>
+    </section>
+
+    <section id="contact">
+      <h2>16. Contact</h2>
+      <p>Questions about these terms? Email us at <a href="mailto:support@techeaz.net">support@techeaz.net</a>.</p>
+    </section>
+  </article>
+
   <footer class="muted foot">
-    <span><span class="cmark foot">C</span> CORE MDM <small>Beta</small></span>
-    <span class="foot-links">
-      <a href="features.html">Features</a><a href="demo.html">Demo</a><a href="faq.html">FAQ</a>
-      <a href="about.html">About</a><a href="install.html">Install</a><a href="console.html">Manage</a>
-      <a href="https://github.com/yybam/coremdm" target="_blank" rel="noopener">GitHub</a>
-      <a href="terms.html">Terms</a><a href="privacy.html">Privacy</a><a href="consent.html">Consent</a>
-    </span>
+  <span><img src="logo-mark.png" alt="" width="18" height="22"> CORE MDM <small>© 2026 CORE MDM</small></span>
+  <span class="foot-links"><a href="features.html">Features</a><a href="demo.html">Try the app</a><a href="faq.html">FAQ</a><a href="about.html">About</a><a href="organizations.html">Organizations</a><a href="install.html">Install</a><a href="console.html">Manage</a><a href="https://github.com/yybam/coremdm" target="_blank" rel="noopener">GitHub</a><a href="terms.html">Terms</a><a href="privacy.html">Privacy</a><a href="consent.html">Consent</a></span>
   </footer>
 </main>
 </body>

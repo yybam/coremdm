@@ -4,6 +4,38 @@ All notable changes to CORE MDM. This project uses `vX.Y.Z` release tags; the An
 its own `versionCode`/`versionName`. See the [Releases page](https://github.com/yybam/coremdm/releases)
 for downloadable APKs.
 
+## v0.8.0 — app 0.8.0 (versionCode 57) — unreleased
+Merges the parallel MainLoop321 line (app 0.0.47 + the `coremdm-site` website) into this repo.
+### Added — phone
+- DNS filter engine: 10 bundled blocklist groups, IPv6-aware subdomain matching, Private DNS
+  guard, always-on with uninstall protection while running (`FilterLockdown`).
+- Screen guard (accessibility service): block parts of apps and web pages inside apps.
+- App blocker for WhatsApp / social media / AI chats (apps paused and their sites blocked),
+  install guard ("only chosen apps can install apps"), daily app time limits.
+- Organizations, remote-only mode, QR provisioning screens for Android 12+, a "blocked link"
+  browser, settings search, new policies: lock app settings, block all calls, hotspot, WebView.
+- Auto-update from this repo's GitHub releases.
+- Glass look and the CORE MDM logo as the launcher icon.
+### Added — console & site
+- Console rebuilt on the grouped layout: Commands, Apps, Time limits, Internet, Device,
+  Location & schedule, Danger; settings search; organizations page; remote-only banner.
+- Kept from v0.7: queued commands + messages, location map & geofence, schedules, status &
+  usage, PIN length, fleet update notification. `/manage` redirects to `/console`.
+- Site moves to **coremdm.org**; one nav/footer and the new logo on every page.
+### Changed
+- One-shot flag commands (lock/reboot/lockdown/wipe) are claimed in a server transaction and
+  ignored when read from cache — a reboot can no longer replay after restart.
+- Changes made on the phone are written back so the console shows them.
+- Every self-update (GitHub or console-pushed) is checked: same app, higher versionCode, same key.
+- Firestore rules: organizations + the command queue + v0.7 status fields; four super admins.
+### Fixed
+- Install results never reached the app (immutable PendingIntent), so update confirmations and
+  restoring the install restriction afterwards didn't run.
+- Hidden apps were left out of the app list, so "Remove MDM" couldn't un-hide them.
+- QR installer used the debug key's checksum, so phones rejected the release APK.
+- Privacy policy, FAQ and About said location is never collected; location tracking exists
+  (off by default) and is now described.
+
 ## [v0.4.9](https://github.com/yybam/coremdm/releases/tag/v0.4.9) — app 0.4.9 (versionCode 46)
 ### Added
 - **Console-controlled update notifications.** A super-admin **"Notify devices of

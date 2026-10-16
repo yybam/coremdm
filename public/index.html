@@ -3,25 +3,27 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CORE MDM — Lock down any Android phone, from your browser</title>
-<meta name="description" content="CORE MDM is an Android device-management app with a web console. Install as device owner over USB or QR, then lock, wipe, filter and restrict any phone from a browser.">
-<link rel="icon" type="image/png" href="/favicon.png">
+<title>CORE MDM · Android device management from your browser</title>
+<meta name="description" content="CORE MDM lets you lock down, filter and remotely control Android phones from a web console. Install it in minutes over USB or with a QR code.">
+<link rel="icon" type="image/png" href="favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
-<body>
-<div class="bg" aria-hidden="true"><span class="orb o1"></span><span class="orb o2"></span><span class="orb o3"></span></div>
+<body class="home">
+<div class="bg" aria-hidden="true">
+  <span class="orb o1"></span><span class="orb o2"></span><span class="orb o3"></span>
+</div>
 
 <nav class="nav">
-  <a class="brand" href="/"><svg class="cmark nav" viewBox="0 0 24 24" aria-hidden="true"><text x="12" y="12.5" text-anchor="middle" dominant-baseline="central" font-weight="800" font-size="15" fill="#fff">C</text></svg> CORE MDM</a>
+  <a class="brand" href="index.html"><img src="logo-mark.png" alt="" width="28" height="34"> CORE MDM</a>
   <div class="links">
     <a href="features.html">Features</a>
-    <a href="demo.html">Demo</a>
+    <a href="demo.html">Try the app</a>
     <a href="faq.html">FAQ</a>
     <a href="about.html">About</a>
-    <a href="https://github.com/yybam/coremdm" target="_blank" rel="noopener">GitHub</a>
+    <a href="organizations.html">Organizations</a>
     <a class="pill ghost-pill" href="console.html">Manage</a>
     <a class="pill" href="install.html">Install</a>
   </div>
@@ -31,19 +33,19 @@
   <!-- ============ HERO ============ -->
   <section class="split hero-home">
     <div>
-      <div class="badge"><span class="pulse"></span> Device-owner control · runs in your browser</div>
-      <h1 class="big">Every Android phone, <span class="grad">under your control.</span></h1>
-      <p class="sub">CORE MDM installs as <b>device owner</b> — the highest control Android allows — then lets you lock, wipe, filter and restrict the phone from a web console. No management server, nothing to install on your computer.</p>
+      <div class="badge"><span class="pulse"></span> Android device management · Android 8.0 and up</div>
+      <h1 class="big">Every Android phone,<br><span class="grad">fully in your control.</span></h1>
+      <p class="lead">CORE MDM turns any Android phone into a managed device. Lock it down, filter content, block apps and settings, and send commands from a web console, in real time, from anywhere.</p>
       <div class="row">
         <a class="btn primary" href="install.html">Install on a phone →</a>
-        <a class="btn ghost" href="console.html">Manage your devices</a>
+        <a class="btn ghost" href="console.html">Manage your CORE MDM</a>
       </div>
-      <p class="fine">Installs from your browser over USB, or by scanning a QR code on a freshly reset phone. Want to see it first? <a href="demo.html">Try the app in your browser</a>.</p>
+      <p class="fine">Installs from your browser over USB, or by scanning a QR code on a freshly reset phone. No software to download. Want to see it first? <a href="demo.html">Try the app in your browser</a>.</p>
     </div>
 
     <!-- console mock -->
     <div class="glass mock" aria-hidden="true">
-      <div class="mock-top"><span></span><span></span><span></span><b>coremdm.web.app</b></div>
+      <div class="mock-top"><span></span><span></span><span></span><b>coremdm.org</b></div>
       <div class="dev">
         <div class="dev-ico"></div>
         <div><b>Galaxy A15</b><small>Android 14 · Device owner</small></div>
@@ -76,34 +78,35 @@
       <h3>Already have CORE MDM?</h3>
       <p>Sign in to the web console to see your phones, send commands and change rules.</p>
     </div>
-    <a class="btn primary" href="console.html">Manage your devices →</a>
+    <a class="btn primary" href="console.html">Manage your CORE MDM →</a>
   </section>
 
   <!-- ============ FEATURES ============ -->
   <section id="features" class="section">
     <p class="eyebrow">Why CORE MDM</p>
     <h2 class="h2">Everything you need to keep a phone locked down</h2>
-    <p class="lead center">CORE MDM runs as <b>device owner</b>, the highest level of control Android allows an app — real restrictions, not settings a user can just switch back.</p>
+    <p class="lead center">CORE MDM runs as <b>device owner</b>, the highest level of control Android allows an app. That means real restrictions, not settings a user can just switch back.</p>
+
     <div class="grid">
       <article class="glass feat">
         <div class="ico"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div>
         <h3>Remote commands</h3>
-        <p>Lock the screen, sound a loud alarm to find a lost phone, reboot, or apply a full lockdown — all cancellable before the phone runs them.</p>
+        <p>Lock the screen, sound a loud alarm to find a lost phone, reboot, or put the phone into full lockdown with one click.</p>
       </article>
       <article class="glass feat">
         <div class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 17.5h7M17.5 14v7"/></svg></div>
         <h3>App control</h3>
-        <p>Block installing, uninstalling and sideloading. Hide the Play Store and browsers, block social media in one toggle, or hide any app from a synced inventory.</p>
+        <p>Block installing, uninstalling and sideloading apps. Hide the Play Store and web browsers. Turn off the camera and screenshots.</p>
       </article>
       <article class="glass feat">
         <div class="ico"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg></div>
         <h3>Tamper-proof</h3>
-        <p>Block factory reset, safe mode and USB debugging, enforce a minimum lock-screen PIN, and protect CORE MDM from being uninstalled.</p>
+        <p>Block factory reset, safe mode and USB debugging, and protect CORE MDM from being uninstalled. The rules stay on.</p>
       </article>
       <article class="glass feat">
         <div class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg></div>
         <h3>Content filter</h3>
-        <p>A built-in DNS filter and enforced Private DNS keep web traffic going through the filter you choose — and on device-owner phones it starts with no on-device tap.</p>
+        <p>A built-in DNS filter and enforced Private DNS keep web traffic going through the filter you choose, on Wi-Fi and mobile data.</p>
       </article>
       <article class="glass feat">
         <div class="ico"><svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M10 18h4"/><path d="M10 7h4v5h-4z"/></svg></div>
@@ -111,12 +114,26 @@
         <p>Lock the phone to only the apps you allow. Great for work phones, kids' phones, and single-purpose devices.</p>
       </article>
       <article class="glass feat">
+        <div class="ico"><svg viewBox="0 0 24 24"><path d="M5 12.5a10 10 0 0 1 14 0M8 15.5a6 6 0 0 1 8 0"/><circle cx="12" cy="19" r="1"/><path d="M3 3l18 18"/></svg></div>
+        <h3>Hardware &amp; network</h3>
+        <p>Lock Wi-Fi, Bluetooth, mobile network and VPN settings. Block USB file transfer, SD cards, adding users, and outgoing calls.</p>
+      </article>
+      <article class="glass feat">
         <div class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M7 11l3-3 3 3 4-4"/></svg></div>
         <h3>Live web console</h3>
-        <p>See every phone with online/offline status and last seen. Changes apply the moment you flip a switch — no refresh, no re-sync.</p>
+        <p>See every phone with online/offline status and last seen. Changes apply the moment you flip a switch, with no refresh or re-sync.</p>
+      </article>
+      <article class="glass feat">
+        <div class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></div>
+        <h3>Private to your account</h3>
+        <p>Phones are tied to the account that signed in on them. Only you can see and manage your devices, and no one else's show up.</p>
+      </article>
+      <article class="glass feat">
+        <div class="ico"><svg viewBox="0 0 24 24"><rect x="2" y="6" width="8" height="15" rx="1.5"/><rect x="14" y="3" width="8" height="18" rx="1.5"/><path d="M5 18h2M17 18h2"/></svg></div>
+        <h3>Works on any brand</h3>
+        <p>Samsung, Google Pixel, Motorola, Xiaomi and more. Any Android phone running Android 8.0 or newer.</p>
       </article>
     </div>
-    <div class="row center" style="margin-top:28px"><a class="btn ghost" href="features.html">See all features →</a></div>
   </section>
 
   <!-- ============ HOW IT WORKS ============ -->
@@ -125,39 +142,61 @@
     <h2 class="h2">Up and running in three steps</h2>
     <div class="how">
       <div class="glass stepc">
-        <span class="num">1</span><h3>Install</h3>
-        <p>Plug the phone into a computer and open our <a href="install.html">web installer</a>, or scan our <a href="install.html#qr">setup QR code</a> on a freshly reset phone. Either way, CORE MDM is installed and set as device owner automatically.</p>
+        <span class="num">1</span>
+        <h3>Install</h3>
+        <p>Plug the phone into a computer and open our <a href="install.html">web installer</a>, or scan our <a href="install.html#qr">setup QR code</a> on a freshly reset phone. Either way, CORE MDM is installed and set as device owner.</p>
       </div>
       <div class="glass stepc">
-        <span class="num">2</span><h3>Sign in</h3>
+        <span class="num">2</span>
+        <h3>Sign in</h3>
         <p>Open CORE MDM on the phone and sign in. The phone registers itself to your account automatically.</p>
       </div>
       <div class="glass stepc">
-        <span class="num">3</span><h3>Manage</h3>
+        <span class="num">3</span>
+        <h3>Manage</h3>
         <p>Open the <a href="console.html">web console</a> with the same account. Your phone is there. Switch on the rules you want.</p>
       </div>
     </div>
   </section>
 
+  <!-- ============ CONTROL LIST ============ -->
+  <section class="section">
+    <p class="eyebrow">Full control</p>
+    <h2 class="h2">What you can switch on</h2>
+    <div class="glass chips-card">
+      <div class="chipgroup"><h4>Commands</h4><span>Lock screen</span><span>Sound alarm</span><span>Reboot</span><span>Full lockdown</span><span>Wipe device</span></div>
+      <div class="chipgroup"><h4>Apps</h4><span>Block installs</span><span>Block uninstalls</span><span>Block sideloading</span><span>Hide Play Store</span><span>Hide browsers</span><span>Disable camera</span><span>Block screenshots</span></div>
+      <div class="chipgroup"><h4>System</h4><span>Block safe mode</span><span>Block factory reset</span><span>Block debugging</span><span>Block new users</span><span>Lock status bar</span></div>
+      <div class="chipgroup"><h4>Hardware</h4><span>Lock Wi-Fi settings</span><span>Lock Bluetooth</span><span>Lock mobile network</span><span>Lock VPN</span><span>Block USB transfer</span><span>Block SD card</span><span>Block outgoing calls</span><span>Uninstall protection</span></div>
+      <div class="chipgroup"><h4>Network</h4><span>Enforce Private DNS</span><span>Content filter</span><span>Kiosk allowed apps</span></div>
+    </div>
+  </section>
+
+  <!-- ============ FAQ ============ -->
+  <section id="faq" class="section narrow">
+    <p class="eyebrow">FAQ</p>
+    <h2 class="h2">Good to know</h2>
+    <details class="glass qa"><summary>Which phones does it work on?</summary><p>Any Android phone running Android 8.0 or newer, from any brand, including Samsung, Google Pixel, Motorola and Xiaomi.</p></details>
+    <details class="glass qa"><summary>Why does the phone need to be reset first?</summary><p>Android only lets an app become device owner on a phone with no accounts signed in. That's a safety rule so no one can quietly take over a phone that's already in use. A fresh or factory-reset phone, with Google sign-in skipped, works every time.</p></details>
+    <details class="glass qa"><summary>What do I need to install it?</summary><p>Either a computer with Chrome or Edge and a USB cable, or no cable at all: factory reset the phone, tap the welcome screen 6 times and scan our <a href="install.html#qr">setup QR code</a>. Our <a href="install.html">web installer</a> walks you through both. There's nothing to download.</p></details>
+    <details class="glass qa"><summary>Can the user just remove it?</summary><p>No. As device owner, CORE MDM can block uninstalling, factory reset, safe mode and USB debugging, so the rules you set stay on.</p></details>
+    <details class="glass qa"><summary>Do I need internet on the phone?</summary><p>The phone gets new commands and rule changes over the internet as soon as they're made. Rules you've already applied keep working even when it's offline.</p></details>
+  </section>
+
   <!-- ============ CTA ============ -->
   <section class="glass cta">
-    <div class="cmark hero" style="width:72px;height:72px;font-size:34px;border-radius:18px;margin:0 auto 10px">C</div>
+    <img src="logo-mark.png" alt="" width="72" height="87">
     <h2 class="h2">Ready to take control?</h2>
     <p class="lead center">Plug in a phone or scan a QR code, and install CORE MDM straight from your browser.</p>
     <div class="row center">
       <a class="btn primary" href="install.html">Start installing →</a>
-      <a class="btn ghost" href="console.html">Manage your devices</a>
+      <a class="btn ghost" href="console.html">Manage your CORE MDM</a>
     </div>
   </section>
 
   <footer class="muted foot">
-    <span><span class="cmark foot">C</span> CORE MDM <small>Beta</small></span>
-    <span class="foot-links">
-      <a href="features.html">Features</a><a href="demo.html">Demo</a><a href="faq.html">FAQ</a>
-      <a href="about.html">About</a><a href="install.html">Install</a><a href="console.html">Manage</a>
-      <a href="https://github.com/yybam/coremdm" target="_blank" rel="noopener">GitHub</a>
-      <a href="terms.html">Terms</a><a href="privacy.html">Privacy</a><a href="consent.html">Consent</a>
-    </span>
+  <span><img src="logo-mark.png" alt="" width="18" height="22"> CORE MDM <small>© 2026 CORE MDM</small></span>
+  <span class="foot-links"><a href="features.html">Features</a><a href="demo.html">Try the app</a><a href="faq.html">FAQ</a><a href="about.html">About</a><a href="organizations.html">Organizations</a><a href="install.html">Install</a><a href="console.html">Manage</a><a href="https://github.com/yybam/coremdm" target="_blank" rel="noopener">GitHub</a><a href="terms.html">Terms</a><a href="privacy.html">Privacy</a><a href="consent.html">Consent</a></span>
   </footer>
 </main>
 </body>

@@ -3,25 +3,27 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>About — CORE MDM</title>
-<meta name="description" content="CORE MDM gives families, schools and businesses device-owner control over Android phones, set up from a browser in about a minute.">
-<link rel="icon" type="image/png" href="/favicon.png">
+<title>About · CORE MDM</title>
+<meta name="description" content="CORE MDM makes real Android device management simple enough to set up from a browser in a minute.">
+<link rel="icon" type="image/png" href="favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="bg" aria-hidden="true"><span class="orb o1"></span><span class="orb o2"></span><span class="orb o3"></span></div>
+<div class="bg" aria-hidden="true">
+  <span class="orb o1"></span><span class="orb o2"></span><span class="orb o3"></span>
+</div>
 
 <nav class="nav">
-  <a class="brand" href="/"><svg class="cmark nav" viewBox="0 0 24 24" aria-hidden="true"><text x="12" y="12.5" text-anchor="middle" dominant-baseline="central" font-weight="800" font-size="15" fill="#fff">C</text></svg> CORE MDM</a>
+  <a class="brand" href="index.html"><img src="logo-mark.png" alt="" width="28" height="34"> CORE MDM</a>
   <div class="links">
     <a href="features.html">Features</a>
-    <a href="demo.html">Demo</a>
+    <a href="demo.html">Try the app</a>
     <a href="faq.html">FAQ</a>
-    <a href="about.html">About</a>
-    <a href="https://github.com/yybam/coremdm" target="_blank" rel="noopener">GitHub</a>
+    <a href="about.html" class="active">About</a>
+    <a href="organizations.html">Organizations</a>
     <a class="pill ghost-pill" href="console.html">Manage</a>
     <a class="pill" href="install.html">Install</a>
   </div>
@@ -29,16 +31,16 @@
 
 <main>
   <header class="hero page-hero">
-    <div class="cmark hero">C</div>
-    <p class="eyebrow">About</p>
+    <img class="logo" src="logo-mark.png" alt="CORE MDM logo" width="191" height="231">
+    <p class="eyebrow">About us</p>
     <h1>Real control, <span class="grad">without the complexity.</span></h1>
     <p class="sub">CORE MDM gives families, schools and businesses the same device-owner control big companies use, set up from a browser in about a minute.</p>
   </header>
 
   <section class="glass prose">
     <h2>Why we built CORE MDM</h2>
-    <p>Locking down an Android phone properly has always meant enterprise software, a management server and an IT department. The apps anyone could install were easy to get around — a restart into safe mode or a quick factory reset, and the rules were gone.</p>
-    <p>CORE MDM runs as <b>device owner</b>, the highest level of control Android gives an app. The rules you set are enforced by Android itself, not by an app the user can close. We made installing it as simple as plugging in a cable, and managing it as simple as flipping a switch in a web page.</p>
+    <p>Locking down an Android phone properly has always meant enterprise software, a management server and an IT department. The apps anyone could install were easy to get around. A restart into safe mode or a quick factory reset, and the rules were gone.</p>
+    <p>CORE MDM runs as <b>device owner</b>, the highest level of control Android gives an app. That means the rules you set are enforced by Android itself, not by an app the user can close. We made installing it as simple as plugging in a cable, and managing it as simple as flipping a switch in a web page.</p>
   </section>
 
   <div class="about-grid">
@@ -62,30 +64,24 @@
   <section class="glass prose">
     <h2>What we believe</h2>
     <p><b>Your devices are yours.</b> Phones are tied to the account that signed in on them. No one else can see or manage them.</p>
-    <p><b>Control, not surveillance.</b> CORE MDM manages what a phone <i>can do</i>. It doesn't read messages, track location or record browsing history. Read exactly what we collect in our <a href="privacy.html">Privacy Policy</a>.</p>
+    <p><b>Control, not surveillance.</b> CORE MDM manages what a phone <i>can do</i>. It doesn't read messages or record browsing history, and it only reports a phone's location if you switch location tracking on. Read exactly what we collect in our <a href="privacy.html">Privacy Policy</a>.</p>
     <p><b>Nothing to install on your computer.</b> The installer and the console both run in your browser.</p>
-    <p><b>Use it openly.</b> CORE MDM is for devices you own or are responsible for, with the knowledge of the people who use them. It's not a tool for secretly monitoring anyone. See our <a href="terms.html">Terms of Service</a> and <a href="consent.html">Consent Policy</a>.</p>
+    <p><b>Use it openly.</b> CORE MDM is for devices you own or are responsible for, with the knowledge of the people who use them. It's not a tool for secretly monitoring anyone. See our <a href="terms.html">Terms of Service</a>.</p>
   </section>
 
-  <section class="glass prose">
-    <h2>Open and inspectable</h2>
-    <p>CORE MDM is developed in the open. The Android app, the web console and the installer are all on <a href="https://github.com/yybam/coremdm" target="_blank" rel="noopener">GitHub</a>, with full documentation on the <a href="https://github.com/yybam/coremdm/wiki" target="_blank" rel="noopener">wiki</a>. It's in active beta — expect steady improvements.</p>
-  </section>
 
   <section class="glass manage">
     <div class="ico big-ico"><svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M10 18h4"/><path d="M12 6v6M9.5 9.5 12 12l2.5-2.5"/></svg></div>
-    <div class="manage-text"><h3>Ready to set up a phone?</h3><p>Plug it in and install CORE MDM straight from your browser.</p></div>
+    <div class="manage-text">
+      <h3>Ready to set up a phone?</h3>
+      <p>Plug it in and install CORE MDM straight from your browser.</p>
+    </div>
     <a class="btn primary" href="install.html">Start installing →</a>
   </section>
 
   <footer class="muted foot">
-    <span><span class="cmark foot">C</span> CORE MDM <small>Beta</small></span>
-    <span class="foot-links">
-      <a href="features.html">Features</a><a href="demo.html">Demo</a><a href="faq.html">FAQ</a>
-      <a href="about.html">About</a><a href="install.html">Install</a><a href="console.html">Manage</a>
-      <a href="https://github.com/yybam/coremdm" target="_blank" rel="noopener">GitHub</a>
-      <a href="terms.html">Terms</a><a href="privacy.html">Privacy</a><a href="consent.html">Consent</a>
-    </span>
+  <span><img src="logo-mark.png" alt="" width="18" height="22"> CORE MDM <small>© 2026 CORE MDM</small></span>
+  <span class="foot-links"><a href="features.html">Features</a><a href="demo.html">Try the app</a><a href="faq.html">FAQ</a><a href="about.html">About</a><a href="organizations.html">Organizations</a><a href="install.html">Install</a><a href="console.html">Manage</a><a href="https://github.com/yybam/coremdm" target="_blank" rel="noopener">GitHub</a><a href="terms.html">Terms</a><a href="privacy.html">Privacy</a><a href="consent.html">Consent</a></span>
   </footer>
 </main>
 </body>

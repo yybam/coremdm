@@ -23,8 +23,10 @@ class DnsFilter private constructor(context: Context) {
 
         /** Hosts the app itself and the phone need. Each entry also covers its subdomains. */
         val NEVER_BLOCK = listOf(
-            // Our own site
-            "coremdm.vercel.app",
+            // Our own site (custom domain + Firebase Hosting default)
+            "coremdm.org", "coremdm.web.app",
+            // Fleet-updater APKs uploaded from the console
+            "firebasestorage.googleapis.com",
             // Firebase: email sign-in, Firestore, push messages
             "identitytoolkit.googleapis.com", "securetoken.googleapis.com",
             "firestore.googleapis.com", "firebaseinstallations.googleapis.com",

@@ -1,0 +1,657 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Organizations · CORE MDM</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="manage.css">
+<link rel="stylesheet" href="org.css">
+</head>
+<body class="console-page">
+<div class="bg" aria-hidden="true">
+  <span class="orb o1"></span><span class="orb o2"></span><span class="orb o3"></span>
+</div>
+
+<nav class="nav">
+  <a class="brand" href="index.html"><img src="logo-mark.png" alt="" width="28" height="34"> CORE MDM</a>
+  <div class="links">
+    <a href="features.html">Features</a>
+    <a href="demo.html">Try the app</a>
+    <a href="faq.html">FAQ</a>
+    <a href="about.html">About</a>
+    <a href="organizations.html">Organizations</a>
+    <a class="pill ghost-pill" href="console.html">Manage</a>
+    <a class="pill" href="install.html">Install</a>
+  </div>
+</nav>
+
+<main class="wide console-main">
+
+<!-- ─── Login ──────────────────────────────────────────── -->
+<div id="s-login" class="cx">
+  <div class="login-card animate-slideUp">
+    <img class="login-logo" src="logo-mark.png" alt="CORE MDM logo" width="191" height="231">
+    <h1 class="login-h">Organizations on <span class="grad">CORE MDM</span></h1>
+    <p class="login-title">For charities, schools, groups and companies: one set of rules for every phone, with your own logo on the lock screen.</p>
+    <div class="field">
+      <label for="inp-email">Email</label>
+      <input type="email" id="inp-email" placeholder="you@example.com" autocomplete="username">
+    </div>
+    <div class="field">
+      <label for="inp-pass">Password</label>
+      <input type="password" id="inp-pass" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <div id="login-msg"></div>
+    <button id="btn-login">Sign in</button>
+    <p class="login-legal">Forgot your password? Reset it on the <a href="console.html">Manage</a> page.</p>
+  </div>
+</div>
+
+<!-- ─── Organization list ──────────────────────────────── -->
+<div id="s-orgs" class="cx">
+  <div class="console-bar">
+    <div>
+      <h1 class="console-h">Organizations <span class="sa-badge" id="sa-badge" hidden>SUPER ADMIN</span></h1>
+      <p class="console-sub">One set of rules for a whole group of phones, with your own lock screen.</p>
+    </div>
+    <div class="console-actions">
+      <a class="btn-sec org-link" href="console.html">&#8592; My devices</a>
+      <button class="btn-sec" data-signout>Sign out</button>
+    </div>
+  </div>
+
+  <div class="org-card" id="create-card" hidden>
+    <h2>Create an organization</h2>
+    <p class="apps-meta">Only super admins can do this. The owner signs in with this email to manage it and can add more admins.</p>
+    <div class="org-form">
+      <div class="field"><label for="new-org-name">Organization name</label><input id="new-org-name" type="text" placeholder="e.g. Kehilat Ohr"></div>
+      <div class="field"><label for="new-org-owner">Owner's email</label><input id="new-org-owner" type="email" placeholder="admin@example.org"></div>
+      <button class="btn-pri" id="btn-create-org">Create</button>
+    </div>
+  </div>
+
+  <div class="org-card">
+    <h2 id="orgs-title">Your organizations</h2>
+    <p class="apps-meta" id="orgs-sub">Organizations you are an admin of.</p>
+    <div class="org-list" id="org-list"></div>
+  </div>
+</div>
+
+<!-- ─── One organization ───────────────────────────────── -->
+<div id="s-org" class="cx">
+  <div class="console-bar">
+    <div>
+      <h1 class="console-h" id="org-title">Organization</h1>
+      <p class="console-sub" id="org-sub"></p>
+    </div>
+    <div class="console-actions">
+      <button class="btn-sec" id="btn-back">&#8592; All organizations</button>
+      <button class="btn-sec" data-signout>Sign out</button>
+    </div>
+  </div>
+  <div class="org-tabs" id="org-tabs"></div>
+  <div id="org-body"></div>
+</div>
+
+<footer class="muted foot">
+  <span><img src="logo-mark.png" alt="" width="18" height="22"> CORE MDM <small>© 2026 CORE MDM</small></span>
+  <span class="foot-links"><a href="features.html">Features</a><a href="demo.html">Try the app</a><a href="faq.html">FAQ</a><a href="about.html">About</a><a href="organizations.html">Organizations</a><a href="install.html">Install</a><a href="console.html">Manage</a><a href="https://github.com/yybam/coremdm" target="_blank" rel="noopener">GitHub</a><a href="terms.html">Terms</a><a href="privacy.html">Privacy</a><a href="consent.html">Consent</a></span>
+</footer>
+</main>
+
+<!-- ─── Confirm dialog ─────────────────────────────────── -->
+<div id="confirm-dlg" class="cx" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+  <div class="wipe-backdrop animate-fadeIn" data-confirm="no"></div>
+  <div class="wipe-dialog confirm-dialog animate-slideUp">
+    <h2 id="confirm-title"></h2>
+    <p id="confirm-body"></p>
+    <div class="wipe-btns">
+      <button class="btn-cancel" data-confirm="no">Cancel</button>
+      <button class="btn-confirm" id="confirm-yes" data-confirm="yes">Confirm</button>
+    </div>
+  </div>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged }
+  from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import { getFirestore, collection, query, where, onSnapshot, doc, getDoc, updateDoc, writeBatch,
+         serverTimestamp, arrayUnion, arrayRemove, deleteField, FieldPath }
+  from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { ORG_SETTING_GROUPS, orgRule } from './policies.js';
+
+const app = initializeApp({
+  apiKey:            "AIzaSyCWew6jKeAyEMUWY1DYjuzhxH0jSke3JhE",
+  authDomain:        "techeaz-core-mdm.firebaseapp.com",
+  projectId:         "techeaz-core-mdm",
+  storageBucket:     "techeaz-core-mdm.firebasestorage.app",
+  messagingSenderId: "457812602789",
+  appId:             "1:457812602789:web:28f6e7ab364eef8738424c"
+});
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+// Must match isSuperAdmin() in firestore.rules.
+const SUPER_ADMIN_EMAILS = ['yybambi23@gmail.com', 'shmuelzevkatz@gmail.com', 'adschochet03@gmail.com'];
+const LOGO_MAX_PX    = 256;
+const LOGO_MAX_BYTES = 200 * 1024;
+const CODE_ALPHABET  = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';   // no 0/O, 1/I/L
+const TABS = [
+  { id:'brand',  label:'Lock screen' },
+  { id:'rules',  label:'Rules' },
+  { id:'phones', label:'Phones' },
+  { id:'join',   label:'Join code' },
+  { id:'admins', label:'Admins' },
+];
+
+let me = '';                  // signed-in email, lowercase
+let isSuperAdmin = false;
+const orgs = {};              // orgId → { org, profile }
+let unsubOrgs = null;
+const profileUnsubs = {};
+let currentId = null;
+let currentTab = 'brand';
+let unsubPhones = null;
+let phones = [];
+let draft = null;             // unsaved lock-screen edits
+
+// ── Utilities ──────────────────────────────────────────────
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+let toastTimer;
+function toast(msg, kind = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show ' + kind;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.className = ''; }, 3500);
+}
+function askConfirm({ title, body, confirmLabel = 'Confirm', danger = false }) {
+  const dlg = document.getElementById('confirm-dlg');
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-body').textContent = body;
+  const yes = document.getElementById('confirm-yes');
+  yes.textContent = confirmLabel;
+  yes.classList.toggle('btn-confirm-wipe', danger);
+  dlg.style.display = 'flex';
+  return new Promise(resolve => {
+    dlg.onclick = e => {
+      const v = e.target.closest('[data-confirm]')?.dataset.confirm;
+      if (!v) return;
+      dlg.style.display = 'none';
+      dlg.onclick = null;
+      resolve(v === 'yes');
+    };
+  });
+}
+function newCode() {
+  const bytes = crypto.getRandomValues(new Uint8Array(8));
+  return Array.from(bytes, b => CODE_ALPHABET[b % CODE_ALPHABET.length]).join('');
+}
+function timeSince(ms) {
+  if (!ms) return 'never';
+  const s = Math.floor((Date.now() - ms) / 1000);
+  if (s < 60) return 'just now';
+  if (s < 3600) return Math.floor(s / 60) + ' min ago';
+  if (s < 86400) return Math.floor(s / 3600) + ' h ago';
+  return Math.floor(s / 86400) + ' days ago';
+}
+function show(id) {
+  for (const s of ['s-login', 's-orgs', 's-org']) document.getElementById(s).style.display = s === id ? 'flex' : 'none';
+}
+const orgRef     = id => doc(db, 'organizations', id);
+const profileRef = id => doc(db, 'organizations', id, 'public', 'profile');
+const cur        = () => orgs[currentId] || { org: {}, profile: {} };
+const isOwner    = () => cur().org.ownerEmail === me;
+
+// ── Auth ───────────────────────────────────────────────────
+document.getElementById('btn-login').addEventListener('click', async () => {
+  const email = document.getElementById('inp-email').value.trim();
+  const pass  = document.getElementById('inp-pass').value;
+  const msg   = document.getElementById('login-msg');
+  msg.textContent = '';
+  if (!email || !pass) { msg.textContent = 'Enter email and password.'; return; }
+  try { await signInWithEmailAndPassword(auth, email, pass); }
+  catch (e) {
+    msg.textContent = (e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password')
+      ? 'Incorrect email or password.' : e.message;
+  }
+});
+document.getElementById('inp-pass').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('btn-login').click();
+});
+document.querySelectorAll('[data-signout]').forEach(b => b.addEventListener('click', () => signOut(auth)));
+
+onAuthStateChanged(auth, user => {
+  stopAll();
+  if (!user) { show('s-login'); return; }
+  me = (user.email || '').toLowerCase();
+  isSuperAdmin = SUPER_ADMIN_EMAILS.includes(me);
+  document.getElementById('sa-badge').hidden = !isSuperAdmin;
+  document.getElementById('create-card').hidden = !isSuperAdmin;
+  document.getElementById('orgs-title').textContent = isSuperAdmin ? 'All organizations' : 'Your organizations';
+  document.getElementById('orgs-sub').textContent = isSuperAdmin
+    ? 'Every organization on CORE MDM.' : 'Organizations you are an admin of.';
+  show('s-orgs');
+  watchOrgs();
+});
+
+function stopAll() {
+  if (unsubOrgs) { unsubOrgs(); unsubOrgs = null; }
+  for (const k of Object.keys(profileUnsubs)) { profileUnsubs[k](); delete profileUnsubs[k]; }
+  for (const k of Object.keys(orgs)) delete orgs[k];
+  closeOrg();
+}
+
+// ── Organization list ──────────────────────────────────────
+function watchOrgs() {
+  const q = isSuperAdmin
+    ? collection(db, 'organizations')
+    : query(collection(db, 'organizations'), where('adminEmails', 'array-contains', me));
+  unsubOrgs = onSnapshot(q, snap => {
+    const seen = new Set();
+    snap.forEach(d => {
+      seen.add(d.id);
+      orgs[d.id] = { org: d.data(), profile: orgs[d.id]?.profile || {} };
+      if (!profileUnsubs[d.id]) {
+        profileUnsubs[d.id] = onSnapshot(profileRef(d.id), p => {
+          if (!orgs[d.id]) return;
+          orgs[d.id].profile = p.exists() ? p.data() : {};
+          renderList();
+          if (currentId === d.id) renderOrg(false);
+        });
+      }
+    });
+    for (const id of Object.keys(orgs)) if (!seen.has(id)) {
+      delete orgs[id];
+      profileUnsubs[id]?.(); delete profileUnsubs[id];
+      if (currentId === id) { closeOrg(); toast('That organization was deleted', 'bad'); }
+    }
+    renderList();
+    if (currentId) renderOrg(false);
+  }, err => { console.error(err); toast('Could not load organizations: ' + err.message, 'bad'); });
+}
+
+function renderList() {
+  const list = document.getElementById('org-list');
+  const ids = Object.keys(orgs).sort((a, b) =>
+    (orgs[a].profile.name || '').localeCompare(orgs[b].profile.name || ''));
+  if (!ids.length) {
+    list.innerHTML = `<div class="org-empty">${isSuperAdmin
+      ? 'No organizations yet. Create the first one above.'
+      : 'You are not an admin of any organization. Organizations are set up by CORE MDM — get in touch through the <a href="about.html">About</a> page.'}</div>`;
+    return;
+  }
+  list.innerHTML = ids.map(id => {
+    const { org, profile } = orgs[id];
+    return `<button class="org-tile" onclick="window._org.openOrg('${id}')">
+      <img class="org-tile-logo" src="${esc(profile.logo || 'logo-mark.png')}" alt="">
+      <div><div class="org-tile-name">${esc(profile.name || 'Unnamed organization')}</div>
+      <div class="org-tile-sub">Owner: ${esc(org.ownerEmail)}</div></div>
+    </button>`;
+  }).join('');
+}
+
+document.getElementById('btn-create-org').addEventListener('click', async () => {
+  const name  = document.getElementById('new-org-name').value.trim();
+  const owner = document.getElementById('new-org-owner').value.trim().toLowerCase();
+  if (!name || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(owner)) { toast('Enter a name and a valid owner email', 'bad'); return; }
+  const ok = await askConfirm({ title: `Create “${name}”?`, confirmLabel: 'Create',
+    body: `${owner} becomes the owner. They sign in on this page with that email to set up the lock screen, rules and admins.` });
+  if (!ok) return;
+  const ref  = doc(collection(db, 'organizations'));
+  const code = newCode();
+  const b = writeBatch(db);
+  b.set(ref, { ownerEmail: owner, adminEmails: [owner], joinCode: code, createdAt: serverTimestamp(), createdBy: me });
+  b.set(profileRef(ref.id), { name, message: '', logo: '', rules: {} });
+  b.set(doc(db, 'joinCodes', code), { orgId: ref.id });
+  try {
+    await b.commit();
+    document.getElementById('new-org-name').value = '';
+    document.getElementById('new-org-owner').value = '';
+    toast(`${name} created`, 'ok');
+  } catch (e) { toast('Create failed: ' + e.message, 'bad'); }
+});
+
+// ── One organization ───────────────────────────────────────
+function openOrg(id) {
+  currentId = id;
+  currentTab = 'brand';
+  draft = null;
+  if (unsubPhones) unsubPhones();
+  unsubPhones = onSnapshot(query(collection(db, 'devices'), where('orgId', '==', id)), snap => {
+    phones = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (currentTab === 'phones') renderOrg(false);
+    renderHeader();
+  }, err => { console.error(err); toast('Could not load phones: ' + err.message, 'bad'); });
+  show('s-org');
+  renderOrg(true);
+}
+function closeOrg() {
+  if (unsubPhones) { unsubPhones(); unsubPhones = null; }
+  currentId = null;
+  phones = [];
+  draft = null;
+  if (document.getElementById('s-org').style.display === 'flex') show('s-orgs');
+}
+document.getElementById('btn-back').addEventListener('click', () => { closeOrg(); show('s-orgs'); });
+
+function renderHeader() {
+  const { org, profile } = cur();
+  document.getElementById('org-title').textContent = profile.name || 'Organization';
+  document.getElementById('org-sub').textContent =
+    `${phones.length} phone${phones.length === 1 ? '' : 's'} · owner ${org.ownerEmail || '—'}${isOwner() ? ' (you)' : ''}`;
+  document.getElementById('org-tabs').innerHTML = TABS.map(t =>
+    `<button class="tab-btn${t.id === currentTab ? ' active' : ''}" onclick="window._org.switchTab('${t.id}')">${t.label}</button>`).join('');
+}
+function switchTab(id) { currentTab = id; renderOrg(true); }
+
+/** `full` re-renders even while the user is typing; snapshot updates pass false. */
+function renderOrg(full) {
+  if (!currentId) return;
+  renderHeader();
+  if (!full && currentTab === 'brand' && draft) return;   // keep unsaved edits
+  if (!full && document.activeElement?.closest?.('#org-body input, #org-body textarea')) return;
+  const body = document.getElementById('org-body');
+  switch (currentTab) {
+    case 'brand':  body.innerHTML = renderBrand(); break;
+    case 'rules':  body.innerHTML = renderRules(); break;
+    case 'phones': body.innerHTML = renderPhones(); break;
+    case 'join':   body.innerHTML = renderJoin(); break;
+    case 'admins': body.innerHTML = renderAdmins(); break;
+  }
+}
+
+// ── Lock screen ────────────────────────────────────────────
+function brandValues() {
+  const p = cur().profile;
+  return draft || { name: p.name || '', message: p.message || '', logo: p.logo || '' };
+}
+function renderBrand() {
+  const v = brandValues();
+  return `<div class="org-card"><div class="brand-grid">
+    <div>
+      <h2>Lock screen</h2>
+      <p class="apps-meta">Shown on every phone in this organization when the CORE MDM app is locked. The CORE MDM logo stays small at the bottom.</p>
+      <div class="field"><label>Logo</label>
+        <div class="logo-pick">
+          <img src="${esc(v.logo || 'logo-mark.png')}" alt="">
+          <div class="org-row">
+            <label class="btn-sec" style="cursor:pointer">Choose image…<input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden onchange="window._org.pickLogo(this)"></label>
+            ${v.logo ? '<button class="btn-sec" onclick="window._org.editBrand(\'logo\',\'\')">Remove</button>' : ''}
+          </div>
+        </div>
+        <p class="apps-meta" style="margin-top:6px">PNG, JPG or WebP. It's shrunk to fit ${LOGO_MAX_PX}×${LOGO_MAX_PX}.</p>
+      </div>
+      <div class="field"><label for="b-name">Name</label>
+        <input id="b-name" type="text" maxlength="40" value="${esc(v.name)}" oninput="window._org.editBrand('name', this.value)"></div>
+      <div class="field"><label for="b-msg">Message</label>
+        <textarea id="b-msg" maxlength="160" placeholder="e.g. Property of Kehilat Ohr — if found please call 03-1234567" oninput="window._org.editBrand('message', this.value)">${esc(v.message)}</textarea></div>
+      <div class="org-row">
+        <button class="btn-pri" onclick="window._org.saveBrand()" ${draft ? '' : 'disabled'}>Save</button>
+        ${draft ? '<button class="btn-sec" onclick="window._org.discardBrand()">Discard changes</button>' : '<span class="apps-meta">Saved</span>'}
+      </div>
+    </div>
+    <div id="pv">${preview(v)}</div>
+  </div></div>`;
+}
+function preview(v) {
+  return `<div class="phone-preview" aria-label="Lock screen preview">
+    <img class="pv-logo" src="${esc(v.logo || 'logo-mark.png')}" alt="">
+    <div class="pv-name">${esc(v.name || 'Your organization')}</div>
+    ${v.message ? `<div class="pv-msg">${esc(v.message)}</div>` : ''}
+    <div class="pv-dots"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    <div class="pv-keys">${[1,2,3,4,5,6,7,8,9].map(n => `<span>${n}</span>`).join('')}</div>
+    <div class="pv-core"><img src="logo-mark.png" alt="">Protected by CORE MDM</div>
+  </div>`;
+}
+function editBrand(field, value) {
+  draft = { ...brandValues(), [field]: value };
+  if (field === 'logo') renderOrg(true);
+  else {
+    document.getElementById('pv').innerHTML = preview(draft);
+    const saveRow = document.querySelector('#org-body .btn-pri');
+    if (saveRow?.disabled) renderOrgKeepFocus();
+  }
+}
+// First edit enables Save; re-render once, keeping the caret where it was.
+function renderOrgKeepFocus() {
+  const el = document.activeElement, id = el?.id, pos = el?.selectionStart;
+  renderOrg(true);
+  const again = id && document.getElementById(id);
+  if (again) { again.focus(); try { again.setSelectionRange(pos, pos); } catch {} }
+}
+function pickLogo(input) {
+  const file = input.files?.[0];
+  if (!file) return;
+  const img = new Image();
+  img.onload = () => {
+    const scale = Math.min(1, LOGO_MAX_PX / Math.max(img.width, img.height));
+    const c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round(img.width * scale));
+    c.height = Math.max(1, Math.round(img.height * scale));
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    let url = c.toDataURL('image/png');
+    if (url.length > LOGO_MAX_BYTES) url = c.toDataURL('image/webp', 0.85);
+    URL.revokeObjectURL(img.src);
+    if (url.length > LOGO_MAX_BYTES) { toast('That image is too detailed — try a simpler logo', 'bad'); return; }
+    editBrand('logo', url);
+  };
+  img.onerror = () => toast("Couldn't read that image", 'bad');
+  img.src = URL.createObjectURL(file);
+}
+async function saveBrand() {
+  if (!draft) return;
+  const v = { name: draft.name.trim(), message: draft.message.trim(), logo: draft.logo };
+  if (!v.name) { toast('The organization needs a name', 'bad'); return; }
+  try {
+    await updateDoc(profileRef(currentId), v);
+    draft = null;
+    toast('Lock screen saved — phones update when they are next online', 'ok');
+    renderOrg(true);
+  } catch (e) { toast('Save failed: ' + e.message, 'bad'); }
+}
+function discardBrand() { draft = null; renderOrg(true); }
+
+// ── Rules ──────────────────────────────────────────────────
+function renderRules() {
+  const rules = cur().profile.rules || {};
+  const groups = ORG_SETTING_GROUPS.map(g => `
+    <div class="net-section"><h3>${esc(g.title)}</h3>
+      ${g.items.map(item => ruleRow(item, orgRule(rules, item.key))).join('')}
+    </div>`).join('');
+  return `<div class="org-card">
+    <h2>Rules for every phone</h2>
+    <div class="rule-legend">
+      <div><b>Open</b> — each phone's own admin decides.</div>
+      <div><b>Default</b> — applies to every phone unless that phone's admin changes it.</div>
+      <div><b>🔒 Locked</b> — applies to every phone and nobody else can change it.</div>
+    </div>
+    ${groups}
+  </div>`;
+}
+function ruleRow(item, rule) {
+  const mode = rule?.mode || 'open';
+  const k = esc(item.key);
+  const seg = (m, label) =>
+    `<button class="${mode === m ? 'on' : ''}${m === 'locked' ? ' locked' : ''}" onclick="window._org.setRule('${k}','${m}')">${label}</button>`;
+  return `<div class="rule-row">
+    <div class="policy-info"><div class="policy-label">${esc(item.label)}</div><div class="policy-sub">${esc(item.sub)}</div></div>
+    <div class="rule-ctl">
+      <div class="seg">${seg('open', 'Open')}${seg('default', 'Default')}${seg('locked', '🔒 Locked')}</div>
+      <label class="toggle${mode === 'open' ? ' toggle-locked' : ''}" title="${mode === 'open' ? 'Choose Default or Locked first' : 'On or off for every phone'}">
+        <input type="checkbox" ${rule?.value ? 'checked' : ''} ${mode === 'open' ? 'disabled' : ''} onchange="window._org.setRuleValue('${k}', this.checked, this)">
+        <span class="toggle-track"></span><span class="toggle-thumb"></span>
+      </label>
+    </div>
+  </div>`;
+}
+function itemLabel(key) {
+  for (const g of ORG_SETTING_GROUPS) for (const i of g.items) if (i.key === key) return i.label;
+  return key;
+}
+async function writeRule(key, rule) {
+  try {
+    await updateDoc(profileRef(currentId), new FieldPath('rules', key), rule ?? deleteField());
+    return true;
+  } catch (e) { toast('Update failed: ' + e.message, 'bad'); return false; }
+}
+async function setRule(key, mode) {
+  const old = orgRule(cur().profile.rules, key);
+  if ((old?.mode || 'open') === mode) return;
+  const label = itemLabel(key);
+  const value = old?.value === true;
+  if (mode === 'locked') {
+    const ok = await askConfirm({ title: `Lock “${label}”?`, confirmLabel: 'Lock it',
+      body: `Every phone in ${cur().profile.name || 'this organization'} gets “${label}” ${value ? 'ON' : 'OFF'}, and nobody else can change it — not on the website and not on the phone.` });
+    if (!ok) { renderOrg(true); return; }
+  }
+  if (await writeRule(key, mode === 'open' ? null : { mode, value })) {
+    toast(`${label}: ${mode === 'open' ? 'open' : mode === 'locked' ? 'locked ' + (value ? 'on' : 'off') : 'default ' + (value ? 'on' : 'off')}`, 'ok');
+  }
+}
+async function setRuleValue(key, value, el) {
+  const old = orgRule(cur().profile.rules, key);
+  if (!old) { if (el) el.checked = !value; return; }
+  if (!(await writeRule(key, { mode: old.mode, value }))) { if (el) el.checked = !value; return; }
+  toast(`${itemLabel(key)}: ${old.mode} ${value ? 'on' : 'off'}`, 'ok');
+}
+
+// ── Phones ─────────────────────────────────────────────────
+function renderPhones() {
+  const rows = phones
+    .sort((a, b) => (a.name || a.model || '').localeCompare(b.name || b.model || ''))
+    .map(p => {
+      const seen = p.lastSeen?.toMillis?.() ?? null;
+      const online = p.status === 'online' && seen && Date.now() - seen < 10 * 60 * 1000;
+      return `<div class="list-row">
+        <div><div class="policy-label">${esc(p.name || p.model || 'Phone')}</div>
+          <div class="list-sub">${esc(p.name ? p.model : '')}${p.name ? ' · ' : ''}${esc(p.osVersion || '')} · ${online ? 'online' : 'last seen ' + timeSince(seen)}</div></div>
+        <button class="btn-danger-sm" onclick="window._org.removePhone('${esc(p.id)}')">Remove from organization</button>
+      </div>`;
+    }).join('');
+  return `<div class="org-card">
+    <h2>Phones</h2>
+    <p class="apps-meta">Phones join with the join code, or automatically when they are signed into the owner's account.
+      Each phone's own admin still manages it on the Manage page — within your rules.</p>
+    ${rows || '<div class="org-empty">No phones yet. Give the join code to whoever sets up the phones.</div>'}
+  </div>`;
+}
+async function removePhone(id) {
+  const p = phones.find(x => x.id === id);
+  const name = p?.name || p?.model || 'this phone';
+  const ok = await askConfirm({ title: `Remove ${name}?`, confirmLabel: 'Remove', danger: true,
+    body: `${name} leaves ${cur().profile.name || 'the organization'}. Your rules and lock screen stop applying to it the next time it is online. Its own admin keeps managing it.` });
+  if (!ok) return;
+  try {
+    await updateDoc(doc(db, 'devices', id), { orgId: deleteField(), joinCode: deleteField() });
+    toast(`${name} removed`, 'ok');
+  } catch (e) { toast('Remove failed: ' + e.message, 'bad'); }
+}
+
+// ── Join code ──────────────────────────────────────────────
+function renderJoin() {
+  const code = cur().org.joinCode || '';
+  return `<div class="org-card">
+    <h2>Join code</h2>
+    <p class="apps-meta">On the phone, open CORE MDM and choose <b>Join an organization</b>, then type this code.
+      The phone shows your organization's name and asks to confirm before it joins.</p>
+    <div class="org-row" style="margin:14px 0">
+      <span class="join-code">${esc(code || '—')}</span>
+      ${code ? `<button class="btn-sec" onclick="window._org.copyCode()">Copy</button>` : ''}
+    </div>
+    <button class="btn-sec" onclick="window._org.renewCode()">Make a new code</button>
+    <p class="apps-meta" style="margin-top:8px">A new code stops the old one working. Phones that already joined stay in.</p>
+  </div>`;
+}
+async function copyCode() {
+  try { await navigator.clipboard.writeText(cur().org.joinCode); toast('Code copied', 'ok'); }
+  catch { toast('Copy failed — select the code and copy it', 'bad'); }
+}
+async function renewCode() {
+  const old = cur().org.joinCode;
+  const ok = await askConfirm({ title: 'Make a new join code?', confirmLabel: 'New code',
+    body: 'The current code stops working straight away. Phones that already joined stay in.' });
+  if (!ok) return;
+  const code = newCode();
+  const b = writeBatch(db);
+  b.set(doc(db, 'joinCodes', code), { orgId: currentId });
+  b.update(orgRef(currentId), { joinCode: code });
+  if (old) b.delete(doc(db, 'joinCodes', old));
+  try { await b.commit(); toast('New code made', 'ok'); }
+  catch (e) { toast('Failed: ' + e.message, 'bad'); }
+}
+
+// ── Admins ─────────────────────────────────────────────────
+function renderAdmins() {
+  const { org } = cur();
+  const owner = isOwner() || isSuperAdmin;
+  const rows = (org.adminEmails || []).map(e => `<div class="list-row">
+    <div><div class="policy-label">${esc(e)}</div><div class="list-sub">${e === org.ownerEmail ? 'Owner' : 'Admin'}${e === me ? ' · you' : ''}</div></div>
+    ${owner && e !== org.ownerEmail ? `<button class="btn-danger-sm" onclick="window._org.removeAdmin('${esc(e)}')">Remove</button>` : ''}
+  </div>`).join('');
+  return `<div class="org-card">
+    <h2>Admins</h2>
+    <p class="apps-meta">Admins can change the lock screen, rules, join code and remove phones.${owner ? '' : ' Only the owner can add or remove admins.'}</p>
+    ${rows}
+    ${owner ? `<div class="org-row" style="margin-top:14px">
+      <input class="dns-input" id="new-admin" type="email" placeholder="email@example.org">
+      <button class="btn-pri" onclick="window._org.addAdmin()">Add admin</button>
+    </div>
+    <p class="apps-meta" style="margin-top:6px">They sign in on this page with that email (making a CORE MDM account first if they don't have one).</p>` : ''}
+  </div>
+  ${isSuperAdmin ? `<div class="danger-card">
+    <div class="danger-title">Delete organization</div>
+    <div class="danger-desc">Super admins only. Every phone leaves the organization first, then it's deleted with its lock screen, rules and join code.</div>
+    <button class="btn-wipe" onclick="window._org.deleteOrg()">Delete organization</button>
+  </div>` : ''}`;
+}
+async function addAdmin() {
+  const email = document.getElementById('new-admin').value.trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { toast('Enter a valid email', 'bad'); return; }
+  try { await updateDoc(orgRef(currentId), { adminEmails: arrayUnion(email) }); toast(`${email} is now an admin`, 'ok'); renderOrg(true); }
+  catch (e) { toast('Failed: ' + e.message, 'bad'); }
+}
+async function removeAdmin(email) {
+  const ok = await askConfirm({ title: `Remove ${email}?`, confirmLabel: 'Remove', danger: true,
+    body: `${email} will no longer be able to manage ${cur().profile.name || 'this organization'}.` });
+  if (!ok) return;
+  try { await updateDoc(orgRef(currentId), { adminEmails: arrayRemove(email) }); toast('Admin removed', 'ok'); }
+  catch (e) { toast('Failed: ' + e.message, 'bad'); }
+}
+async function deleteOrg() {
+  const name = cur().profile.name || 'this organization';
+  const ok = await askConfirm({ title: `Delete ${name}?`, confirmLabel: 'Delete', danger: true,
+    body: `All ${phones.length} phone${phones.length === 1 ? '' : 's'} leave it and its lock screen, rules and join code are deleted. This can't be undone.` });
+  if (!ok) return;
+  const id = currentId, code = cur().org.joinCode;
+  try {
+    // Phones first, in batches (a batch holds at most 500 writes).
+    for (let i = 0; i < phones.length; i += 400) {
+      const b = writeBatch(db);
+      phones.slice(i, i + 400).forEach(p => b.update(doc(db, 'devices', p.id), { orgId: deleteField(), joinCode: deleteField() }));
+      await b.commit();
+    }
+    const b = writeBatch(db);
+    if (code) b.delete(doc(db, 'joinCodes', code));
+    b.delete(profileRef(id));
+    b.delete(orgRef(id));
+    await b.commit();
+    toast(`${name} deleted`, 'ok');
+  } catch (e) { toast('Delete failed: ' + e.message, 'bad'); }
+}
+
+window._org = {
+  openOrg, switchTab, editBrand, pickLogo, saveBrand, discardBrand,
+  setRule, setRuleValue, removePhone, copyCode, renewCode, addAdmin, removeAdmin, deleteOrg,
+};
+</script>
+</body>
+</html>

@@ -18,6 +18,7 @@ object AppBlocker {
     private const val PREFS = "mdm_app_blocker"
     private const val KEY_SUSPENDED = "suspended"
     private const val KEY_DOMAINS   = "domains"
+    private const val KEY_LEGACY_ADOPTED = "legacy_adopted"
 
     val WHATSAPP_PACKAGES = listOf("com.whatsapp", "com.whatsapp.w4b")
     val WHATSAPP_DOMAINS  = listOf("whatsapp.com", "whatsapp.net", "wa.me")
@@ -71,6 +72,7 @@ object AppBlocker {
         val custom   = listOf("blockedPackages", "suspendedApps")
             .flatMap { (policies[it] as? List<*>)?.filterIsInstance<String>().orEmpty() }
 
+        adoptLegacySuspensions(context)
         val packages = buildSet {
             if (whatsapp) addAll(WHATSAPP_PACKAGES)
             if (social)   addAll(SOCIAL_PACKAGES)
@@ -120,6 +122,27 @@ object AppBlocker {
         (wanted - prev).forEach { repo.addBlocked(it) }
         prefs(context).edit().putStringSet(KEY_DOMAINS, wanted).apply()
     }
+
+    /**
+     * Before 0.8 the command service suspended the "Block social media" apps itself without
+     * recording them here, so a later "off" would never release them (WhatsApp is in that old
+     * list but not in [SOCIAL_PACKAGES]). Once, treat those packages as ours: the next apply then
+     * releases whichever of them are no longer wanted.
+     */
+    private fun adoptLegacySuspensions(context: Context) {
+        val prefs = prefs(context)
+        if (prefs.getBoolean(KEY_LEGACY_ADOPTED, false)) return
+        val prev = prefs.getStringSet(KEY_SUSPENDED, emptySet()).orEmpty()
+        prefs.edit()
+            .putStringSet(KEY_SUSPENDED, prev + LEGACY_SOCIAL_PACKAGES)
+            .putBoolean(KEY_LEGACY_ADOPTED, true)
+            .apply()
+    }
+
+    private val LEGACY_SOCIAL_PACKAGES = setOf(
+        "com.whatsapp", "com.facebook.katana", "com.instagram.android", "com.zhiliaoapp.musically",
+        "com.snapchat.android", "com.twitter.android", "com.facebook.orca",
+    )
 
     private fun prefs(context: Context) = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 }

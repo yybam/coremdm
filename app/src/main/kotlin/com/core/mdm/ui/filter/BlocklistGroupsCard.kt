@@ -33,6 +33,7 @@ private val GROUP_LABELS = linkedMapOf(
     "app-help-pages"         to "Help & about pages inside apps",
     "cloud-infra"            to "Cloud & CDN hosts",
     "other-sites"            to "Other sites",
+    "google-maps-images"     to "Google Maps images & YouTube",
 )
 
 /**
@@ -86,13 +87,21 @@ fun BlocklistGroupsCard() {
         groups.forEach { group ->
             SwitchRow(
                 title    = GROUP_LABELS[group] ?: group,
-                subtitle = "%,d sites".format(sizes[group] ?: 0),
-                checked  = groupOn[group] ?: true,
+                subtitle = if (group == "google-maps-images")
+                               "Map photos & Street View images, Google image hosts, YouTube site and video"
+                           else "%,d sites".format(sizes[group] ?: 0),
+                checked  = groupOn[group] ?: settings.isGroupEnabled(group),
                 onChange = {
                     groupOn[group] = it
                     settings.setGroupEnabled(group, it)
-                    com.core.mdm.firebase.RemotePolicies.record(context, com.core.mdm.firebase.LocalSettingsSync.FILTER_GROUPS_OFF,
-                        com.core.mdm.firebase.LocalSettingsSync.FILTER_GROUPS.filterNot { g -> settings.isGroupEnabled(g) })
+                    val sync = com.core.mdm.firebase.LocalSettingsSync
+                    if (group in sync.OPT_IN_GROUPS) {
+                        com.core.mdm.firebase.RemotePolicies.record(context, sync.FILTER_GROUPS_ON,
+                            sync.OPT_IN_GROUPS.filter { g -> settings.isGroupEnabled(g) })
+                    } else {
+                        com.core.mdm.firebase.RemotePolicies.record(context, sync.FILTER_GROUPS_OFF,
+                            sync.FILTER_GROUPS.filterNot { g -> settings.isGroupEnabled(g) })
+                    }
                 },
             )
         }

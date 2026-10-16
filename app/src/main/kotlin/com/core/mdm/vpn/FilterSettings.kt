@@ -28,6 +28,9 @@ class FilterSettings private constructor(context: Context) {
         private const val KEY_ENABLED    = "enabled"
         private const val KEY_MATCH_MODE = "match_mode"
         private const val GROUP_PREFIX   = "group_"
+
+        /** Opt-in groups: off until switched on (the website lists them in filterGroupsOn). */
+        val DEFAULT_OFF_GROUPS = setOf("google-maps-images")
     }
 
     private val prefs: SharedPreferences =
@@ -43,7 +46,9 @@ class FilterSettings private constructor(context: Context) {
             .getOrDefault(MatchMode.SUBDOMAIN)
         set(v) { prefs.edit().putString(KEY_MATCH_MODE, v.name).apply() }
 
-    fun isGroupEnabled(group: String): Boolean = prefs.getBoolean(GROUP_PREFIX + group, true)
+    /** Every group is on by default except these opt-in ones, which block more than their name suggests. */
+    fun isGroupEnabled(group: String): Boolean =
+        prefs.getBoolean(GROUP_PREFIX + group, group !in DEFAULT_OFF_GROUPS)
 
     fun setGroupEnabled(group: String, on: Boolean) {
         prefs.edit().putBoolean(GROUP_PREFIX + group, on).apply()

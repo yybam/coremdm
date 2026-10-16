@@ -150,3 +150,8 @@ export const FILTER_GROUPS = [
   { id:'cloud-infra',            label:'Cloud & CDN hosts' },
   { id:'other-sites',            label:'Other sites' },
 ];
+// Opt-in groups: off until switched on; policies.filterGroupsOn lists the ones switched on.
+export const FILTER_OPT_IN_GROUPS = [
+  { id:'google-maps-images', label:'Google Maps images & YouTube',
+    sub:'Map photos and Street View images, Google image hosts (also Gmail/Play images and YouTube thumbnails), and the YouTube website and videos' },
+];

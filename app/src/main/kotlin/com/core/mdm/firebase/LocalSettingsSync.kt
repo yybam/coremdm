@@ -31,6 +31,7 @@ object LocalSettingsSync {
     // Policy keys (shared with the website, policies.js)
     const val FILTER_SUBDOMAINS = "filterSubdomains"
     const val FILTER_GROUPS_OFF = "filterGroupsOff"
+    const val FILTER_GROUPS_ON  = "filterGroupsOn"   // opt-in groups switched on
     const val FILTER_BLOCKED    = "filterBlocked"
     const val FILTER_ALLOWED    = "filterAllowed"
     const val FILTER_DEFAULT    = "filterDefaultList"
@@ -38,12 +39,15 @@ object LocalSettingsSync {
     const val FILTER_LIST_URL   = "filterListUrl"
     const val HIDDEN_PACKAGES   = "hiddenPackages"
 
-    val KEYS = setOf(FILTER_SUBDOMAINS, FILTER_GROUPS_OFF, FILTER_BLOCKED, FILTER_ALLOWED,
+    val KEYS = setOf(FILTER_SUBDOMAINS, FILTER_GROUPS_OFF, FILTER_GROUPS_ON, FILTER_BLOCKED, FILTER_ALLOWED,
         FILTER_DEFAULT, FILTER_DNS, FILTER_LIST_URL, HIDDEN_PACKAGES)
 
     /** The bundled blocklist groups (asset names) — the website lists the same ids. */
     val FILTER_GROUPS = listOf("ads", "analytics", "social", "video", "gifs-images", "spotify-music",
         "google-apple-microsoft", "app-help-pages", "cloud-infra", "other-sites")
+
+    /** Opt-in groups (off by default) — synced through [FILTER_GROUPS_ON] instead of the off list. */
+    val OPT_IN_GROUPS = listOf("google-maps-images")
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -59,6 +63,12 @@ object LocalSettingsSync {
         list(policies[FILTER_GROUPS_OFF])?.let { off ->
             FILTER_GROUPS.forEach { g ->
                 val on = g !in off
+                if (settings.isGroupEnabled(g) != on) settings.setGroupEnabled(g, on)
+            }
+        }
+        list(policies[FILTER_GROUPS_ON])?.let { onList ->
+            OPT_IN_GROUPS.forEach { g ->
+                val on = g in onList
                 if (settings.isGroupEnabled(g) != on) settings.setGroupEnabled(g, on)
             }
         }
@@ -142,6 +152,7 @@ object LocalSettingsSync {
             "filterRunning"          to settings.enabled,
             FILTER_SUBDOMAINS        to (settings.matchMode == MatchMode.SUBDOMAIN),
             FILTER_GROUPS_OFF        to FILTER_GROUPS.filterNot { settings.isGroupEnabled(it) },
+            FILTER_GROUPS_ON         to OPT_IN_GROUPS.filter { settings.isGroupEnabled(it) },
             FILTER_BLOCKED           to repo.getCustomBlocked().sorted(),
             FILTER_ALLOWED           to repo.getWhitelist().sorted(),
             FILTER_DEFAULT           to repo.useDefaultBlocklist,

@@ -185,7 +185,7 @@ import { getFirestore, collection, query, where, orderBy, limit,
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { guardForm } from './turnstile.js';
 import { APP_POLICIES, SYS_POLICIES, HW_POLICIES, BLOCK_POLICIES, CONTROL_POLICIES, NETWORK_POLICIES, SECTIONS,
-         SEARCH_KEYWORDS, orgRule, sectionKey, effectivePolicy, effectiveSection, FILTER_GROUPS } from './policies.js';
+         SEARCH_KEYWORDS, orgRule, sectionKey, effectivePolicy, effectiveSection, FILTER_GROUPS, FILTER_OPT_IN_GROUPS } from './policies.js';
 
 const app = initializeApp({
   apiKey:            "AIzaSyCWew6jKeAyEMUWY1DYjuzhxH0jSke3JhE",
@@ -1204,6 +1204,7 @@ function renderFilterDetails(id, p) {
       </label>
     </div>`;
   const groupsOff = new Set(Array.isArray(p.filterGroupsOff) ? p.filterGroupsOff : []);
+  const groupsOn  = new Set(Array.isArray(p.filterGroupsOn)  ? p.filterGroupsOn  : []);
   const domains = (key, empty) => {
     const list = Array.isArray(p[key]) ? p[key] : [];
     return `<div class="domain-list">${list.length
@@ -1230,6 +1231,9 @@ function renderFilterDetails(id, p) {
         p.filterDefaultList !== false, `window._mdm.setFilterBool('${e}','filterDefaultList',this.checked,this)`)}
     <div class="sect-app" style="margin-top:12px">Site groups</div>
     ${FILTER_GROUPS.map(g => toggle(g.label, '', !groupsOff.has(g.id),
+        `window._mdm.setFilterGroup('${e}','${g.id}',this.checked,this)`)).join('')}
+    <div class="sect-app" style="margin-top:12px">Extra groups (off unless switched on)</div>
+    ${FILTER_OPT_IN_GROUPS.map(g => toggle(g.label, g.sub, groupsOn.has(g.id),
         `window._mdm.setFilterGroup('${e}','${g.id}',this.checked,this)`)).join('')}
   </div>
   <div class="net-section">
@@ -1597,9 +1601,13 @@ async function setFilterBool(id, key, val, el) {
   } else if (el) el.checked = !val;
 }
 async function setFilterGroup(id, group, on, el) {
-  const g = FILTER_GROUPS.find(x => x.id === group);
+  const optIn = FILTER_OPT_IN_GROUPS.find(x => x.id === group);
+  const g = optIn || FILTER_GROUPS.find(x => x.id === group);
   try {
-    await updateDoc(deviceRef(id), { 'policies.filterGroupsOff': on ? arrayRemove(group) : arrayUnion(group) });
+    // Normal groups are on unless listed in filterGroupsOff; opt-in groups are off unless in filterGroupsOn.
+    await updateDoc(deviceRef(id), optIn
+      ? { 'policies.filterGroupsOn':  on ? arrayUnion(group) : arrayRemove(group) }
+      : { 'policies.filterGroupsOff': on ? arrayRemove(group) : arrayUnion(group) });
     toast(`${g?.label || group}: ${on ? 'blocked' : 'not blocked'}`, 'ok');
     logAudit('POLICY', id, `filter group ${group} ${on ? 'on' : 'off'} on ${nameOf(id)}`);
   } catch(e) { if (el) el.checked = !on; toast('Failed: '+e.message, 'bad'); }

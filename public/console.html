@@ -233,6 +233,8 @@ function orgTag(d, rule) {
 }
 let unsubDevices = null;
 let unsubCommands = null;   // queued commands (devices/{id}/commands) for the open device
+let unsubLocation = null;   // devices/{id}/private/location — owner-only, see firestore.rules
+const privateLoc = {};      // device id → { lat, lng, accuracy, at }
 let pendingCommands = [];
 let selectedId   = null;
 let activeTab    = 'commands';
@@ -316,6 +318,7 @@ function toDevice(id, data) {
     serial:      data.serial || '',
     policies:    data.policies || {},
     orgId:       data.orgId || null,
+    ownerId:     data.ownerId || null,
     cmds, done,
     // `apps` from app 0.8+; older phones reported `installedApps` (same shape)
     apps:        Array.isArray(data.apps) ? data.apps
@@ -557,6 +560,7 @@ function openModal(id) {
   selectedId = id;
   activeTab  = 'commands';
   startCommandListener(id);
+  startLocationListener(id);
   document.getElementById('dev-modal').style.display = 'flex';
   document.body.style.overflow = 'hidden';
   renderTabBar();
@@ -566,6 +570,7 @@ function openModal(id) {
 function closeModal() {
   selectedId = null;
   if (unsubCommands) { unsubCommands(); unsubCommands = null; }
+  if (unsubLocation) { unsubLocation(); unsubLocation = null; }
   pendingCommands = [];
   if (_leafletMap) { _leafletMap.remove(); _leafletMap = null; }
   document.getElementById('dev-modal').style.display = '';
@@ -763,6 +768,27 @@ function renderMessageSection(id) {
 }
 
 // ── Location & schedule tab ──────────────────────────────────────────────────
+// A phone's location is private to the account that owns it: the rules don't let super admins
+// or organization admins read it, and the console doesn't try.
+function ownsDevice(d) { return !!d && d.ownerId === auth.currentUser?.uid; }
+function startLocationListener(id) {
+  if (unsubLocation) { unsubLocation(); unsubLocation = null; }
+  if (!ownsDevice(devicesMap[id])) return;
+  unsubLocation = onSnapshot(doc(db, 'devices', id, 'private', 'location'), snap => {
+    const v = snap.exists() ? snap.data() : null;
+    privateLoc[id] = v && typeof v.lat === 'number'
+      ? { lat: v.lat, lng: v.lng, accuracy: v.accuracy ?? null, at: v.at?.toMillis?.() ?? null } : null;
+    if (selectedId === id && activeTab === 'location') renderTabContent();
+  }, err => console.error('location listener error:', err));
+}
+/** Latest position: the private record, or the fields phones before v0.8 wrote on the device doc. */
+function locationOf(d) {
+  if (!ownsDevice(d)) return null;
+  if (privateLoc[d.id]) return privateLoc[d.id];
+  if (d.lastLat !== null && d.lastLng !== null)
+    return { lat: d.lastLat, lng: d.lastLng, accuracy: d.lastLocationAccuracy, at: d.lastLocationAt };
+  return null;
+}
 // Switches that live only on this page (not in policies.js), so confirm dialogs can name them.
 const LOCAL_POLICIES = [
   { key:'locationTrackingEnabled',  label:'Location tracking' },
@@ -790,16 +816,22 @@ function timeRange(id, startKey, startVal, startLabel, endKey, endVal, endLabel)
 }
 function renderLocationTab(d) {
   const p = d.policies || {};
-  const hasLoc = d.lastLat !== null && d.lastLng !== null;
+  const loc = locationOf(d);
   const gf = p.geofence || {};
+  if (!ownsDevice(d)) return `
+  <div class="net-section">
+    <h3>Location</h3>
+    <p class="apps-meta">A phone's location is private to the account that owns it. It isn't shown here.</p>
+  </div>`;
   return `
   <div class="net-section">
     <h3>Last known location</h3>
-    ${hasLoc
-      ? `<p class="apps-meta">${d.lastLat.toFixed(6)}, ${d.lastLng.toFixed(6)}
-           ${d.lastLocationAccuracy ? `· ±${Math.round(d.lastLocationAccuracy)} m` : ''} · ${timeSince(d.lastLocationAt)}</p>
+    ${loc
+      ? `<p class="apps-meta">${loc.lat.toFixed(6)}, ${loc.lng.toFixed(6)}
+           ${loc.accuracy ? `· ±${Math.round(loc.accuracy)} m` : ''} · ${timeSince(loc.at)}</p>
          <div id="loc-map"></div>`
       : '<p class="apps-meta">No location yet. Turn on location tracking below, then wait for the phone to check in.</p>'}
+    <p class="apps-meta">Only you can see this phone's location — not CORE MDM staff or organization admins.</p>
     ${toggleRow(d.id, 'locationTrackingEnabled', !!p.locationTrackingEnabled, 'Location tracking',
        'The phone reports its GPS position every few minutes. Permission is granted automatically on Device Owner phones.')}
   </div>
@@ -883,14 +915,15 @@ function renderStatusSections(d) {
 }
 function initLocationMap(d) {
   const el = document.getElementById('loc-map');
-  if (!el || d.lastLat === null || d.lastLng === null || typeof L === 'undefined') return;
+  const loc = locationOf(d);
+  if (!el || !loc || typeof L === 'undefined') return;
   if (_leafletMap) { _leafletMap.remove(); _leafletMap = null; }
-  _leafletMap = L.map(el).setView([d.lastLat, d.lastLng], 15);
+  _leafletMap = L.map(el).setView([loc.lat, loc.lng], 15);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap', maxZoom: 19,
   }).addTo(_leafletMap);
-  L.marker([d.lastLat, d.lastLng]).addTo(_leafletMap)
-    .bindPopup(`<b>${esc(displayName(d))}</b><br>${timeSince(d.lastLocationAt)}`).openPopup();
+  L.marker([loc.lat, loc.lng]).addTo(_leafletMap)
+    .bindPopup(`<b>${esc(displayName(d))}</b><br>${timeSince(loc.at)}`).openPopup();
   const gf = d.policies?.geofence;
   if (gf?.enabled && gf.lat != null && gf.lng != null) {
     L.circle([gf.lat, gf.lng], { radius: gf.radius || 200, color:'#2fd39a', fillOpacity: 0.12 }).addTo(_leafletMap);
@@ -1502,6 +1535,7 @@ async function removeDevice(id) {
     // Commands first, while the device doc still exists — the commands delete rule reads its ownerId.
     const cmds = await getDocs(collection(db, 'devices', id, 'commands'));
     await Promise.all(cmds.docs.map(c => deleteDoc(c.ref)));
+    await deleteDoc(doc(db, 'devices', id, 'private', 'location')).catch(() => {});
     await deleteDoc(deviceRef(id));
     closeModal();
     toast('Device removed', 'ok');

@@ -41,7 +41,7 @@
     <ul>
       <li>We collect what's needed to manage a phone: your sign-in email, the phone's model and identifiers (like IMEI and serial number), whether it's online, the list of apps installed on it, and the rules and commands you set.</li>
       <li>The phone also reports its battery level and network type, and — once usage access is allowed on it — how long each app was used in the last 24 hours. If you set a daily time limit on an app, it reports that app's minutes used today.</li>
-      <li>Location is collected <b>only</b> if you switch on location tracking or a geofence for a phone. Then the phone reports its latest GPS position every few minutes; only the most recent position is kept.</li>
+      <li>Location is collected <b>only</b> if you switch on location tracking for a phone. Then the phone reports its latest GPS position every few minutes, and <b>only you</b> — the account that manages the phone — can see it. We (CORE MDM's staff and administrators) and organization admins can't see it. Only the most recent position is kept, and it's deleted when you switch tracking off.</li>
       <li>We <b>don't</b> collect contacts, messages, photos, files, call logs, what's on the screen or browsing history.</li>
       <li>Only you, and the admins of an organization the phone has joined, can see and manage your phones. Our platform administrators can also access device records, for support and security.</li>
       <li>We don't sell your data, share it for advertising, or use it to train AI.</li>
@@ -73,7 +73,7 @@
             <tr><td>Account</td><td>Email address, a user ID, and your password (stored in encrypted form by our sign-in provider; we can't see it).</td><td>You, when you create an account or sign in.</td></tr>
             <tr><td>Device details</td><td>Manufacturer and model, Android version, IMEI, serial number, Android ID, a hardware ID made from one of these, the device name you give it, and the CORE MDM version installed.</td><td>The CORE MDM app on the phone, and you.</td></tr>
             <tr><td>Device status</td><td>Online or offline, the time the phone was last seen, battery level and whether it's charging, network type and Wi-Fi signal strength, whether the screen guard and usage access are switched on, when it last applied your rules, and the result of app updates.</td><td>The app, about once a minute while it runs.</td></tr>
-            <tr><td>Location (only if switched on)</td><td>The phone's latest GPS position and its accuracy, and the geofence area you set. Only the most recent position is kept.</td><td>The app, every few minutes while location tracking or a geofence is on for that phone.</td></tr>
+            <tr><td>Location (only if switched on)</td><td>The phone's latest GPS position and its accuracy. Only the most recent position is kept, it's visible only to the account that manages the phone, and it's deleted when tracking is switched off. The geofence area you set is stored with the phone's other settings.</td><td>The app, every few minutes while location tracking is on for that phone. (A geofence is checked on the phone and doesn't report its position.)</td></tr>
             <tr><td>App usage</td><td>For each app: how long it was used in the last 24 hours. For apps with a daily time limit: the minutes used since midnight.</td><td>The app, using Android's usage statistics, once usage access is allowed on the phone.</td></tr>
             <tr><td>Messages you send</td><td>The title and text of messages you send to a phone from the console.</td><td>You, in the web console.</td></tr>
             <tr><td>Installed apps</td><td>The name and package name of each app installed on the phone, whether it's a system app, and whether it's hidden or blocked.</td><td>The app, when apps are installed or removed and about every 30 minutes.</td></tr>
@@ -91,7 +91,7 @@
       <h2>3. What we don't collect</h2>
       <p>CORE MDM controls what a phone can do. It does not read what's on it. We do not collect:</p>
       <ul>
-        <li>location or GPS data, unless you switch on location tracking or a geofence for that phone;</li>
+        <li>location or GPS data, unless you switch on location tracking for that phone — and even then only you can see it;</li>
         <li>contacts, messages, emails, photos, files or call logs;</li>
         <li>what's shown on the screen, or anything typed;</li>
         <li>the websites visited (see Content filter);</li>
@@ -126,8 +126,8 @@
       <h2>6. Who can see it</h2>
       <ul>
         <li><b>You.</b> A phone is linked to the account that signed in on it. That account can see and manage it in the console and in the app.</li>
-        <li><b>Organization admins,</b> if the phone has joined an organization (see below).</li>
-        <li><b>Our platform administrators.</b> They can view all devices and the activity log, and send commands, to provide support, keep the Service secure and prevent abuse. Every action is recorded in the activity log.</li>
+        <li><b>Organization admins,</b> if the phone has joined an organization (see below) — but not the phone's location.</li>
+        <li><b>Our platform administrators.</b> They can view all devices and the activity log, and send commands, to provide support, keep the Service secure and prevent abuse. Every action is recorded in the activity log. They <b>cannot</b> see a phone's location: our database rules allow only the account that manages the phone to read it.</li>
         <li><b>Service providers</b> who run parts of the Service for us (see below).</li>
         <li><b>Authorities,</b> if the law requires it, or to protect someone's safety or our legal rights.</li>
         <li><b>A buyer or successor,</b> if our business is sold or merged, under the same protections.</li>

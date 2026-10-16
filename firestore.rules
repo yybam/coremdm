@@ -165,6 +165,20 @@ service cloud.firestore {
                       || parentDevice().deviceUid == request.auth.uid);
     }
 
+    // Private per-device data (the phone's latest location). Deliberately NO super-admin or
+    // organization-admin access: only the account that owns the phone and the phone itself.
+    // The privacy policy relies on this — don't widen it.
+    match /devices/{deviceId}/private/{docId} {
+      function parentDevice() {
+        return get(/databases/$(database)/documents/devices/$(deviceId)).data;
+      }
+      allow read: if request.auth != null
+                  && (parentDevice().ownerId == request.auth.uid
+                      || parentDevice().deviceUid == request.auth.uid);
+      allow write: if request.auth != null && parentDevice().deviceUid == request.auth.uid;
+      allow delete: if request.auth != null && parentDevice().ownerId == request.auth.uid;
+    }
+
     // Audit log — any authenticated user can write, only super admin can read
     match /audit_logs/{logId} {
       allow create: if request.auth != null;

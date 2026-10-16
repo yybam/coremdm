@@ -436,6 +436,7 @@ class MdmCommandService : Service() {
                 LocationService.start(applicationContext)
             } else {
                 LocationService.stop(applicationContext)
+                DeviceRegistry.clearLocation(applicationContext)
             }
         }
 

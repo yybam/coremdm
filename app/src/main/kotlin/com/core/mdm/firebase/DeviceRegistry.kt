@@ -314,15 +314,38 @@ object DeviceRegistry {
             .addOnFailureListener { Log.e(TAG, "writeDeviceStatus failed: ${it.message}") }
     }
 
+    /**
+     * The phone's latest position goes to devices/{id}/private/location, which the Firestore rules
+     * let only the phone's owner and the phone itself read — not platform super admins or
+     * organization admins (the privacy policy promises that). Only the latest position is kept.
+     */
     fun writeLocation(context: Context, lat: Double, lng: Double, accuracy: Float) {
         uid() ?: return
         val id = EnrollmentManager.getHardwareId(context)
-        devices().document(id).update(mapOf(
-            "lastLat"              to lat,
-            "lastLng"              to lng,
-            "lastLocationAccuracy" to accuracy,
-            "lastLocationAt"       to FieldValue.serverTimestamp(),
-        )).addOnFailureListener { Log.e(TAG, "writeLocation failed: ${it.message}") }
+        val ref = devices().document(id)
+        ref.collection("private").document("location").set(mapOf(
+            "lat"      to lat,
+            "lng"      to lng,
+            "accuracy" to accuracy,
+            "at"       to FieldValue.serverTimestamp(),
+        )).addOnSuccessListener {
+            // Clear the fields older app versions kept on the device record itself.
+            if (!locationFieldsCleared) {
+                ref.update(mapOf(
+                    "lastLat" to FieldValue.delete(), "lastLng" to FieldValue.delete(),
+                    "lastLocationAccuracy" to FieldValue.delete(), "lastLocationAt" to FieldValue.delete(),
+                )).addOnSuccessListener { locationFieldsCleared = true }
+            }
+        }.addOnFailureListener { Log.e(TAG, "writeLocation failed: ${it.message}") }
+    }
+    @Volatile private var locationFieldsCleared = false
+
+    /** Location tracking was switched off: delete the stored position. */
+    fun clearLocation(context: Context) {
+        uid() ?: return
+        devices().document(EnrollmentManager.getHardwareId(context))
+            .collection("private").document("location").delete()
+            .addOnFailureListener { Log.w(TAG, "clearLocation failed: ${it.message}") }
     }
 
     fun writeUsageStats(context: Context, stats: List<Map<String, Any>>) {

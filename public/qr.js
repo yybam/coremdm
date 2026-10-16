@@ -47,14 +47,31 @@ $("qrApkUrl").textContent = APK_URL;
 ["wifiSsid", "wifiPassword", "wifiSecurity", "wifiHidden"].forEach((id) => $(id).addEventListener("input", render));
 render();
 
-// ---------- USB / QR switch ----------
+// ---------- USB / QR / manual ADB switch ----------
+const METHODS = ["usb", "qr", "adb"];
 function showMethod(method) {
-  $("usbMethod").hidden = method !== "usb";
-  $("qrMethod").hidden = method !== "qr";
+  for (const m of METHODS) $(m + "Method").hidden = method !== m;
   document.querySelector(`input[name="method"][value="${method}"]`).checked = true;
 }
 document.querySelectorAll('input[name="method"]').forEach((r) => r.addEventListener("change", () => {
   showMethod(r.value);
-  history.replaceState(null, "", r.value === "qr" ? "#qr" : location.pathname);
+  history.replaceState(null, "", r.value === "usb" ? location.pathname : "#" + r.value);
 }));
-showMethod(location.hash === "#qr" ? "qr" : "usb");
+const hashMethod = location.hash.slice(1);
+showMethod(METHODS.includes(hashMethod) ? hashMethod : "usb");
+
+// ---------- Copy buttons (manual ADB commands) ----------
+document.querySelectorAll("button.copy").forEach((b) => b.addEventListener("click", async () => {
+  const text = b.dataset.copy;
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    // Older browsers / insecure origins: fall back to a hidden textarea
+    const t = Object.assign(document.createElement("textarea"), { value: text });
+    document.body.appendChild(t); t.select(); document.execCommand("copy"); t.remove();
+  }
+  const label = b.textContent;
+  b.textContent = "Copied ✓";
+  b.classList.add("copied");
+  setTimeout(() => { b.textContent = label; b.classList.remove("copied"); }, 1500);
+}));

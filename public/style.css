@@ -326,3 +326,17 @@ main.wide { max-width: 1120px; padding-top: 40px; }
   box-shadow: 0 16px 40px -14px rgba(31, 160, 190, .6); }
 .qr svg { display: block; width: 100%; height: 100%; }
 .tech-note code { word-break: break-all; }
+
+/* Manual ADB install: copyable commands */
+.cmds { display: grid; gap: 4px; margin: 14px 0 6px; }
+.cmd { display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 14px; border-radius: 12px;
+  background: rgba(0, 0, 0, .35); border: 1px solid var(--line); }
+.cmd code { flex: 1; min-width: 0; background: none; border: 0; padding: 0; overflow-x: auto; white-space: nowrap;
+  font: .86rem/1.5 ui-monospace, "Cascadia Code", Consolas, monospace; color: #bfe6ff; }
+.cmd .copy { flex-shrink: 0; padding: 6px 12px; border-radius: 9px; font-size: .78rem; font-weight: 600;
+  color: var(--text); background: rgba(255, 255, 255, .08); border: 1px solid var(--line); cursor: pointer; }
+.copy.copied { color: var(--ok); border-color: rgba(74, 222, 155, .5); }
+.cmd-note { margin: 2px 4px 10px; font-size: .82rem; }
+.sub-h { margin: 22px 0 0; font-size: 1rem; }
+.troubles li { margin-bottom: 12px; }
+.troubles .cmd { margin-top: 6px; }

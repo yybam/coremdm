@@ -31,16 +31,17 @@
 <main>
   <header class="hero">
     <img class="logo" src="logo-mark.png" alt="CORE MDM logo" width="191" height="231">
-    <div class="badge"><span class="pulse"></span> USB or QR code · runs in your browser</div>
+    <div class="badge"><span class="pulse"></span> USB, QR code or ADB · runs in your browser</div>
     <h1>CORE MDM <span class="grad">Installer</span></h1>
-    <p class="sub">Install <a href="index.html">CORE MDM</a> on an Android phone and set it as device owner, over a USB cable or by scanning a QR code. Nothing to download to this computer.</p>
+    <p class="sub">Install <a href="index.html">CORE MDM</a> on an Android phone and set it as device owner — over a USB cable, by scanning a QR code, or with ADB commands you run yourself.</p>
   </header>
 
   <section class="glass">
-    <div class="head"><div><h2>How do you want to install?</h2><p class="muted">Both ways give the same result.</p></div></div>
+    <div class="head"><div><h2>How do you want to install?</h2><p class="muted">All three give the same result.</p></div></div>
     <div class="choices">
       <label class="choice"><input type="radio" name="method" value="usb" checked><span><b>USB cable</b><small>From a computer with Chrome or Edge. Works on a phone that's already set up, once its accounts are removed.</small></span></label>
       <label class="choice"><input type="radio" name="method" value="qr"><span><b>QR code</b><small>No computer or cable. The phone must be brand new or freshly factory reset.</small></span></label>
+      <label class="choice"><input type="radio" name="method" value="adb"><span><b>Manual (ADB)</b><small>Already use ADB? Download the APK and copy-paste a few commands. Works in any browser.</small></span></label>
     </div>
   </section>
 
@@ -130,6 +131,72 @@
   </section>
 
   <p class="muted tech-note">Downloads <code id="qrApkUrl"></code> · Android 7 or newer</p>
+  </div>
+
+  <div id="adbMethod" hidden>
+  <section class="glass">
+    <div class="head"><span class="num">1</span><div><h2>Download</h2><p class="muted">Two things on your computer: the CORE MDM app and Google's ADB tool.</p></div></div>
+    <div class="row">
+      <a class="btn primary" href="coremdm.apk" download="coremdm.apk">Download CORE MDM <span data-app-version>(latest)</span> APK</a>
+      <a class="btn ghost" href="https://developer.android.com/tools/releases/platform-tools" target="_blank" rel="noopener">Get ADB (Platform-Tools) ↗</a>
+    </div>
+    <p class="muted">Download not working? Get it from <a href="https://github.com/yybam/coremdm/releases/latest/download/app-release.apk">GitHub releases</a> instead (then use that file name in the commands below).</p>
+    <ol class="prep">
+      <li>Unzip <b>Platform-Tools</b> and open a terminal in that folder (Windows: in the folder, type <code>cmd</code> in the address bar and press Enter).</li>
+      <li>Move <b>coremdm.apk</b> into the same folder — or drag the file into the terminal to paste its full path in place of <code>coremdm.apk</code>.</li>
+      <li>In Windows PowerShell, put <code>.\</code> in front of each command, like <code>.\adb devices</code>. On Mac or Linux, use <code>./adb</code>.</li>
+    </ol>
+  </section>
+
+  <section class="glass">
+    <div class="head"><span class="num">2</span><div><h2>Get the phone ready</h2><p class="muted">Same as the USB method.</p></div></div>
+    <ol class="prep">
+      <li><b>Factory reset the phone</b>, or remove every account under <i>Settings › Accounts</i>. Android won't set a device owner while any account is on the phone.</li>
+      <li>Skip Google sign-in during setup.</li>
+      <li>Turn on developer options: <i>Settings › About phone</i>, then tap <b>Build number</b> 7 times.</li>
+      <li>Turn on <b>USB debugging</b> in <i>Settings › System › Developer options</i>, then connect the phone with a USB cable.</li>
+    </ol>
+  </section>
+
+  <section class="glass">
+    <div class="head"><span class="num">3</span><div><h2>Run these commands</h2><p class="muted">Copy each one into the terminal, in order, and press Enter.</p></div></div>
+    <div class="cmds">
+      <div class="cmd"><code>adb devices</code><button type="button" class="copy" data-copy="adb devices">Copy</button></div><p class="muted cmd-note">Tap <b>Allow</b> on the phone's “Allow USB debugging?” prompt. The phone should be listed as <code>device</code> — not <code>unauthorized</code>.</p>
+      <div class="cmd"><code>adb install -r coremdm.apk</code><button type="button" class="copy" data-copy="adb install -r coremdm.apk">Copy</button></div><p class="muted cmd-note">Should end with <code>Success</code>.</p>
+      <div class="cmd"><code>adb shell dpm set-device-owner com.core.mdm/.MdmDeviceAdmin</code><button type="button" class="copy" data-copy="adb shell dpm set-device-owner com.core.mdm/.MdmDeviceAdmin">Copy</button></div><p class="muted cmd-note">Should print <code>Success: Device owner set to package com.core.mdm</code>.</p>
+    </div>
+    <div class="row">
+      <button type="button" class="ghost copy" data-copy="adb devices&#10;adb install -r coremdm.apk&#10;adb shell dpm set-device-owner com.core.mdm/.MdmDeviceAdmin">Copy all three</button>
+    </div>
+    <p class="muted agree">By installing, you confirm you own this phone or have permission to manage it, that you take full responsibility for it (we are not responsible for any problem, including ones caused by the app), and you agree to the <a href="terms.html">Terms of Service</a> and <a href="privacy.html">Privacy Policy</a>.</p>
+
+    <h3 class="sub-h">Recommended extras</h3>
+    <div class="cmds">
+      <div class="cmd"><code>adb shell pm grant com.core.mdm android.permission.WRITE_SECURE_SETTINGS</code><button type="button" class="copy" data-copy="adb shell pm grant com.core.mdm android.permission.WRITE_SECURE_SETTINGS">Copy</button></div><p class="muted cmd-note">Stops the phone's battery saver from switching CORE MDM off, so commands keep arriving.</p>
+      <div class="cmd"><code>adb shell monkey -p com.core.mdm -c android.intent.category.LAUNCHER 1</code><button type="button" class="copy" data-copy="adb shell monkey -p com.core.mdm -c android.intent.category.LAUNCHER 1">Copy</button></div><p class="muted cmd-note">Opens CORE MDM on the phone. Sign in, set a PIN, and the phone appears in your console.</p>
+    </div>
+    <div class="row"><a class="btn primary" href="console.html">Open the console →</a></div>
+  </section>
+
+  <details class="glass log">
+    <summary>Something went wrong?</summary>
+    <ul class="prep troubles">
+      <li><b>“already some accounts on the device”</b> — remove every account in <i>Settings › Accounts</i> (or factory reset). To see what's left:<br>
+      <div class="cmd"><code>adb shell dumpsys account</code><button type="button" class="copy" data-copy="adb shell dumpsys account">Copy</button></div>
+      </li>
+      <li><b>“already several users on the device”</b> — remove the work profile / extra users. List them, then remove each one that isn't <code>0</code>:<br>
+      <div class="cmd"><code>adb shell pm list users</code><button type="button" class="copy" data-copy="adb shell pm list users">Copy</button></div>
+      <div class="cmd"><code>adb shell pm remove-user 10</code><button type="button" class="copy" data-copy="adb shell pm remove-user 10">Copy</button></div><p class="muted cmd-note">Replace <code>10</code> with the user number from the list.</p>
+      </li>
+      <li><b>Phone shows as <code>unauthorized</code></b> — unlock the phone and accept the USB debugging prompt. Still stuck? Run <code>adb kill-server</code>, unplug, replug.</li>
+      <li><b>Phone not listed at all</b> — try another cable or port. On Windows with a Samsung phone, install the <a href="https://developer.samsung.com/android-usb-driver" target="_blank" rel="noopener">Samsung USB driver</a>.</li>
+      <li><b><code>INSTALL_FAILED_UPDATE_INCOMPATIBLE</code></b> — an old CORE MDM signed with a different key is installed. Remove it first:<br>
+      <div class="cmd"><code>adb uninstall com.core.mdm</code><button type="button" class="copy" data-copy="adb uninstall com.core.mdm">Copy</button></div>
+      </li>
+    </ul>
+  </details>
+
+  <p class="muted tech-note">Manual install · ADB from Android Platform-Tools · Android 7 or newer</p>
   </div>
 
   <footer class="muted foot">
